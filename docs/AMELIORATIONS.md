@@ -121,7 +121,7 @@ Actions :
 **Structure cible :**
 ```
 egovault-data/
-├── vault/              ← nouvelle racine Obsidian
+├── egovault/           ← racine Obsidian (s'affiche "egovault" dans Obsidian — identifiable même avec plusieurs vaults ouverts)
 │   ├── .obsidian/
 │   └── notes/
 └── sources/            ← hors vault, Obsidian ne l'indexe pas
@@ -130,9 +130,9 @@ egovault-data/
 ```
 
 **Actions :**
-- Créer `egovault-data/vault/`, y déplacer `notes/` et `.obsidian/`
-- Rouvrir le vault Obsidian depuis `egovault-data/vault/`
-- Mettre à jour `config.yaml` : `vault.data_path` pointe vers `egovault-data/vault/`, ajouter `vault.sources_path` vers `egovault-data/sources/`
+- Créer `egovault-data/egovault/`, y déplacer `notes/` et `.obsidian/`
+- Rouvrir le vault Obsidian depuis `egovault-data/egovault/`
+- Mettre à jour `config.yaml` : `vault.data_path` pointe vers `egovault-data/egovault/`, ajouter `vault.sources_path` vers `egovault-data/sources/`
 - Mettre à jour tous les scripts qui calculent les paths (`_config.py`, `_core.py`, `init_vault.py`)
 - Les wikilinks `source: "[[sources/slug/source.md]]"` dans les notes deviendront non résolus — migration vers plain text ou IDs stables à prévoir
 
