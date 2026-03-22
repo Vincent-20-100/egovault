@@ -114,6 +114,32 @@ Actions :
 
 ---
 
+### [ ] T8. Migration architecture — sources hors vault Obsidian
+
+**Objectif** : que le graph Obsidian ne contienne que des notes. Actuellement `sources/` est dans la racine du vault → nœuds parasites dans le graph malgré les filtres.
+
+**Structure cible :**
+```
+egovault-data/
+├── vault/              ← nouvelle racine Obsidian
+│   ├── .obsidian/
+│   └── notes/
+└── sources/            ← hors vault, Obsidian ne l'indexe pas
+    ├── raw-sources/
+    └── SLUG/
+```
+
+**Actions :**
+- Créer `egovault-data/vault/`, y déplacer `notes/` et `.obsidian/`
+- Rouvrir le vault Obsidian depuis `egovault-data/vault/`
+- Mettre à jour `config.yaml` : `vault.data_path` pointe vers `egovault-data/vault/`, ajouter `vault.sources_path` vers `egovault-data/sources/`
+- Mettre à jour tous les scripts qui calculent les paths (`_config.py`, `_core.py`, `init_vault.py`)
+- Les wikilinks `source: "[[sources/slug/source.md]]"` dans les notes deviendront non résolus — migration vers plain text ou IDs stables à prévoir
+
+**Prérequis :** Faire en même temps que F1 (IDs stables) pour éviter deux migrations de liens.
+
+---
+
 ### [ ] T7. Pousser sur GitHub
 
 Prérequis : T1 terminé + repo app propre (T4 au moins partiellement)

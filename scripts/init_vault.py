@@ -62,58 +62,8 @@ sources/queue.yaml
 """
 
 OBSIDIAN_APP_JSON = {
-    "userIgnoreFilters": ["sources", "_*"]
+    "userIgnoreFilters": ["sources/", "**/_*"]
 }
-
-NOTES_CONTEXT = """\
----
-type: context
-description: Schéma des notes du vault
----
-
-# Conventions — Notes
-
-Toutes les notes sont dans ce dossier, différenciées par `note_type` dans le frontmatter.
-
-## Frontmatter requis
-
-```yaml
-date_creation: YYYY-MM-DD
-date_modification: YYYY-MM-DD
-note_type: synthese        # idee | synthese | reflexion | concept
-source_type: youtube       # youtube | audio | video | pdf | web | livre | cours | personnel
-depth: note                # atomique | note | approfondi
-tags: [theme-large, sous-theme]
-```
-
-## Frontmatter optionnel
-
-```yaml
-source: "[[sources/slug/source.md]]"
-url: "https://..."
-```
-"""
-
-SOURCES_CONTEXT = """\
----
-type: context
-description: Schéma des sources du vault
----
-
-# Conventions — Sources
-
-## sources/raw-sources/SLUG/
-Zone de staging. Chaque drop-off contient :
-- `source.md` — métadonnées + status (pending → ready/failed)
-- `transcript.txt` — texte brut (si applicable)
-- Fichier original (audio, PDF...) — jamais copié, chemin référencé
-
-## sources/SLUG/
-Sources permanentes après traitement. Même structure que raw-sources/.
-
-## sources/raw-sources/_archive/
-Corbeille des raw-sources traités et non conservés. Vidé par `clean_sources.py --delete`.
-"""
 
 
 def create_dir(path: Path, label: str) -> bool:
@@ -184,10 +134,6 @@ def main():
         ".obsidian/app.json",
         args.force,
     )
-
-    # Fichiers contexte
-    create_file(vault_path / "notes" / "_context.md", NOTES_CONTEXT, "notes/_context.md", args.force)
-    create_file(vault_path / "sources" / "_context.md", SOURCES_CONTEXT, "sources/_context.md", args.force)
 
     # Fichiers méta (vides, seront remplis par les scripts)
     create_file(vault_path / "_index.md", "# Index du vault\n\n_À générer via `update_index.py`_\n",

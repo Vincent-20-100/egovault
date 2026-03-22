@@ -290,6 +290,17 @@ Pour podcasts, livres, vidéos, articles. La source doit être dans `sources/raw
 ```
 1. Lire source.md du drop-off — noter : titre, type_source, url (si présente), chaine + description (si source youtube)
    Analyser la source (lire transcript.txt ou fichier brut dans le sous-dossier raw-sources/SLUG/)
+
+1b. [Si le nom du dossier n'est pas explicite]
+   Exemples non explicites : "0319-audio", "enregistrement-2", "source-1"
+   → Proposer un slug descriptif basé sur le contenu : "philosophie-stoicienne-epictete" plutôt que "0319-audio"
+   → Renommer le dossier raw-sources/SLUG/ avec le nouveau nom
+   → Mettre à jour le champ fichier_audio: dans source.md si le fichier audio référencé change de chemin
+
+1c. [Si source.md n'a pas de champ description: ou s'il est générique ("Enregistrement audio local transcrit...")]
+   → Générer une description de 1-2 phrases depuis le contenu du transcript
+   → L'ajouter / la remplacer dans le frontmatter de source.md
+
 2. Proposer les idées principales identifiées
 3. Demander : "Une note ou plusieurs ?"
    → Heuristique : 3+ thèmes distincts sans lien direct → plusieurs notes
@@ -301,7 +312,9 @@ Pour podcasts, livres, vidéos, articles. La source doit être dans `sources/raw
 5. Rédiger la note selon les réponses
 6. Proposer tags (depuis _index.md) + liens potentiels
 7. Valider avec l'utilisateur
-8. Créer le fichier dans notes/ (note_type: synthese) — inclure url: dans le frontmatter si source.md contient une URL
+8. Créer le fichier dans notes/ (note_type: synthese)
+   - Inclure url: dans le frontmatter si source.md contient une URL
+   - Champ source: avec wikilink : source: "[[sources/SLUG/source.md]]"
 9. Décider du sort du raw-source :
     - Source utile à conserver → déplacer raw-sources/SLUG/ vers sources/SLUG/
     - Source jetable (URL suffit, doublon) → déplacer vers raw-sources/_archive/
