@@ -3,15 +3,18 @@ scripts/init_vault.py
 Initialise la structure du vault data si elle n'existe pas.
 
 Crée :
-  {data_path}/
+  {sources_path}/                   ← hors vault Obsidian
+  ├── raw-sources/
+  │   └── _archive/
+  └── queue.yaml                    ← géré à l'exécution
+
+  {vault_path}/                     ← racine Obsidian (ex: egovault-data/egovault/)
   ├── .git/               ← git init (si absent)
-  ├── .gitignore          ← exclut audio, queue.yaml, fichiers locaux Obsidian
+  ├── .gitignore
   ├── .obsidian/
-  │   └── app.json        ← sources/ et _* exclus du graph
+  │   ├── app.json        ← _* exclus du graph
+  │   └── graph.json      ← hideUnresolved + filtre -path:sources
   ├── notes/
-  ├── sources/
-  │   └── raw-sources/
-  │       └── _archive/
   ├── _index.md           ← vide (sera rempli par update_index.py)
   └── _status.md          ← vide (sera rempli par vault_status.py)
 
@@ -28,7 +31,7 @@ from pathlib import Path
 if __package__ is None:
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts._config import get_vault_path
+from scripts._config import get_vault_path, get_sources_path
 
 GITIGNORE_CONTENT = """\
 # Fichiers audio/vidéo — jamais dans git
@@ -139,18 +142,32 @@ def main():
             sys.exit("vault.data_path non défini dans config.yaml.")
         vault_path = (Path(config_path).parent / raw).resolve()
 
-    print(f"\nInitialisation du vault : {vault_path}\n")
+    try:
+        sources_path = get_sources_path()
+    except SystemExit:
+        import yaml
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        with open(config_path) as f:
+            cfg = yaml.safe_load(f) or {}
+        raw = cfg.get("vault", {}).get("sources_path", "")
+        sources_path = (Path(config_path).parent / raw).resolve() if raw else vault_path.parent / "sources"
 
-    # Dossiers
-    create_dir(vault_path, "vault/")
-    create_dir(vault_path / "notes", "notes/")
-    create_dir(vault_path / "sources", "sources/")
-    create_dir(vault_path / "sources" / "raw-sources", "sources/raw-sources/")
-    create_dir(vault_path / "sources" / "raw-sources" / "_archive", "sources/raw-sources/_archive/")
-    create_dir(vault_path / ".obsidian", ".obsidian/")
+    print(f"\nInitialisation du vault  : {vault_path}")
+    print(f"Initialisation sources   : {sources_path}\n")
 
-    # Fichiers de config
-    create_file(vault_path / ".gitignore", GITIGNORE_CONTENT, ".gitignore", args.force)
+    # Dossiers vault (racine Obsidian)
+    create_dir(vault_path, "egovault/")
+    create_dir(vault_path / "notes", "egovault/notes/")
+    create_dir(vault_path / ".obsidian", "egovault/.obsidian/")
+
+    # Dossiers sources (hors vault)
+    create_dir(sources_path, "sources/")
+    create_dir(sources_path / "raw-sources", "sources/raw-sources/")
+    create_dir(sources_path / "raw-sources" / "_archive", "sources/raw-sources/_archive/")
+
+    # Fichiers de config — .gitignore à la racine de egovault-data/ (parent du vault)
+    data_root = vault_path.parent
+    create_file(data_root / ".gitignore", GITIGNORE_CONTENT, ".gitignore", args.force)
     create_file(
         vault_path / ".obsidian" / "app.json",
         json.dumps(OBSIDIAN_APP_JSON, indent=2, ensure_ascii=False) + "\n",

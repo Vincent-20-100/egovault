@@ -13,7 +13,7 @@ from collections import defaultdict
 # Permet l'exécution directe (python scripts/vault_status.py) et via -m
 if __package__ is None:
     sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts._config import get_vault_path
+from scripts._config import get_vault_path, get_sources_path
 
 try:
     import yaml
@@ -47,7 +47,7 @@ def _read_status_field(source_md: Path) -> str:
         return "unknown"
 
 
-def get_status(vault_path: Path) -> dict:
+def get_status(vault_path: Path, sources_path: Path | None = None) -> dict:
     notes = {}
     for folder in NOTE_FOLDERS:
         p = vault_path / folder
@@ -64,7 +64,8 @@ def get_status(vault_path: Path) -> dict:
             note_type = fm.get("note_type", "inconnu")
             by_type[note_type] += 1
 
-    raw_root = vault_path / "sources" / "raw-sources"
+    sources_root = sources_path if sources_path is not None else vault_path / "sources"
+    raw_root = sources_root / "raw-sources"
     raw_pending = []
     if raw_root.exists():
         for item in raw_root.iterdir():
@@ -73,10 +74,9 @@ def get_status(vault_path: Path) -> dict:
                 status = _read_status_field(source_md) if source_md.exists() else "unknown"
                 raw_pending.append({"name": item.name, "status": status})
 
-    sources_path = vault_path / "sources"
     permanent_sources = []
-    if sources_path.exists():
-        for item in sources_path.iterdir():
+    if sources_root.exists():
+        for item in sources_root.iterdir():
             if item.is_dir() and item.name != "raw-sources":
                 permanent_sources.append(item.name)
 
@@ -88,8 +88,8 @@ def get_status(vault_path: Path) -> dict:
     }
 
 
-def write_status(vault_path: Path):
-    s = get_status(vault_path)
+def write_status(vault_path: Path, sources_path: Path | None = None):
+    s = get_status(vault_path, sources_path)
     today = date.today().isoformat()
     lines = [
         f"# VAULT STATUS — {today}",
@@ -128,4 +128,4 @@ if __name__ == "__main__":
     parser.add_argument("--vault", default=".", help="Chemin racine du vault")
     args = parser.parse_args()
     vault_path = get_vault_path() if args.vault == "." else Path(args.vault)
-    write_status(vault_path)
+    write_status(vault_path, get_sources_path())

@@ -12,7 +12,7 @@ try:
 except ImportError:
     raise SystemExit("PyYAML requis : pip install pyyaml")
 
-from scripts._config import get_vault_path
+from scripts._config import get_vault_path, get_sources_path
 
 # Constantes de détection de type — importées par capture.py et queue.py
 YOUTUBE_PATTERN = re.compile(r"(youtube\.com|youtu\.be)")
@@ -26,7 +26,7 @@ STATUS_READY   = "ready"
 STATUS_FAILED  = "failed"
 _VALID_STATUSES = {STATUS_PENDING, STATUS_READY, STATUS_FAILED}
 
-RAW_SOURCES = get_vault_path() / "sources" / "raw-sources"
+RAW_SOURCES = get_sources_path() / "raw-sources"
 
 
 def slug(text: str, max_len: int = 50) -> str:

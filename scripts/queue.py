@@ -22,7 +22,7 @@ try:
 except ImportError:
     raise SystemExit("PyYAML requis : pip install pyyaml")
 
-from scripts._config import get_vault_path
+from scripts._config import get_sources_path
 from scripts.ingest._core import YOUTUBE_PATTERN, AUDIO_EXTENSIONS, VIDEO_EXTENSIONS
 
 
@@ -38,7 +38,7 @@ def _detect_type(source: str) -> str:
 
 
 def _queue_path() -> Path:
-    return get_vault_path() / "sources" / "queue.yaml"
+    return get_sources_path() / "queue.yaml"
 
 
 def _load() -> dict:

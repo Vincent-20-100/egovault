@@ -10,9 +10,9 @@ _Dernière mise à jour : 2026-03-22_
 
 La connaissance humaine s'accumule dans des endroits morts.
 
-Un podcast écouté, un livre lu, une réflexion notée — dans la semaine qui suit, 80% du contenu a disparu. Ce n'est pas un problème d'intelligence. C'est un problème d'infrastructure : nous n'avons pas de système qui capte, structure et rend disponible ce que nous absorbons.
+Un podcast écouté, un livre lu, une réflexion notée — dans la semaine qui suit, le contenu est dispercé ou a disparu. Ce n'est pas un problème d'intelligence, c'est un problème d'infrastructure : nous n'avons pas de système qui capte, structure et rend disponible ce que nous absorbons.
 
-En parallèle, les LLMs sont puissants mais amnésiques. Chaque conversation repart de zéro. Ils ne savent pas qui tu es, ce que tu as pensé hier, ce que tu as appris ce mois-ci. Leur intelligence est générale mais elle n't a pas accès à ta connaissance particulière.
+En parallèle, les LLMs sont puissants mais amnésiques. Chaque conversation repart de zéro. Ils ne savent pas qui tu es, ce que tu as pensé hier, ce que tu as appris ce mois-ci. Leur intelligence est générale mais elle n'a pas accès à ta connaissance personelle.
 
 **Ce projet construit le pont entre les deux.**
 
@@ -22,9 +22,9 @@ En parallèle, les LLMs sont puissants mais amnésiques. Chaque conversation rep
 
 Une infrastructure de mémoire à double usage :
 
-**Pour l'humain** — un second cerveau. Un endroit où la connaissance s'accumule de façon structurée, où les connexions entre idées émergent organiquement, où retrouver une pensée de l'année passée prend deux secondes.
+**Pour l'humain** : Un second cerveau, ou plustôt une mémoire externe. Un endroit où la connaissance s'accumule de façon structurée, où les connexions entre idées émergent organiquement, où retrouver une pensée de l'année passée prend deux secondes.
 
-**Pour les LLMs** — une mémoire long-terme. Un corpus structuré, interrogeable, qui permet à n'importe quel LLM de travailler *avec* ta connaissance accumulée plutôt que de repartir de rien. Le LLM n'est plus générique : il est contextualisé par des années de pensée.
+**Pour les LLMs** : Une mémoire long-terme. Un corpus structuré, interrogeable, qui permet à n'importe quel LLM de travailler *avec* ta connaissance accumulée plutôt que de repartir de rien. Le LLM n'est plus générique : il est contextualisé par des années de pensée.
 
 Ce n'est pas un outil de prise de notes. C'est une infrastructure cognitive.
 
@@ -75,7 +75,7 @@ Dans dix ans, tu peux demander à n'importe quel LLM : *"Qu'est-ce que je pense 
 
 Ce n'est pas de la recherche documentaire. C'est de la mémoire.
 
-Le système aura réussi quand il sera invisible — quand capturer et retrouver une pensée sera aussi naturel que de se souvenir.
+Le système aura réussi quand il sera invisible, quand capturer et retrouver une pensée sera aussi naturel que de se souvenir.
 
 ---
 

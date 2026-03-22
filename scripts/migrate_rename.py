@@ -27,7 +27,7 @@ try:
 except ImportError:
     raise SystemExit("PyYAML requis : pip install pyyaml")
 
-from scripts._config import get_vault_path
+from scripts._config import get_vault_path, get_sources_path
 
 DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-(.+)$")
 
@@ -53,7 +53,7 @@ def unique_name(target: Path) -> Path:
         i += 1
 
 
-def build_rename_map(vault_path: Path) -> tuple[dict, dict]:
+def build_rename_map(vault_path: Path, sources_path: Path | None = None) -> tuple[dict, dict]:
     """
     Construit deux dicts de renommage :
       notes_map  : {ancien_nom_stem: nouveau_nom_stem}  (sans .md)
@@ -70,7 +70,7 @@ def build_rename_map(vault_path: Path) -> tuple[dict, dict]:
                 notes_map[f.stem] = new_stem
 
     sources_map = {}
-    sources_dir = vault_path / "sources"
+    sources_dir = sources_path if sources_path is not None else vault_path / "sources"
     if sources_dir.exists():
         for d in sorted(sources_dir.iterdir()):
             if not d.is_dir() or d.name.startswith("_") or d.name == "raw-sources":
@@ -107,8 +107,8 @@ def update_content(text: str, notes_map: dict, sources_map: dict) -> str:
     return text
 
 
-def migrate(vault_path: Path, apply: bool):
-    notes_map, sources_map = build_rename_map(vault_path)
+def migrate(vault_path: Path, sources_path: Path, apply: bool):
+    notes_map, sources_map = build_rename_map(vault_path, sources_path)
 
     if not notes_map and not sources_map:
         print("Aucun préfixe date trouvé — vault déjà migré.")
@@ -126,7 +126,7 @@ def migrate(vault_path: Path, apply: bool):
         renamed_notes.append((old_path, new_path))
 
     # --- Sources ---
-    sources_dir = vault_path / "sources"
+    sources_dir = sources_path
     renamed_sources: list[tuple[Path, Path]] = []
     for old_name, new_name in sources_map.items():
         old_path = sources_dir / old_name
@@ -188,4 +188,4 @@ if __name__ == "__main__":
     if not vault.exists():
         sys.exit(f"Vault introuvable : {vault}")
 
-    migrate(vault, apply=args.apply)
+    migrate(vault, sources_path=get_sources_path(), apply=args.apply)

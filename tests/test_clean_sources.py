@@ -31,5 +31,5 @@ def test_source_non_referencee_est_orpheline(vault):
 def test_liste_archive(vault):
     archive_dir = vault / "sources" / "raw-sources" / "_archive" / "2026-03-19-old"
     archive_dir.mkdir(parents=True)
-    items = list_archive(vault)
+    items = list_archive(vault / "sources")
     assert "2026-03-19-old" in items

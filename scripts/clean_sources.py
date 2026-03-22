@@ -2,13 +2,18 @@
 clean_sources.py
 Identifie sources non référencées. Vide _archive/ sur confirmation.
 Usage:
-  python scripts/clean_sources.py [--vault PATH]           <- rapport seul
-  python scripts/clean_sources.py [--vault PATH] --delete  <- vide _archive/ après confirmation
+  python scripts/clean_sources.py           <- rapport seul
+  python scripts/clean_sources.py --delete  <- vide _archive/ après confirmation
 """
 import re
+import sys
 import shutil
 import argparse
 from pathlib import Path
+
+if __package__ is None:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+from scripts._config import get_vault_path, get_sources_path
 
 NOTE_FOLDERS = ["notes"]
 
@@ -27,21 +32,21 @@ def get_referenced_sources(vault_path: Path) -> set:
     return referenced
 
 
-def find_unreferenced_sources(vault_path: Path) -> list:
+def find_unreferenced_sources(vault_path: Path, sources_path: Path | None = None) -> list:
     """Retourne les sous-dossiers de sources/ non référencés par aucune note."""
     referenced = get_referenced_sources(vault_path)
-    sources_path = vault_path / "sources"
+    sp = sources_path if sources_path is not None else vault_path / "sources"
     unreferenced = []
-    if sources_path.exists():
-        for item in sources_path.iterdir():
+    if sp.exists():
+        for item in sp.iterdir():
             if item.is_dir() and item.name != "raw-sources":
                 if item.name not in referenced:
                     unreferenced.append(item.name)
     return unreferenced
 
 
-def list_archive(vault_path: Path) -> list:
-    archive = vault_path / "sources" / "raw-sources" / "_archive"
+def list_archive(sources_path: Path) -> list:
+    archive = sources_path / "raw-sources" / "_archive"
     if not archive.exists():
         return []
     return [item.name for item in archive.iterdir()
@@ -50,14 +55,15 @@ def list_archive(vault_path: Path) -> list:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--vault", default=".", help="Chemin racine du vault")
     parser.add_argument("--delete", action="store_true",
                         help="Vide _archive/ après confirmation")
     args = parser.parse_args()
-    vault = Path(args.vault)
 
-    unreferenced = find_unreferenced_sources(vault)
-    archive_items = list_archive(vault)
+    vault = get_vault_path()
+    sources = get_sources_path()
+
+    unreferenced = find_unreferenced_sources(vault, sources)
+    archive_items = list_archive(sources)
 
     print("\n=== RAPPORT CLEAN SOURCES ===")
     print(f"\n[Sources permanentes non référencées] ({len(unreferenced)})")
@@ -71,7 +77,7 @@ if __name__ == "__main__":
     if args.delete and archive_items:
         confirm = input("\nVider _archive/ ? (oui/non) : ").strip().lower()
         if confirm == "oui":
-            archive = vault / "sources" / "raw-sources" / "_archive"
+            archive = sources / "raw-sources" / "_archive"
             for item in archive.iterdir():
                 if item.is_dir():
                     shutil.rmtree(item)

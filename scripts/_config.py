@@ -38,3 +38,13 @@ def get_vault_path() -> Path:
             f"vault.data_path introuvable : {path}\nVérifier config.yaml"
         )
     return path
+
+
+def get_sources_path() -> Path:
+    cfg = load_config()
+    vault_cfg = cfg.get("vault", {})
+    raw = vault_cfg.get("sources_path")
+    if raw:
+        return (_APP_ROOT / raw).resolve()
+    # Fallback : sources/ à l'intérieur du vault (ancienne structure)
+    return get_vault_path() / "sources"
