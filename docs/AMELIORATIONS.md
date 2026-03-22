@@ -218,6 +218,20 @@ L'architecture cible prévoyait `scripts/vault/` pour grouper les scripts de mai
 
 ## Chantiers futurs intéressants (pas urgents)
 
+### F0. Modes d'exécution alternatifs
+
+**Problème** : actuellement le système nécessite Claude (API Anthropic) pour la partie agentique (reformulation, création de notes, workflows) et faster-whisper en local pour la transcription. Deux axes d'évolution :
+
+**Version light (priorité moyenne)** — transcription via API (OpenAI Whisper API, Deepgram) à la place de faster-whisper local. Élimine le besoin de ressources CPU/GPU pour la transcription. Utile pour machines légères ou usage mobile futur.
+
+**Version full local/open source (long terme)** — remplacer Claude par un LLM local (Ollama, Hugging Face) pour toute la partie agentique. Nécessaire pour un produit complet sans dépendance cloud et sans coût par token. Techniquement faisable mais la qualité des modèles locaux vs Claude est encore un écart significatif aujourd'hui.
+
+**Architecture cible via MCP (plus élégante)** — le MCP server rend le système LLM-agnostique par design : l'utilisateur utilise le LLM qu'il a déjà (Claude, GPT, modèle local Ollama...) comme moteur agentique, le MCP expose les outils vault. Zéro lock-in, zéro coût LLM supplémentaire. La transcription reste un service séparé : API (Whisper, Deepgram) ou faster-whisper local selon le setup de l'utilisateur.
+
+Actuellement : Claude API + faster-whisper local = bon équilibre qualité/simplicité.
+
+---
+
 ### F1. IDs stables pour les sources
 
 **Problème** : si `sources/` déménage sur un disque externe, tous les wikilinks cassent.

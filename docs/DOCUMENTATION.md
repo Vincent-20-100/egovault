@@ -133,6 +133,47 @@ Les wikilinks Obsidian sont basés sur le path du fichier. Si les sources démé
 
 ---
 
+## Architecture cible — MCP et LLM-agnosticisme
+
+### Décision
+
+Le système est conçu pour être **LLM-agnostique**. Le MCP server (à venir) est le cœur de cette architecture : il expose les outils vault comme des fonctions appelables par n'importe quel LLM compatible MCP.
+
+```
+Utilisateur
+    ↓
+[LLM au choix — Claude, GPT, Ollama, autre]
+    ↓ tool calls MCP
+MCP server EgoVault
+    ├── search_semantic(query)   ← RAG sur les notes
+    ├── search_tags(tags[])      ← filtre par tags/type
+    ├── get_note(path)           ← lecture d'une note
+    ├── create_note(...)         ← création déterministe
+    └── finalize_source(...)     ← déplace le drop-off, met à jour source.md
+    ↓
+egovault-data/ (vault Markdown)
+```
+
+La transcription audio reste un service séparé : faster-whisper local, ou API (Whisper, Deepgram) selon le setup.
+
+### Pourquoi LLM-agnostique ?
+
+**Zéro lock-in** : l'utilisateur utilise le LLM qu'il a déjà. EgoVault ne lui impose pas un fournisseur.
+
+**Zéro coût LLM supplémentaire** : si l'utilisateur a déjà Claude ou GPT pour autre chose, EgoVault s'y branche — pas de double abonnement.
+
+**Évolutif** : quand les modèles locaux (Ollama, Hugging Face) auront rattrapé la qualité des API cloud, le système basculera sans modification. Le MCP est l'interface stable.
+
+**Séparation des responsabilités** : le LLM fait le travail intellectuel (reformulation, jugement, connexions). Le MCP server fait le travail déterministe (lecture/écriture vault, index, déplacements de fichiers). Ces deux couches évoluent indépendamment.
+
+### État actuel vs cible
+
+Aujourd'hui : Claude lit les fichiers directement via Claude Code. Fonctionne bien pour un usage solo, pas portable.
+
+Cible : MCP server Python exposant les outils vault. N'importe quel client MCP (Claude Desktop, Cursor, client custom) peut alors travailler avec le vault.
+
+---
+
 ## Choix des outils
 
 ### faster-whisper (transcription)

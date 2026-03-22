@@ -1,6 +1,29 @@
 # EgoVault
 
-Infrastructure de mémoire personnelle — capture, transcription et structuration de sources externes en notes connectées.
+## C'est quoi EgoVault ?
+
+Tu consommes des infos en permanence — podcasts, vidéos, lectures, réflexions. Deux semaines plus tard, t'en rappelles plus grand-chose. Et tes LLMs ? Ils ne savent rien de toi. Chaque conversation repart de zéro.
+
+EgoVault construit le pont entre les deux : une base de connaissance personnelle que tu alimentes au fil du temps, structurée pour être exploitable autant par toi que par un LLM.
+
+**Ce que ça change concrètement :**
+
+- **Capturer sans friction** — une commande suffit pour transformer une vidéo YouTube, un podcast ou un enregistrement audio en source prête à traiter. Transcription locale, rien n'est envoyé ailleurs.
+- **Structurer ses idées avec le LLM** — plutôt que de prendre des notes à la volée, tu travailles avec Claude pour reformuler, distiller et cadrer chaque source en une note propre, bien ancrée dans ta façon de penser.
+- **Réutiliser comme contexte LLM** — tes notes deviennent du contexte réutilisable. Au lieu de tout réexpliquer à chaque session, tu fournis des notes existantes : le LLM travaille *avec ta connaissance accumulée*, pas avec sa culture générale.
+- **Fouiller dans sa propre pensée** — tu peux demander au LLM de croiser des notes de sources différentes, détecter des patterns, proposer des connexions que tu n'aurais pas vues.
+- **Interconnexion par tags et liens** — chaque note est taguée et liée aux autres. Des clusters thématiques émergent naturellement de l'accumulation, sans taxonomie imposée au départ.
+
+**Ce qui est en place :**
+Ingestion YouTube / audio / vidéo, structuration en notes Markdown, index automatique des tags, queue d'ingestion, protocole Claude complet pour créer et explorer les notes.
+
+**Ce qui manque encore :**
+Handler PDF et web, recherche sémantique (RAG) sur le vault.
+
+**La vision :**
+Pouvoir synthétiser, stocker et explorer sa connaissance de la façon la plus fluide possible — recherche sémantique RAG, exploration en graphe 3D par thèmes et groupes, similarité sémantique entre notes, émergence naturelle de clusters, propositions de thèmes transversaux depuis l'accumulation. Le vault connecté à n'importe quel LLM via MCP — LLM-agnostique par design, tu branches le LLM que tu utilises déjà et il travaille depuis *ce que tu sais*, pas depuis ce qu'il sait.
+
+---
 
 Deux repos distincts :
 - **egovault** (ce repo) — code, scripts, protocole Claude
