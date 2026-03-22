@@ -1,0 +1,13 @@
+# config.yaml — copier ce fichier en config.yaml et ajuster
+
+vault:
+  data_path: "../egovault-data"  # chemin vers le repo data (absolu ou relatif à l'app)
+
+whisper:
+  default_model: medium      # tiny | base | small | medium | large-v3
+  fast_model: small
+  default_lang: fr
+  cpu_threads: 4
+
+ingestion:
+  check_duplicates: true

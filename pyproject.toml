@@ -1,0 +1,19 @@
+[project]
+name = "egovault"
+version = "0.1.0"
+description = "EgoVault — infrastructure de mémoire personnelle. Capture, transcription et structuration de sources en notes connectées."
+requires-python = ">=3.10"
+dependencies = [
+    "faster-whisper>=1.2.0",
+    "yt-dlp>=2026.3.0",
+    "youtube-transcript-api>=1.2",
+    "PyYAML>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

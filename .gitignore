@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Tests
+.pytest_cache/
+
+# Outils
+.claude/settings.local.json
+docs/superpowers/
+config.yaml
+
+# Fichiers audio/vidéo — jamais dans git
+*.mp3
+*.MP3
+*.wav
+*.WAV
+*.m4a
+*.M4A
+*.mp4
+*.MP4
+*.mkv
+*.avi
+*.mov
+*.webm
+*.ogg
+*.flac
+*.aac
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Données utilisateur — tout appartient au vault, rien ici
+notes/
+sources/
+_status.md
+_index.md
