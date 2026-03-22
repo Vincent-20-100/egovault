@@ -65,6 +65,29 @@ OBSIDIAN_APP_JSON = {
     "userIgnoreFilters": ["sources/", "**/_*"]
 }
 
+OBSIDIAN_GRAPH_JSON = {
+    "collapse-filter": True,
+    "search": "-path:sources",
+    "showTags": False,
+    "showAttachments": False,
+    "hideUnresolved": True,
+    "showOrphans": True,
+    "collapse-color-groups": True,
+    "colorGroups": [],
+    "collapse-display": True,
+    "showArrow": False,
+    "textFadeMultiplier": 0,
+    "nodeSizeMultiplier": 1,
+    "lineSizeMultiplier": 1,
+    "collapse-forces": True,
+    "centerStrength": 0.518713248970312,
+    "repelStrength": 10,
+    "linkStrength": 1,
+    "linkDistance": 250,
+    "scale": 1,
+    "close": False
+}
+
 
 def create_dir(path: Path, label: str) -> bool:
     if path.exists():
@@ -132,6 +155,12 @@ def main():
         vault_path / ".obsidian" / "app.json",
         json.dumps(OBSIDIAN_APP_JSON, indent=2, ensure_ascii=False) + "\n",
         ".obsidian/app.json",
+        args.force,
+    )
+    create_file(
+        vault_path / ".obsidian" / "graph.json",
+        json.dumps(OBSIDIAN_GRAPH_JSON, indent=2, ensure_ascii=False) + "\n",
+        ".obsidian/graph.json",
         args.force,
     )
 
