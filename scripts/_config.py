@@ -48,3 +48,8 @@ def get_sources_path() -> Path:
         return (_APP_ROOT / raw).resolve()
     # Fallback : sources/ à l'intérieur du vault (ancienne structure)
     return get_vault_path() / "sources"
+
+
+def get_data_root() -> Path:
+    """Retourne egovault-data/ (parent du vault) — dossier des fichiers système."""
+    return get_vault_path().parent

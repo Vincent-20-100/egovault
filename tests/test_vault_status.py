@@ -45,6 +45,6 @@ def test_status_drop_off_distingue_ready_et_pending(vault):
 
 def test_produit_fichier_status_md(vault):
     write_status(vault)
-    assert (vault / "_status.md").exists()
-    content = (vault / "_status.md").read_text(encoding="utf-8")
+    assert (vault.parent / "_status.md").exists()
+    content = (vault.parent / "_status.md").read_text(encoding="utf-8")
     assert "VAULT STATUS" in content

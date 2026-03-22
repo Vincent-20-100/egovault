@@ -13,7 +13,7 @@ from collections import defaultdict
 # Permet l'exécution directe (python scripts/vault_status.py) et via -m
 if __package__ is None:
     sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts._config import get_vault_path, get_sources_path
+from scripts._config import get_vault_path, get_sources_path, get_data_root
 
 try:
     import yaml
@@ -88,7 +88,7 @@ def get_status(vault_path: Path, sources_path: Path | None = None) -> dict:
     }
 
 
-def write_status(vault_path: Path, sources_path: Path | None = None):
+def write_status(vault_path: Path, sources_path: Path | None = None, data_root: Path | None = None):
     s = get_status(vault_path, sources_path)
     today = date.today().isoformat()
     lines = [
@@ -118,7 +118,7 @@ def write_status(vault_path: Path, sources_path: Path | None = None):
     lines += ["", "## Sources permanentes"]
     lines.append(f"  {len(s['permanent_sources'])} dossier(s)")
 
-    out = vault_path / "_status.md"
+    out = (data_root if data_root is not None else vault_path.parent) / "_status.md"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"_status.md écrit ({today})")
 
@@ -128,4 +128,4 @@ if __name__ == "__main__":
     parser.add_argument("--vault", default=".", help="Chemin racine du vault")
     args = parser.parse_args()
     vault_path = get_vault_path() if args.vault == "." else Path(args.vault)
-    write_status(vault_path, get_sources_path())
+    write_status(vault_path, get_sources_path(), get_data_root())

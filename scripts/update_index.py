@@ -13,7 +13,7 @@ from collections import defaultdict
 # Permet l'exécution directe (python scripts/update_index.py) et via -m
 if __package__ is None:
     sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts._config import get_vault_path
+from scripts._config import get_vault_path, get_data_root
 
 try:
     import yaml
@@ -70,8 +70,8 @@ def build_index(vault_path: Path) -> dict:
     return {"tags": dict(tags), "orphelines": orphelines, "by_type": by_type}
 
 
-def write_index(vault_path: Path):
-    """Écrit _index.md à la racine du vault."""
+def write_index(vault_path: Path, data_root: Path | None = None):
+    """Écrit _index.md dans data_root (hors vault Obsidian)."""
     data = build_index(vault_path)
     today = date.today().isoformat()
     lines = [
@@ -112,7 +112,8 @@ def write_index(vault_path: Path):
     else:
         lines.append("<!-- aucune -->")
 
-    (vault_path / "_index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    out = (data_root if data_root is not None else vault_path.parent) / "_index.md"
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"_index.md mis à jour ({today})")
 
 
@@ -121,4 +122,4 @@ if __name__ == "__main__":
     parser.add_argument("--vault", default=".", help="Chemin racine du vault")
     args = parser.parse_args()
     vault_path = get_vault_path() if args.vault == "." else Path(args.vault)
-    write_index(vault_path)
+    write_index(vault_path, get_data_root())

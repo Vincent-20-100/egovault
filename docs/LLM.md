@@ -12,21 +12,18 @@ Tu es l'agent d'un système de gestion de la connaissance personnelle (PKM). Ce 
 ## Architecture du vault
 
 ```
-Notes_générales/
-├── README.md               ← explication humaine
-├── CLAUDE.md               ← point d'entrée Claude Code (lit LLM.md)
-├── LLM.md                  ← ce fichier : protocole complet
-├── AMELIORATIONS.md        ← chantiers en cours et idées d'évolution
-├── _index.md               ← registre des tags + connexions
-├── _status.md              ← snapshot état vault (généré par vault_status.py)
-├── sources/
+egovault-data/               ← données privées (repo séparé)
+├── egovault/               ← vault Obsidian (ouvrir ici dans Obsidian)
+│   ├── .obsidian/          ← config graph, filtres
+│   └── notes/              ← toutes les notes (idées, synthèses, réflexions, concepts)
+├── sources/                ← hors vault (non indexé par Obsidian)
 │   ├── raw-sources/        ← zone de staging : nouveaux dépôts à traiter
 │   │   └── _archive/       ← corbeille des raw traités (jamais supprimé sans clean_sources.py)
 │   └── slug/               ← sources permanentes (sous-dossiers autonomes)
 │       ├── source.md       ← métadonnées + lien vers note créée
 │       └── [fichiers]      ← transcript.txt, .pdf, .mp3, etc.
-├── notes/                  ← toutes les notes (idées, synthèses, réflexions, concepts)
-└── scripts/                ← scripts déterministes d'assistance LLM
+├── _index.md               ← registre des tags + connexions (hors vault)
+└── _status.md              ← snapshot état vault (hors vault)
 ```
 
 | Dossier | Rôle | Rétention |

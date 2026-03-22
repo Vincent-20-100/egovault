@@ -245,14 +245,24 @@ egovault/                    ← ce repo (public)
 └── tests/                   ← miroir de scripts/
 
 egovault-data/               ← repo privé (auto-généré)
-├── egovault/                ← vault Obsidian
+├── egovault/                ← vault Obsidian (ouvert ici dans Obsidian)
 │   ├── .obsidian/           ← config graph, filtres
 │   └── notes/               ← toutes les notes
-└── sources/                 ← hors vault (non indexé par Obsidian)
-    ├── raw-sources/         ← drop-offs en attente
-    │   └── _archive/
-    └── SLUG/                ← sources traitées (permanentes)
+├── sources/                 ← hors vault (non indexé par Obsidian)
+│   ├── raw-sources/         ← drop-offs en attente
+│   │   └── _archive/
+│   └── SLUG/                ← sources traitées (permanentes)
+├── _index.md                ← registre tags + connexions (hors vault)
+└── _status.md               ← snapshot état vault (hors vault)
 ```
+
+---
+
+## Le graph Obsidian
+
+Les notes s'accumulent et se connectent par tags et liens. Le graph Obsidian visualise cette toile en temps réel — les nœuds plus gros sont les hubs thématiques (notes-concept ou tags très connectés), les clusters qui émergent révèlent la structure de ta pensée.
+
+![Graph Obsidian EgoVault](docs/assets/graph-preview.png)
 
 ---
 

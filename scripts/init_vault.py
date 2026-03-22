@@ -65,7 +65,7 @@ sources/queue.yaml
 """
 
 OBSIDIAN_APP_JSON = {
-    "userIgnoreFilters": ["sources/", "**/_*"]
+    "userIgnoreFilters": ["sources/", "_*", "**/_*"]
 }
 
 OBSIDIAN_GRAPH_JSON = {
@@ -181,10 +181,10 @@ def main():
         args.force,
     )
 
-    # Fichiers méta (vides, seront remplis par les scripts)
-    create_file(vault_path / "_index.md", "# Index du vault\n\n_À générer via `update_index.py`_\n",
+    # Fichiers méta système — dans data_root (hors vault Obsidian)
+    create_file(data_root / "_index.md", "# Index du vault\n\n_À générer via `update_index.py`_\n",
                 "_index.md", args.force)
-    create_file(vault_path / "_status.md", "# Status du vault\n\n_À générer via `vault_status.py`_\n",
+    create_file(data_root / "_status.md", "# Status du vault\n\n_À générer via `vault_status.py`_\n",
                 "_status.md", args.force)
 
     # Git

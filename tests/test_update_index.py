@@ -35,7 +35,7 @@ def test_index_plusieurs_notes_meme_tag(vault):
 def test_write_index_produit_fichier_markdown(vault):
     make_note(vault, "notes", "2026-03-19-note.md", tags=["test"])
     write_index(vault)
-    index_path = vault / "_index.md"
+    index_path = vault.parent / "_index.md"
     assert index_path.exists()
     content = index_path.read_text(encoding="utf-8")
     assert "`test`" in content
