@@ -93,3 +93,61 @@ Raison : Cela te permet de garder ton workflow actuel "ultra fluide" tout en gar
 Veux-tu que je te prépare le modèle de données (Pydantic) qui permettrait à Claude de rester libre tout en étant "structuré" pour ton futur RAG ?
 
 
+Je ne peux pas directement générer un fichier téléchargeable (comme un bouton "Télécharger .md"), mais je peux te fournir l'intégralité de nos échanges formatés en Markdown ci-dessous.
+Tu n'auras qu'à copier-coller ce bloc dans un fichier EgoVault_Conversation.md ou dans une note Obsidian.
+Journal de Conception : Projet EgoVault
+Date : 25 Mars 2026
+Sujet : Ingestion PDF, Compression Audio/Vidéo et Architecture Database
+Échange 1 : Alternatives à Whisper pour le PDF
+Utilisateur : Est-ce qu’il existe des libs comme withper (speech to text) mais pour le pdf to text ?
+Gemini : Oui, il existe des bibliothèques qui visent précisément à être le « Whisper du PDF », c'est-à-dire des solutions basées sur le Deep Learning capables de comprendre la structure (colonnes, tableaux, formules) là où les outils classiques échouent.
+1. Les "Whisper-like" (Deep Learning & Vision)
+ * Docling (par IBM) : C'est l'étoile montante de 2025-2026. Extrêmement performante pour convertir des PDF complexes en Markdown ou JSON.
+ * Surya : Une bibliothèque OCR très précise pour la détection de mise en page.
+ * Marker : Optimisé pour transformer les articles scientifiques en Markdown (équations, tableaux).
+2. Les solutions "LLM-Native"
+ * Nougat (par Meta) : Spécifiquement conçu pour les documents scientifiques (très fort pour les formules).
+ * VLM (Vision Language Models) : Des modèles comme Qwen2-VL ou GPT-4o qui "lisent" la page.
+Échange 2 : Export LaTeX et Typst
+Utilisateur : Génial et pour en faire du latex ou son nouvel équivalent (possibilité de garder la pagination) ?
+Gemini : Pour l'alternative moderne, c'est Typst (écrit en Rust, syntaxe proche du Markdown).
+Outils d'export :
+ * Mathpix : Le "Whisper" de l'équation. Le meilleur pour le LaTeX pur.
+ * Marker : Produit du Markdown très propre, convertible en LaTeX/Typst via Pandoc.
+Note sur la pagination : Pour forcer la pagination, il faut insérer des balises de saut de page (\newpage en LaTeX ou #pagebreak() en Typst) entre chaque bloc extrait par page.
+Échange 3 : Vision globale et Architecture EgoVault
+Utilisateur : [Projet EgoVault] Ingestion de livres entiers, vision des chapitres par le LLM, structuration de l'architecture (ingestion vs utilisateur), séparation notes/sources, et compression audio/vidéo maximale.
+Gemini : 1. Vision des chapitres : Un LLM ne "voit" pas tout d'un coup. Il faut générer une Table des Matières (ToC) enrichie lors de l'ingestion pour qu'il puisse naviguer sans lire 500 pages à chaque fois.
+2. Architecture suggérée : * Ingestion Layer (Média -> Markdown).
+* Processing Layer (Transcription, Enrichissement, Liens).
+* Storage Layer (Vector DB pour le RAG, Relational DB pour les liens, Object Storage pour les fichiers).
+3. Compression : Utiliser Opus pour l'audio (parole) et AV1/H.265 pour la vidéo.
+Échange 4 : Pipeline locale et Métadonnées
+Utilisateur : Pipeline sans API, locale, peu gourmande. Docling ou Nougat pour ToC sans résumé ? Récupérer titres, longueur, date en Python ?
+Gemini : Docling est le meilleur choix local (plus léger que Nougat).
+ * Méthode : Extraire les métadonnées dans un fichier "Sidecar" (JSON ou MD).
+ * Optimisation : Utiliser PyMuPDF en premier (si le PDF a déjà des signets/bookmarks) avant de lancer l'OCR lourd de Docling.
+Échange 5 : Compression radicale (Le .parquet du média)
+Utilisateur : Systèmes de compression extrême pour audio/vidéo (comme le .parquet pour les tables) ?
+Gemini : L'équivalent n'est pas un format colonnaire, mais une stratégie de bitrate extrême.
+ * Audio : Opus en Mono, 16kHz, 12kbps ou 24kbps. Une heure = ~5 à 10 Mo.
+ * Vidéo : AV1 en 480p, 15fps.
+ * Lien : La DB stocke le chemin, le vecteur (texte) et les métadonnées, mais le fichier binaire reste sur le disque.
+Échange 6 : Support .opus et Script Python
+Utilisateur : .opus lisible par VLC ? Version encore plus compressée ?
+Gemini : Oui, VLC et les navigateurs lisent l'Opus nativement.
+ * Script Python : Utilisation de subprocess pour appeler ffmpeg avec les paramètres -c:a libopus -b:a 12k -ac 1.
+Échange 7 : Souveraineté et Résilience
+Utilisateur : Je veux être sûr que tout est retrouvable en format d'origine (même qualité moyenne) si le lien mort. Paramétrable (qualité vs stockage).
+Gemini : C'est la Souveraineté des Données.
+ * Schéma SQL : Tables sources (global), source_files (chemins vers fichiers compressés/originaux), et transcripts (texte RAG).
+ * Recall : Le RAG donne un timestamp -> Ton interface lance l'audio Opus à la seconde précise via VLC ou un lecteur web.
+Échange 8 : Le choix de la Database (SQLite)
+Utilisateur : Est-ce que même au début, faire une DB pour gérer Obsidian et le reste est le mieux ?
+Gemini : OUI. Même pour un prototype.
+ * Intégrité : Les liens ne cassent pas si tu renommes un fichier.
+ * Performance : Obsidian ramerait avec 50 000 chunks de texte.
+ * Hybride : La DB est le "Cerveau", Obsidian est l' "Interface" (fichiers MD générés automatiquement avec l'ID de la source).
+ * Outil : Commence par SQLite. C'est un simple fichier, puissant et facile à migrer plus tard.
+Next step pour EgoVault : Souhaites-tu que je commence à coder le script d'initialisation de la base SQLite avec les tables que nous avons définies ?
+
