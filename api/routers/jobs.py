@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, HTTPException
 
 from api.models import JobListItem, JobResponse
-# System DB job functions — not in VaultDB (vault DB only); kept as direct imports
+# System DB job functions (not in VaultDB)
 from infrastructure.db import get_job, list_jobs
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

@@ -102,10 +102,7 @@ tools/
 │                          generate_note_from_source, purge
 └── export/              ← typst, mermaid
 workflows/
-├── ingest.py            ← unified pipeline — ingest(source_type, target, ctx), extractor registry
-├── ingest_youtube.py    ← DEPRECATED thin wrapper (delegates to ingest.py)
-├── ingest_audio.py      ← DEPRECATED thin wrapper (delegates to ingest.py)
-└── ingest_pdf.py        ← DEPRECATED thin wrapper (delegates to ingest.py)
+└── ingest.py            ← unified pipeline — ingest(source_type, target, ctx), extractor registry
 infrastructure/          ← db.py, vault_writer.py, embedding_provider.py, llm_provider.py
 api/                     ← FastAPI HTTP layer
 ├── main.py

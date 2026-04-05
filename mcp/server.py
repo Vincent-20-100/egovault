@@ -17,7 +17,7 @@ from tools.media.fetch_subtitles import fetch_subtitles as _fetch_subtitles_tool
 from tools.media.transcribe import transcribe as _transcribe_tool
 from tools.text.chunk import chunk_text as _chunk_text_tool
 from tools.text.embed import embed_text as _embed_text_tool
-from tools.vault.create_note import create_note as _create_note_tool
+from tools.vault.create_note import create_note_from_content as _create_note_from_content_tool
 from tools.vault.update_note import update_note as _update_note_tool
 from tools.vault.finalize_source import finalize_source as _finalize_source_tool
 from tools.vault.generate_note_from_source import generate_note_from_source as _generate_note_from_source_tool
@@ -35,11 +35,9 @@ except FileNotFoundError:
     settings = None  # type: ignore[assignment] — overridden by tests via patch()
     ctx = None  # type: ignore[assignment] — overridden by tests via patch()
 
-# Import FastMCP from the installed mcp package (not this local mcp/ package).
-# The local `mcp/` directory shadows the installed `mcp` pip package.
-# Strategy: temporarily remove project-root paths from sys.path AND clear the
-# local mcp module cache so the installed package is found; then restore the
-# local mcp and mcp.server references so this module keeps working correctly.
+# The local mcp/ directory shadows the installed mcp package.
+# Temporarily remove project-root from sys.path and clear local mcp module cache
+# so the installed package is found, then restore local references afterward.
 _project_root_abs = _Path(__file__).parent.parent.resolve()
 
 def _resolves_to_project_root(p: str) -> bool:
@@ -65,7 +63,7 @@ _other_local_mcp = {k: sys.modules.pop(k) for k in list(sys.modules)
 try:
     from mcp.server.fastmcp import FastMCP
 except Exception:
-    # No-op fallback for test environments where FastMCP is not needed
+    # Fallback when MCP library is unavailable.
     class _NoOpMCP:  # type: ignore[no-redef]
         def __init__(self, name: str):
             self._name = name
@@ -276,22 +274,9 @@ def create_note(source_uid: str, content: dict) -> dict:
     - tags (list[str]): 1-10 kebab-case tags in French, no accents
     - url (str|None): only for source-less notes
     """
-    from core.schemas import NoteContentInput, NoteSystemFields
-    from core.uid import generate_uid, make_unique_slug
-    from datetime import date
-
-    # Fetch existing slugs via ctx.db to avoid direct DB imports (G4)
-    existing_slugs = ctx.db.get_existing_slugs("notes")
-
+    from core.schemas import NoteContentInput
     content_input = NoteContentInput(**content)
-    today = date.today().isoformat()
-    system_fields = NoteSystemFields(
-        uid=generate_uid(),
-        date_created=today,
-        source_uid=source_uid if source_uid else None,
-        slug=make_unique_slug(content_input.title, existing_slugs),
-    )
-    result = _create_note_tool(content_input, system_fields, ctx)
+    result = _create_note_from_content_tool(content_input, ctx, source_uid=source_uid)
     return result.model_dump(mode="json")
 
 

@@ -6,7 +6,7 @@ from api.models import IngestYoutubeRequest, IngestTextRequest, IngestResponse
 from core.uid import generate_uid
 from core.sanitize import sanitize_error
 from core.security import validate_youtube_url
-# System DB job functions — not in VaultDB (vault DB only); kept as direct imports
+# System DB job functions (not in VaultDB)
 from infrastructure.db import insert_job, update_job_status, update_job_done, update_job_failed
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])

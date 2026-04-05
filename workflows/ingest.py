@@ -1,9 +1,7 @@
 """
-Unified ingest pipeline.
+Unified ingest pipeline for all source types.
 
-Single entry point for all source types. Dispatches text extraction
-to type-specific extractors, then runs the common pipeline:
-  extract → chunk → embed → [generate note]
+Single entry point — dispatches to type-specific extractors then runs the common pipeline.
 """
 
 import logging

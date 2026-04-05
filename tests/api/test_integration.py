@@ -22,11 +22,11 @@ def _poll_job(client, job_id: str, timeout: float = 5.0) -> dict:
 
 
 def test_youtube_job_lifecycle_done(client):
-    with patch("api.routers.ingest._run_youtube") as mock_run:
-        def fake_run(job_id, url, settings, auto_generate_note=None):
+    with patch("api.routers.ingest._run_ingest") as mock_run:
+        def fake_run(job_id, source_type, target, ctx, auto_generate_note=None, title=None):
             from infrastructure.db import update_job_status, update_job_done
-            update_job_status(settings.system_db_path, job_id, "running")
-            update_job_done(settings.system_db_path, job_id, {"note_uid": None, "slug": "fake-video"})
+            update_job_status(ctx.system_db_path, job_id, "running")
+            update_job_done(ctx.system_db_path, job_id, {"note_uid": None, "slug": "fake-video"})
 
         mock_run.side_effect = fake_run
 
@@ -40,11 +40,11 @@ def test_youtube_job_lifecycle_done(client):
 
 
 def test_youtube_job_lifecycle_failed(client):
-    with patch("api.routers.ingest._run_youtube") as mock_run:
-        def fake_run(job_id, url, settings, auto_generate_note=None):
+    with patch("api.routers.ingest._run_ingest") as mock_run:
+        def fake_run(job_id, source_type, target, ctx, auto_generate_note=None, title=None):
             from infrastructure.db import update_job_status, update_job_failed
-            update_job_status(settings.system_db_path, job_id, "running")
-            update_job_failed(settings.system_db_path, job_id, "Transcription error")
+            update_job_status(ctx.system_db_path, job_id, "running")
+            update_job_failed(ctx.system_db_path, job_id, "Transcription error")
 
         mock_run.side_effect = fake_run
 

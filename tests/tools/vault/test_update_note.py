@@ -40,13 +40,12 @@ def test_update_note_returns_note_result(ctx):
 def test_update_note_re_embeds_note(ctx):
     """After update, note must be re-embedded and sync_status must be 'synced'."""
     from tools.vault.update_note import update_note
-    from infrastructure.db import search_notes
 
     uid = _insert_test_note(ctx)
     result = update_note(uid, {"body": "Updated body content here."}, ctx)
 
     assert result.note.sync_status == "synced"
-    results = search_notes(ctx.db._db_path, make_embedding(0.0), None, 5)
+    results = ctx.db.search_notes(make_embedding(0.0), None, 5)
     assert any(r.note_uid == uid for r in results)
 
 

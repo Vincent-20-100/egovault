@@ -34,13 +34,12 @@ def seed(tmp_settings):
                 _make_note("approve-note-3", "approve-note-3", "active"))
 
 
-def test_approve_draft_note_with_source(client, tmp_settings):
-    from infrastructure.db import get_note, get_source
+def test_approve_draft_note_with_source(client):
     response = client.post("/notes/approve-note-1/approve")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "active"
-    source = get_source(tmp_settings.vault_db_path, "approve-src-1")
+    source = client.app.state.ctx.db.get_source("approve-src-1")
     assert source.status == "vaulted"
 
 

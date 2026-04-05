@@ -1,13 +1,8 @@
 """
 Configuration loader for EgoVault v2.
 
-Loads and merges the three config files:
-  - config/system.yaml  (versioned, algorithm params + taxonomy)
-  - config/user.yaml    (gitignored, user preferences)
-  - config/install.yaml (gitignored, machine paths + secrets)
-
-Validated via a single Pydantic Settings model at startup.
-Missing required fields → explicit error before anything executes.
+Loads and merges system, user, and install configurations.
+Validated via Pydantic at startup — missing fields fail fast.
 """
 
 from pydantic import BaseModel

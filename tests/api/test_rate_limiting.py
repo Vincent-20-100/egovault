@@ -22,7 +22,7 @@ def reset_rate_counts():
 @pytest.fixture(autouse=True)
 def _no_background_jobs():
     """Prevent background workflow threads from touching the DB."""
-    with patch("api.routers.ingest._run_youtube"):
+    with patch("api.routers.ingest._submit_job"):
         yield
 
 

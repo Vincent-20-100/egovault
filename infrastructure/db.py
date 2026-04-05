@@ -1,10 +1,8 @@
 """
-SQLite + sqlite-vec database layer for EgoVault v2.
+Database layer for EgoVault v2.
 
 Single source of truth. Swappable: zero changes in core/ or tools/
-if this file is replaced by a PostgreSQL implementation.
-
-Schema defined in docs/architecture/DATABASES.md.
+if this file is replaced by a different database implementation.
 """
 
 import logging
@@ -22,7 +20,7 @@ from core.schemas import (
 
 
 def get_vault_connection(db_path: Path) -> sqlite3.Connection:
-    """vault.db — loads sqlite-vec, WAL mode, 5s busy timeout."""
+    """Open connection to vault database with vector extension."""
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.enable_load_extension(True)
@@ -35,7 +33,7 @@ def get_vault_connection(db_path: Path) -> sqlite3.Connection:
 
 
 def get_system_connection(db_path: Path) -> sqlite3.Connection:
-    """.system.db — plain SQLite, WAL mode, 5s busy timeout."""
+    """Open connection to system database."""
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
@@ -198,7 +196,7 @@ def init_db(
         stored_dim = int(row[0])
         if stored_dim != dims:
             _logger.warning(
-                "Config embedding.dims (%d) does not match database (%d). "
+                "Configured embedding dimensions (%d) do not match database (%d). "
                 "Run re-embedding to fix silent search failures.",
                 dims, stored_dim,
             )

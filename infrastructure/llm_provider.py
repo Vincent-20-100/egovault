@@ -1,8 +1,5 @@
 """
-LLM provider for EgoVault v2.
-
-Dispatches to Anthropic (v1). OpenAI and Ollama raise NotImplementedError.
-Handles Pydantic validation retries (max_retries from system config).
+LLM provider with structured output and validation retry.
 """
 
 import json
@@ -22,9 +19,8 @@ def generate_note_content(
 ) -> NoteContentInput:
     """
     Call the configured LLM to generate NoteContentInput from source content.
-    Loads generation template YAML from config/templates/generation/{template_name}.yaml.
-    Retries up to settings.system.llm.max_retries times on validation failure.
-    Raises ValueError if max_retries exceeded without a valid result.
+    Retries on validation failure up to the configured maximum.
+    Raises ValueError if all retries are exhausted without a valid result.
     """
     provider = settings.user.llm.provider
     if provider == "claude":
@@ -47,7 +43,7 @@ def generate_note_content(
 
 
 def _load_template(template_name: str) -> dict:
-    """Load generation template YAML from config/templates/generation/."""
+    """Load generation template by name."""
     import yaml
     template_path = Path(__file__).parent.parent / "config" / "templates" / "generation" / f"{template_name}.yaml"
     if not template_path.exists():

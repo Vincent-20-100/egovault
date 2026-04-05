@@ -1,5 +1,5 @@
 """
-VaultContext factory — wires infrastructure providers into a single context object.
+Factory for building the application context.
 
 Surfaces (API, CLI, MCP) call build_context() at startup and pass the result to tools.
 """

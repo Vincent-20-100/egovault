@@ -23,17 +23,7 @@ def generate_note_from_source(
     ctx: VaultContext,
     template: str = "standard",
 ) -> NoteResult:
-    """
-    Generate a draft note from an ingested source at rag_ready status.
-
-    Calls the configured LLM to produce note content, creates the note as draft,
-    and embeds it immediately so it is searchable. The note must be approved
-    (status → active) before the source is finalized as vaulted.
-
-    Raises NotFoundError if source_uid does not exist.
-    Raises ValueError if source is not at rag_ready status.
-    Raises ConflictError if a note already exists for this source.
-    """
+    """Generate a draft note from an ingested source via LLM. Source must be at rag_ready status."""
     from core.errors import NotFoundError, ConflictError
 
     source = ctx.db.get_source(source_uid)

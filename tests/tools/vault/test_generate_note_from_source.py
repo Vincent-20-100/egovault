@@ -56,9 +56,8 @@ def _ctx_with_generate(ctx):
 
 def test_generate_note_creates_draft(ctx):
     from tools.vault.generate_note_from_source import generate_note_from_source
-    from infrastructure.db import insert_source
 
-    insert_source(ctx.db._db_path, _make_source())
+    ctx.db.insert_source(_make_source())
     test_ctx = _ctx_with_generate(ctx)
 
     result = generate_note_from_source("src-1", test_ctx)
@@ -71,14 +70,13 @@ def test_generate_note_creates_draft(ctx):
 
 def test_generate_note_note_is_searchable(ctx):
     from tools.vault.generate_note_from_source import generate_note_from_source
-    from infrastructure.db import insert_source, search_notes
 
-    insert_source(ctx.db._db_path, _make_source(uid="src-2", slug="src-2"))
+    ctx.db.insert_source(_make_source(uid="src-2", slug="src-2"))
     test_ctx = _ctx_with_generate(ctx)
 
     result = generate_note_from_source("src-2", test_ctx)
 
-    hits = search_notes(ctx.db._db_path, make_embedding(0.0), None, 5)
+    hits = ctx.db.search_notes(make_embedding(0.0), None, 5)
     note_uids = [h.note_uid for h in hits]
     assert result.note.uid in note_uids
 
@@ -94,9 +92,8 @@ def test_generate_note_not_found(ctx):
 
 def test_generate_note_source_not_rag_ready(ctx):
     from tools.vault.generate_note_from_source import generate_note_from_source
-    from infrastructure.db import insert_source
 
-    insert_source(ctx.db._db_path, _make_source(uid="src-3", slug="src-3", status="raw"))
+    ctx.db.insert_source(_make_source(uid="src-3", slug="src-3", status="raw"))
     test_ctx = _ctx_with_generate(ctx)
     with pytest.raises(ValueError, match="rag_ready"):
         generate_note_from_source("src-3", test_ctx)
@@ -104,11 +101,10 @@ def test_generate_note_source_not_rag_ready(ctx):
 
 def test_generate_note_conflict_if_note_exists(ctx):
     from tools.vault.generate_note_from_source import generate_note_from_source
-    from infrastructure.db import insert_source, insert_note
     from core.schemas import Note
     from core.errors import ConflictError
 
-    insert_source(ctx.db._db_path, _make_source(uid="src-4", slug="src-4"))
+    ctx.db.insert_source(_make_source(uid="src-4", slug="src-4"))
     existing = Note(
         uid="existing-note", source_uid="src-4", slug="existing-note",
         note_type=None, source_type=None, generation_template=None, rating=None,
@@ -117,7 +113,7 @@ def test_generate_note_conflict_if_note_exists(ctx):
         date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
         tags=["test-tag"],
     )
-    insert_note(ctx.db._db_path, existing)
+    ctx.db.insert_note(existing)
     test_ctx = _ctx_with_generate(ctx)
     with pytest.raises(ConflictError):
         generate_note_from_source("src-4", test_ctx)
@@ -125,9 +121,8 @@ def test_generate_note_conflict_if_note_exists(ctx):
 
 def test_generate_note_custom_template(ctx):
     from tools.vault.generate_note_from_source import generate_note_from_source
-    from infrastructure.db import insert_source
 
-    insert_source(ctx.db._db_path, _make_source(uid="src-5", slug="src-5"))
+    ctx.db.insert_source(_make_source(uid="src-5", slug="src-5"))
     mock_generate = MagicMock(return_value=_make_content())
     test_ctx = VaultContext(
         settings=ctx.settings,

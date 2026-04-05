@@ -30,17 +30,9 @@ def _get_note(db_path, uid):
     return get_note(db_path, uid)
 
 
-def _get_existing_slugs(db_path) -> set[str]:
-    from infrastructure.db import get_vault_connection
-    conn = get_vault_connection(db_path)
-    slugs = {row[0] for row in conn.execute("SELECT slug FROM notes").fetchall()}
-    conn.close()
-    return slugs
-
-
-def _create_note(content, system_fields, ctx):
-    from tools.vault.create_note import create_note
-    return create_note(content, system_fields, ctx)
+def _create_note(content, ctx, source_uid=None):
+    from tools.vault.create_note import create_note_from_content
+    return create_note_from_content(content, ctx, source_uid=source_uid)
 
 
 def _update_note(uid, fields, ctx):
@@ -135,10 +127,8 @@ def note_create(
 ) -> None:
     """Create a note from a YAML file."""
     import yaml
-    from core.schemas import NoteContentInput, NoteSystemFields
-    from core.uid import generate_uid, make_unique_slug
+    from core.schemas import NoteContentInput
     from pydantic import ValidationError
-    from datetime import date
 
     try:
         ctx = _build_ctx()
@@ -169,17 +159,7 @@ def note_create(
         raise typer.Exit(1)
 
     try:
-        existing_slugs = _get_existing_slugs(ctx.settings.vault_db_path)
-
-        system_fields = NoteSystemFields(
-            uid=generate_uid(),
-            date_created=date.today().isoformat(),
-            source_uid=source_uid,
-            slug=make_unique_slug(content.title, existing_slugs),
-            generation_template=None,
-        )
-
-        result = _create_note(content, system_fields, ctx)
+        result = _create_note(content, ctx, source_uid=source_uid)
     except Exception as e:
         print_error("Note creation failed.", "create_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
