@@ -11,21 +11,21 @@ from cli.output import print_panel, print_error, print_table
 app = typer.Typer(help="Purge all items marked for deletion.")
 
 
-def _load_settings():
+def _build_ctx():
     from core.config import load_settings
-    return load_settings()
+    from infrastructure.context import build_context
+    return build_context(load_settings())
 
 
-def _run_purge(settings):
+def _run_purge(ctx):
     from tools.vault.purge import purge
-    return purge(settings)
+    return purge(ctx)
 
 
-def _list_pending(settings):
-    from infrastructure.db import list_notes_pending_deletion, list_sources_pending_deletion
+def _list_pending(ctx):
     return (
-        list_notes_pending_deletion(settings.vault_db_path),
-        list_sources_pending_deletion(settings.vault_db_path),
+        ctx.db.list_notes_pending_deletion(),
+        ctx.db.list_sources_pending_deletion(),
     )
 
 
@@ -38,12 +38,12 @@ def purge_cmd(
 ) -> None:
     """Permanently delete all items currently marked for deletion."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
-    pending_notes, pending_sources = _list_pending(settings)
+    pending_notes, pending_sources = _list_pending(ctx)
 
     if dry_run:
         typer.echo(f"Pending deletion: {len(pending_notes)} notes, {len(pending_sources)} sources")
@@ -63,7 +63,7 @@ def purge_cmd(
             raise typer.Exit(0)
 
     try:
-        result = _run_purge(settings)
+        result = _run_purge(ctx)
     except Exception as e:
         print_error("Purge failed.", "purge_error", json_mode, verbose, str(e))
         raise typer.Exit(1)

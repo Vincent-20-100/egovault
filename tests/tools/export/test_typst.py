@@ -2,7 +2,6 @@ import pytest
 from datetime import date
 from pathlib import Path
 from core.schemas import Note, ExportResult
-import unittest.mock as mock
 
 
 def _make_note():
@@ -15,17 +14,12 @@ def _make_note():
     )
 
 
-def test_export_typst_creates_file(tmp_settings, tmp_db, tmp_path):
+def test_export_typst_creates_file(ctx):
     from tools.export.typst import export_typst
-    from infrastructure.db import insert_note
 
-    insert_note(tmp_db, _make_note())
+    ctx.db.insert_note(_make_note())
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: tmp_path)):
-        result = export_typst("n1", tmp_settings)
+    result = export_typst("n1", ctx)
 
     assert isinstance(result, ExportResult)
     assert result.format == "typst"
@@ -33,28 +27,19 @@ def test_export_typst_creates_file(tmp_settings, tmp_db, tmp_path):
     assert result.output_path.endswith(".typ")
 
 
-def test_export_typst_contains_title(tmp_settings, tmp_db, tmp_path):
+def test_export_typst_contains_title(ctx):
     from tools.export.typst import export_typst
-    from infrastructure.db import insert_note
 
-    insert_note(tmp_db, _make_note())
+    ctx.db.insert_note(_make_note())
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: tmp_path)):
-        result = export_typst("n1", tmp_settings)
+    result = export_typst("n1", ctx)
 
     content = Path(result.output_path).read_text()
     assert "Test Note" in content
 
 
-def test_export_typst_not_found_raises(tmp_settings, tmp_db, tmp_path):
+def test_export_typst_not_found_raises(ctx):
     from tools.export.typst import export_typst
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: tmp_path)):
-        with pytest.raises(ValueError, match="not found"):
-            export_typst("nonexistent", tmp_settings)
+    with pytest.raises(ValueError, match="not found"):
+        export_typst("nonexistent", ctx)

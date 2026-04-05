@@ -24,15 +24,16 @@ from tools.vault.generate_note_from_source import generate_note_from_source as _
 from tools.vault.search import search as _search_tool
 from tools.export.typst import export_typst as _export_typst_tool
 from tools.export.mermaid import export_mermaid as _export_mermaid_tool
-from infrastructure.db import get_note as _get_note
-from infrastructure.db import get_source as _get_source_db
-from infrastructure.db import list_notes as _list_notes_db
-from infrastructure.db import list_sources as _list_sources_db
+from infrastructure.context import build_context
 
 try:
     settings = load_settings()
+    ctx = build_context(settings)
+    # settings alias kept for tools that haven't migrated yet (export, media)
+    settings = ctx.settings
 except FileNotFoundError:
     settings = None  # type: ignore[assignment] — overridden by tests via patch()
+    ctx = None  # type: ignore[assignment] — overridden by tests via patch()
 
 # Import FastMCP from the installed mcp package (not this local mcp/ package).
 # The local `mcp/` directory shadows the installed `mcp` pip package.
@@ -110,7 +111,7 @@ def chunk_text(text: str) -> list[dict]:
 @mcp.tool()
 def embed_text(text: str) -> list[float]:
     """
-    Embed a text string using the configured provider (Ollama or OpenAI).
+    Embed a text string using the configured provider.
     Returns a flat list of floats. No DB write.
 
     When to use: Rarely called directly — embedding is handled automatically
@@ -118,7 +119,7 @@ def embed_text(text: str) -> list[float]:
 
     What to call next: Nothing — this is a utility tool.
     """
-    return _embed_text_tool(text, settings)
+    return _embed_text_tool(text, ctx)
 
 
 @mcp.tool()
@@ -137,7 +138,7 @@ def search(query: str, filters: dict | None = None, mode: str = "chunks") -> lis
     - After mode='notes': get_note(uid) to read the full note.
     """
     search_filters = SearchFilters(**(filters or {}))
-    results = _search_tool(query, settings, search_filters, mode)
+    results = _search_tool(query, ctx, search_filters, mode)
     return [r.model_dump(mode="json") for r in results]
 
 
@@ -196,14 +197,13 @@ def fetch_subtitles(youtube_url: str, language: str = "fr") -> dict:
 @mcp.tool()
 def export_typst(note_uid: str) -> dict:
     """
-    Export a note to Typst format for PDF generation.
+    Export a note to a print-ready document format.
 
     When to use: When the user wants a formatted PDF version of a note.
-    Requires Typst to be installed on the system.
 
     What to call next: Nothing — this is a terminal export action.
     """
-    result = _export_typst_tool(note_uid, settings)
+    result = _export_typst_tool(note_uid, ctx)
     return result.model_dump(mode="json")
 
 
@@ -216,7 +216,7 @@ def export_mermaid(note_uid: str | None = None, tag: str | None = None) -> dict:
 
     What to call next: Nothing — this is a terminal export action.
     """
-    result = _export_mermaid_tool(settings, note_uid, tag)
+    result = _export_mermaid_tool(ctx, note_uid, tag)
     return result.model_dump(mode="json")
 
 
@@ -230,7 +230,7 @@ def get_note(uid: str) -> dict:
 
     What to call next: update_note() to edit it, or export_typst() to export it.
     """
-    note = _get_note(settings.vault_db_path, uid)
+    note = ctx.db.get_note(uid)
     if note is None:
         raise ValueError(f"Note '{uid}' not found")
     return note.model_dump(mode="json")
@@ -246,7 +246,7 @@ def finalize_source(source_uid: str) -> dict:
 
     What to call next: Nothing — the source is now archived.
     """
-    result = _finalize_source_tool(source_uid, settings)
+    result = _finalize_source_tool(source_uid, ctx)
     return result.model_dump(mode="json")
 
 
@@ -278,13 +278,10 @@ def create_note(source_uid: str, content: dict) -> dict:
     """
     from core.schemas import NoteContentInput, NoteSystemFields
     from core.uid import generate_uid, make_unique_slug
-    from infrastructure.db import get_vault_connection
     from datetime import date
 
-    db = settings.vault_db_path
-    conn = get_vault_connection(db)
-    existing_slugs = {row[0] for row in conn.execute("SELECT slug FROM notes").fetchall()}
-    conn.close()
+    # Fetch existing slugs via ctx.db to avoid direct DB imports (G4)
+    existing_slugs = ctx.db.get_existing_slugs("notes")
 
     content_input = NoteContentInput(**content)
     today = date.today().isoformat()
@@ -294,7 +291,7 @@ def create_note(source_uid: str, content: dict) -> dict:
         source_uid=source_uid if source_uid else None,
         slug=make_unique_slug(content_input.title, existing_slugs),
     )
-    result = _create_note_tool(content_input, system_fields, settings)
+    result = _create_note_tool(content_input, system_fields, ctx)
     return result.model_dump(mode="json")
 
 
@@ -309,7 +306,7 @@ def get_source(uid: str) -> dict:
 
     What to call next: create_note() after reading and synthesizing the source content.
     """
-    source = _get_source_db(settings.vault_db_path, uid)
+    source = ctx.db.get_source(uid)
     if source is None:
         raise ValueError(f"Source '{uid}' not found")
     return source.model_dump(mode="json")
@@ -331,7 +328,7 @@ def list_notes(
 
     What to call next: get_note(uid) to read the full content of a specific note.
     """
-    results = _list_notes_db(settings.vault_db_path, note_type, tags, limit, offset)
+    results = ctx.db.list_notes(note_type, tags, limit, offset)
     return [n.model_dump(mode="json") for n in results]
 
 
@@ -350,7 +347,7 @@ def list_sources(
     What to call next: search(query, mode='chunks') to explore a source's content
     semantically, or get_source(uid) to read its full transcript directly.
     """
-    results = _list_sources_db(settings.vault_db_path, status, limit, offset)
+    results = ctx.db.list_sources(status, limit, offset)
     return [s.model_dump(mode="json") for s in results]
 
 
@@ -368,7 +365,7 @@ def update_note(uid: str, fields: dict) -> dict:
     What to call next: finalize_source(source_uid) if the associated source is ready
     to be archived as vaulted.
     """
-    result = _update_note_tool(uid, fields, settings)
+    result = _update_note_tool(uid, fields, ctx)
     return result.model_dump(mode="json")
 
 
@@ -389,7 +386,7 @@ def generate_note_from_source(source_uid: str, template: str = "standard") -> di
     update_note(uid, {'status': 'active'}) to approve it, then
     finalize_source(source_uid) to archive the source.
     """
-    result = _generate_note_from_source_tool(source_uid, settings, template)
+    result = _generate_note_from_source_tool(source_uid, ctx, template)
     return result.model_dump(mode="json")
 
 
@@ -483,7 +480,7 @@ if settings and settings.user.allow_destructive_ops:
         Without force: marks as pending deletion, reversible via restore_note.
         With force: permanently removes the note, its embedding, and its Markdown file.
         """
-        return _delete_note_tool(uid, settings, force=force).model_dump(mode="json")
+        return _delete_note_tool(uid, ctx, force=force).model_dump(mode="json")
 
     @mcp.tool()
     def delete_source(uid: str, force: bool = False) -> dict:
@@ -493,7 +490,7 @@ if settings and settings.user.allow_destructive_ops:
         With force: permanently removes the source, all its chunks, embeddings, and media file.
         Linked notes become orphaned — they are not deleted.
         """
-        return _delete_source_tool(uid, settings, force=force).model_dump(mode="json")
+        return _delete_source_tool(uid, ctx, force=force).model_dump(mode="json")
 
     @mcp.tool()
     def restore_note(uid: str) -> dict:
@@ -501,7 +498,7 @@ if settings and settings.user.allow_destructive_ops:
         Restore a note previously marked for deletion.
         Reverts to the sync status it had before soft-deletion.
         """
-        return _restore_note_tool(uid, settings).model_dump(mode="json")
+        return _restore_note_tool(uid, ctx).model_dump(mode="json")
 
     @mcp.tool()
     def restore_source(uid: str) -> dict:
@@ -509,7 +506,7 @@ if settings and settings.user.allow_destructive_ops:
         Restore a source previously marked for deletion.
         Reverts to the status it had before soft-deletion.
         """
-        return _restore_source_tool(uid, settings).model_dump(mode="json")
+        return _restore_source_tool(uid, ctx).model_dump(mode="json")
 
     @mcp.tool()
     def purge() -> dict:
@@ -517,7 +514,7 @@ if settings and settings.user.allow_destructive_ops:
         Permanently remove all notes and sources currently marked for deletion.
         This operation cannot be undone.
         """
-        return _purge_tool(settings).model_dump(mode="json")
+        return _purge_tool(ctx).model_dump(mode="json")
 
 
 if __name__ == "__main__":

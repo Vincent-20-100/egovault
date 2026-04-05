@@ -41,7 +41,7 @@ def _download_audio(youtube_url: str, output_dir: str) -> str:
 def fetch_subtitles(youtube_url: str, language: str = "fr") -> SubtitleResult:
     """
     Fetch YouTube subtitles via youtube-transcript-api.
-    If subtitles unavailable: download audio via yt-dlp, transcribe via Whisper.
+    If subtitles unavailable: download audio and transcribe via the configured engine.
     SubtitleResult.source indicates 'subtitles' or 'transcription'.
     No DB write.
     """

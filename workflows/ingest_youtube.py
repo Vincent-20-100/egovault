@@ -16,19 +16,10 @@ import logging
 import re
 from datetime import date
 
-from core.config import Settings
+from core.context import VaultContext
 from core.errors import LargeFormatError
 from core.schemas import Source
 from core.uid import generate_uid, make_unique_slug
-from infrastructure.db import (
-    get_vault_connection,
-    get_source,
-    insert_chunk_embeddings,
-    insert_chunks,
-    insert_source,
-    update_source_status,
-    update_source_transcript,
-)
 from tools.media.fetch_subtitles import fetch_subtitles
 from tools.text.chunk import chunk_text
 from tools.text.embed import embed_text
@@ -43,28 +34,23 @@ def _extract_video_id(url: str) -> str:
     return match.group(1) if match else "unknown"
 
 
-def _llm_is_configured(settings) -> bool:
+def _llm_is_configured(ctx: VaultContext) -> bool:
     """Return True only if a supported LLM is configured with credentials."""
-    if settings.user.llm.provider == "claude":
-        return bool(settings.install.providers.anthropic_api_key)
-    return False
+    # ctx.generate is None when no LLM provider was wired at startup
+    return ctx.generate is not None
 
 
-def ingest_youtube(url: str, settings: Settings, auto_generate_note: bool | None = None) -> Source:
+def ingest_youtube(url: str, ctx: VaultContext, auto_generate_note: bool | None = None) -> Source:
     """
     Run the full YouTube ingestion pipeline.
     Returns the Source record at rag_ready status.
     Raises LargeFormatError if source exceeds token threshold.
     """
-    db = settings.vault_db_path
     today = date.today().isoformat()
     source_uid = generate_uid()
     video_id = _extract_video_id(url)
 
-    conn = get_vault_connection(db)
-    existing_slugs = {row[0] for row in conn.execute("SELECT slug FROM sources").fetchall()}
-    conn.close()
-
+    existing_slugs = ctx.db.get_existing_slugs("sources")
     slug = make_unique_slug(f"youtube-{video_id}", existing_slugs)
 
     source = Source(
@@ -75,31 +61,31 @@ def ingest_youtube(url: str, settings: Settings, auto_generate_note: bool | None
         url=url,
         date_added=today,
     )
-    insert_source(db, source)
+    ctx.db.insert_source(source)
 
     # Step 1: Fetch subtitles
-    update_source_status(db, source_uid, "transcribing")
-    subtitle_result = fetch_subtitles(url, settings)
-    update_source_transcript(db, source_uid, subtitle_result.text)
-    update_source_status(db, source_uid, "text_ready")
+    ctx.db.update_source_status(source_uid, "transcribing")
+    subtitle_result = fetch_subtitles(url)
+    ctx.db.update_source_transcript(source_uid, subtitle_result.text)
+    ctx.db.update_source_status(source_uid, "text_ready")
 
     # Step 2: Check size — rough word-count estimate
     token_count = len(subtitle_result.text.split())
-    threshold = settings.system.llm.large_format_threshold_tokens
+    threshold = ctx.settings.system.llm.large_format_threshold_tokens
 
     # Step 3: Chunk + embed regardless of size (source must reach rag_ready)
-    update_source_status(db, source_uid, "embedding")
-    chunks = chunk_text(subtitle_result.text, settings.system)
-    insert_chunks(db, source_uid, chunks)
+    ctx.db.update_source_status(source_uid, "embedding")
+    chunks = chunk_text(subtitle_result.text, ctx.settings.system)
+    ctx.db.insert_chunks(source_uid, chunks)
     for chunk in chunks:
-        embedding = embed_text(chunk.content, settings)
-        insert_chunk_embeddings(db, chunk.uid, embedding)
+        embedding = embed_text(chunk.content, ctx)
+        ctx.db.insert_chunk_embeddings(chunk.uid, embedding)
 
-    update_source_status(db, source_uid, "rag_ready")
+    ctx.db.update_source_status(source_uid, "rag_ready")
 
     should_generate = (
         auto_generate_note if auto_generate_note is not None
-        else settings.user.llm.auto_generate_note
+        else ctx.settings.user.llm.auto_generate_note
     )
 
     if token_count > threshold:
@@ -112,9 +98,9 @@ def ingest_youtube(url: str, settings: Settings, auto_generate_note: bool | None
         )
 
     if should_generate:
-        if not _llm_is_configured(settings):
+        if not _llm_is_configured(ctx):
             logger.info("LLM not configured, skipping note generation")
         else:
-            generate_note_from_source(source_uid, settings)
+            generate_note_from_source(source_uid, ctx)
 
-    return get_source(db, source_uid)
+    return ctx.db.get_source(source_uid)

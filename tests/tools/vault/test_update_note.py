@@ -1,16 +1,14 @@
 import pytest
 from datetime import date
-from unittest.mock import patch
 
 from tests.conftest import make_embedding
 
 from core.schemas import NoteContentInput, NoteSystemFields
 from core.uid import generate_uid
 from core.errors import NotFoundError
-import unittest.mock as mock
 
 
-def _insert_test_note(tmp_db, tmp_path, tmp_settings):
+def _insert_test_note(ctx):
     from tools.vault.create_note import create_note
 
     content = NoteContentInput(
@@ -24,76 +22,49 @@ def _insert_test_note(tmp_db, tmp_path, tmp_settings):
         date_created=date.today().isoformat(),
         slug="original-title",
     )
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "vault_path",
-                           new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
-        result = create_note(content, system, tmp_settings)
+    result = create_note(content, system, ctx)
     return result.note.uid
 
 
-def test_update_note_returns_note_result(tmp_settings, tmp_db, tmp_path):
+def test_update_note_returns_note_result(ctx):
     from tools.vault.update_note import update_note
     from core.schemas import NoteResult
 
-    uid = _insert_test_note(tmp_db, tmp_path, tmp_settings)
-
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "vault_path",
-                           new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
-        result = update_note(uid, {"rating": 5}, tmp_settings)
+    uid = _insert_test_note(ctx)
+    result = update_note(uid, {"rating": 5}, ctx)
 
     assert isinstance(result, NoteResult)
     assert result.note.rating == 5
 
 
-def test_update_note_re_embeds_note(tmp_settings, tmp_db, tmp_path):
+def test_update_note_re_embeds_note(ctx):
     """After update, note must be re-embedded and sync_status must be 'synced'."""
     from tools.vault.update_note import update_note
     from infrastructure.db import search_notes
 
-    uid = _insert_test_note(tmp_db, tmp_path, tmp_settings)
-
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "vault_path",
-                           new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=make_embedding(0.2)):
-        result = update_note(uid, {"body": "Updated body content here."}, tmp_settings)
+    uid = _insert_test_note(ctx)
+    result = update_note(uid, {"body": "Updated body content here."}, ctx)
 
     assert result.note.sync_status == "synced"
-    results = search_notes(tmp_db, make_embedding(0.2), None, 5)
+    results = search_notes(ctx.db._db_path, make_embedding(0.0), None, 5)
     assert any(r.note_uid == uid for r in results)
 
 
-def test_update_note_ignores_system_fields(tmp_settings, tmp_db, tmp_path):
+def test_update_note_ignores_system_fields(ctx):
     from tools.vault.update_note import update_note
-    from infrastructure.db import get_note
 
-    uid = _insert_test_note(tmp_db, tmp_path, tmp_settings)
+    uid = _insert_test_note(ctx)
     original_uid = uid
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "vault_path",
-                           new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
-        update_note(uid, {"uid": "new-uid", "date_created": "2000-01-01"}, tmp_settings)
-        note = get_note(tmp_db, original_uid)
+    update_note(uid, {"uid": "new-uid", "date_created": "2000-01-01"}, ctx)
+    note = ctx.db.get_note(original_uid)
 
     assert note is not None
     assert note.date_created != "2000-01-01"
 
 
-def test_update_note_not_found_raises(tmp_settings, tmp_db, tmp_path):
+def test_update_note_not_found_raises(ctx):
     from tools.vault.update_note import update_note
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "vault_path",
-                           new_callable=lambda: property(lambda self: tmp_path)):
-        with pytest.raises(NotFoundError):
-            update_note("nonexistent-uid", {"rating": 3}, tmp_settings)
+    with pytest.raises(NotFoundError):
+        update_note("nonexistent-uid", {"rating": 3}, ctx)

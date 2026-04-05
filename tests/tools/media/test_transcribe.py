@@ -1,6 +1,16 @@
-import pytest
+"""Tests for transcribe tool — mocks the transcription engine at module level."""
+
+import sys
 from unittest.mock import patch, MagicMock
+
+import pytest
+
 from core.schemas import TranscriptResult
+
+# Inject a fake module so the late import inside transcribe() succeeds
+# even when the real package is not installed.
+if "faster_whisper" not in sys.modules:
+    sys.modules["faster_whisper"] = MagicMock()
 
 
 def _mock_whisper(segments_text="Hello world.", language="fr", duration=10.0):

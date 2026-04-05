@@ -9,8 +9,8 @@ Requires prior human approval of NoteContentInput before calling.
 
 from datetime import date
 
+from core.context import VaultContext
 from core.schemas import NoteContentInput, NoteSystemFields, NoteResult, Note
-from core.config import Settings
 from core.logging import loggable
 
 
@@ -18,22 +18,18 @@ from core.logging import loggable
 def create_note(
     content: NoteContentInput,
     system_fields: NoteSystemFields,
-    settings: Settings,
+    ctx: VaultContext,
 ) -> NoteResult:
     """
     Validate and persist a note.
     - Validates content.source_type matches source.source_type when source_uid is set.
     - Writes note to DB (notes + note_tags tables).
     - Embeds note into notes_vec automatically (title + docstring + body).
-    - Generates Markdown via vault_writer.write_note().
+    - Generates Markdown via write_note().
     Requires prior human approval of NoteContentInput before calling.
     """
-    from infrastructure.db import insert_note, get_source, insert_note_embedding
-    from infrastructure.embedding_provider import embed
-    from infrastructure.vault_writer import write_note
-
     if system_fields.source_uid:
-        source = get_source(settings.vault_db_path, system_fields.source_uid)
+        source = ctx.db.get_source(system_fields.source_uid)
         if (source and content.source_type
                 and content.source_type != source.source_type):
             raise ValueError(
@@ -49,13 +45,14 @@ def create_note(
         sync_status="synced",
     )
 
-    insert_note(settings.vault_db_path, note)
+    ctx.db.insert_note(note)
 
+    # Embed title + docstring + body concatenated for richest semantic signal
     text = "\n\n".join(filter(None, [note.title, note.docstring, note.body]))
-    embedding = embed(text, settings)
-    insert_note_embedding(settings.vault_db_path, note.uid, embedding)
+    embedding = ctx.embed(text)
+    ctx.db.insert_note_embedding(note.uid, embedding)
 
-    settings.vault_path.mkdir(parents=True, exist_ok=True)
-    markdown_path = write_note(note, settings.vault_path)
+    ctx.vault_path.mkdir(parents=True, exist_ok=True)
+    markdown_path = ctx.write_note(note, ctx.vault_path)
 
     return NoteResult(note=note, markdown_path=str(markdown_path))

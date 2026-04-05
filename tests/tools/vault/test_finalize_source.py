@@ -17,65 +17,63 @@ def _insert_source(tmp_db, media_path=None):
     return "src-1"
 
 
-def test_finalize_source_returns_finalize_result(tmp_settings, tmp_db, tmp_path):
+def test_finalize_source_returns_finalize_result(ctx):
     from tools.vault.finalize_source import finalize_source
 
-    _insert_source(tmp_db)
+    _insert_source(ctx.db._db_path)
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: tmp_path / "media")):
-        result = finalize_source("src-1", tmp_settings)
+    result = finalize_source("src-1", ctx)
 
     assert isinstance(result, FinalizeResult)
     assert result.new_status == "vaulted"
     assert result.source_uid == "src-1"
 
 
-def test_finalize_source_updates_db_status(tmp_settings, tmp_db, tmp_path):
+def test_finalize_source_updates_db_status(ctx):
     from tools.vault.finalize_source import finalize_source
-    from infrastructure.db import get_source
 
-    _insert_source(tmp_db)
+    _insert_source(ctx.db._db_path)
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: tmp_path / "media")):
-        finalize_source("src-1", tmp_settings)
-        source = get_source(tmp_db, "src-1")
+    finalize_source("src-1", ctx)
+    source = ctx.db.get_source("src-1")
 
     assert source.status == "vaulted"
 
 
-def test_finalize_source_moves_media_file(tmp_settings, tmp_db, tmp_path):
+def test_finalize_source_moves_media_file(ctx, tmp_path):
     from tools.vault.finalize_source import finalize_source
+    from core.context import VaultContext
 
-    # Create a fake media file
-    media_file = tmp_path / "audio.mp3"
+    # Create a fake media file in a staging directory
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    media_file = staging / "audio.mp3"
     media_file.write_bytes(b"audio data")
-    _insert_source(tmp_db, media_path=str(media_file))
+    _insert_source(ctx.db._db_path, media_path=str(media_file))
 
-    media_dest = tmp_path / "media"
+    # Build a context with a distinct media_path to verify file was moved there
+    media_dest = tmp_path / "media_dest"
+    media_dest.mkdir()
+    ctx_with_media = VaultContext(
+        settings=ctx.settings,
+        db=ctx.db,
+        system_db_path=ctx.system_db_path,
+        embed=ctx.embed,
+        generate=ctx.generate,
+        write_note=ctx.write_note,
+        vault_path=ctx.vault_path,
+        media_path=media_dest,
+    )
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: media_dest)):
-        result = finalize_source("src-1", tmp_settings)
+    result = finalize_source("src-1", ctx_with_media)
 
     assert result.media_moved_to is not None
     assert Path(result.media_moved_to).exists()
     assert not media_file.exists()  # moved, not copied
 
 
-def test_finalize_source_not_found_raises(tmp_settings, tmp_db, tmp_path):
+def test_finalize_source_not_found_raises(ctx):
     from tools.vault.finalize_source import finalize_source
 
-    with mock.patch.object(type(tmp_settings), "vault_db_path",
-                           new_callable=lambda: property(lambda self: tmp_db)), \
-         mock.patch.object(type(tmp_settings), "media_path",
-                           new_callable=lambda: property(lambda self: tmp_path / "media")):
-        with pytest.raises(NotFoundError):
-            finalize_source("nonexistent", tmp_settings)
+    with pytest.raises(NotFoundError):
+        finalize_source("nonexistent", ctx)

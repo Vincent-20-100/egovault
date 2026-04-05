@@ -18,9 +18,10 @@ app = typer.Typer(help="Show recent API job activity.")
 _ID_SHORT_LEN = 8
 
 
-def _load_settings():
+def _build_ctx():
     from core.config import load_settings
-    return load_settings()
+    from infrastructure.context import build_context
+    return build_context(load_settings())
 
 
 def _list_jobs(db_path, limit):
@@ -36,12 +37,12 @@ def status(
 ) -> None:
     """Show recent API job activity from .system.db."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
-    jobs = _list_jobs(settings.system_db_path, limit)
+    jobs = _list_jobs(ctx.settings.system_db_path, limit)
 
     if not jobs:
         if json_mode:

@@ -1,5 +1,14 @@
-import pytest
+"""Tests for LLM provider — mocks the Anthropic SDK at module level."""
+
+import sys
 from unittest.mock import patch, MagicMock
+
+import pytest
+
+
+# Inject a fake anthropic module so late imports succeed without the real package
+if "anthropic" not in sys.modules:
+    sys.modules["anthropic"] = MagicMock()
 
 
 def test_generate_note_content_calls_anthropic(tmp_settings):
@@ -92,9 +101,7 @@ def test_generate_note_content_raises_after_max_retries(tmp_settings):
 
 
 def test_anthropic_auth_error_does_not_leak_key(monkeypatch):
-    """Auth errors from Anthropic SDK must not contain the API key."""
-    import pytest
-    from unittest.mock import MagicMock
+    """Auth errors from the LLM SDK must not contain the API key."""
     from infrastructure.llm_provider import _generate_anthropic
 
     settings = MagicMock()
@@ -102,7 +109,6 @@ def test_anthropic_auth_error_does_not_leak_key(monkeypatch):
     settings.system.llm.max_retries = 0
     settings.user.llm.model = "claude-sonnet-4-6"
 
-    # Simulate an API error that includes the key in its message
     class FakeAPIError(Exception):
         pass
 

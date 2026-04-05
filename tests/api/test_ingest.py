@@ -60,7 +60,7 @@ def test_ingest_pdf_unsupported_extension(client):
 
 def test_audio_upload_too_large_returns_413(client):
     """Uploads exceeding configured limit should return 413."""
-    upload_cfg = client.app.state.settings.system.upload
+    upload_cfg = client.app.state.ctx.settings.system.upload
     original = upload_cfg.max_audio_mb
     upload_cfg.max_audio_mb = 1  # 1 MB
     try:
@@ -75,7 +75,7 @@ def test_audio_upload_too_large_returns_413(client):
 
 def test_pdf_upload_too_large_returns_413(client):
     """Uploads exceeding configured limit should return 413."""
-    upload_cfg = client.app.state.settings.system.upload
+    upload_cfg = client.app.state.ctx.settings.system.upload
     original = upload_cfg.max_pdf_mb
     upload_cfg.max_pdf_mb = 1  # 1 MB
     try:

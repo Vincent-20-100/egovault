@@ -8,20 +8,41 @@ from core.schemas import ChunkResult, Source
 from core.errors import LargeFormatError
 
 
+# -- Helpers --
+
 def _chunk(uid="c1", pos=0):
     return ChunkResult(uid=uid, position=pos, content="pdf chunk content", token_count=3)
 
 
+def _make_ctx(tmp_settings, tmp_db, tmp_path, generate=None):
+    """Build a VaultContext wired to the test database."""
+    from infrastructure.vault_db import VaultDB
+    from core.context import VaultContext
+    from infrastructure.vault_writer import write_note as _write_note
+
+    vault_path = tmp_path / "vault"
+    vault_path.mkdir(exist_ok=True)
+    media_path = tmp_path / "media"
+    media_path.mkdir(exist_ok=True)
+
+    return VaultContext(
+        settings=tmp_settings,
+        db=VaultDB(tmp_db),
+        system_db_path=tmp_path / ".system.db",
+        embed=lambda text: make_embedding(0.0),
+        generate=generate,
+        write_note=_write_note,
+        vault_path=vault_path,
+        media_path=media_path,
+    )
+
+
+# -- Tests --
+
 def test_ingest_pdf_returns_rag_ready_source(tmp_settings, tmp_db, tmp_path):
     from workflows.ingest_pdf import ingest_pdf
 
-    settings = tmp_settings.model_copy(
-        update={"install": tmp_settings.install.model_copy(
-            update={"paths": tmp_settings.install.paths.model_copy(
-                update={"db_file": str(tmp_db)}
-            )}
-        )}
-    )
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
     pdf_file = tmp_path / "document.pdf"
     pdf_file.write_bytes(b"fake pdf bytes")
 
@@ -29,7 +50,7 @@ def test_ingest_pdf_returns_rag_ready_source(tmp_settings, tmp_db, tmp_path):
          patch("workflows.ingest_pdf.chunk_text", return_value=[_chunk()]), \
          patch("workflows.ingest_pdf.embed_text", return_value=make_embedding()):
 
-        result = ingest_pdf(str(pdf_file), settings, title="Mon Document")
+        result = ingest_pdf(str(pdf_file), ctx, title="Mon Document")
 
     assert isinstance(result, Source)
     assert result.status == "rag_ready"
@@ -40,13 +61,7 @@ def test_ingest_pdf_stores_transcript(tmp_settings, tmp_db, tmp_path):
     from workflows.ingest_pdf import ingest_pdf
     from infrastructure.db import get_source
 
-    settings = tmp_settings.model_copy(
-        update={"install": tmp_settings.install.model_copy(
-            update={"paths": tmp_settings.install.paths.model_copy(
-                update={"db_file": str(tmp_db)}
-            )}
-        )}
-    )
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
     pdf_file = tmp_path / "doc.pdf"
     pdf_file.write_bytes(b"fake pdf")
 
@@ -54,7 +69,7 @@ def test_ingest_pdf_stores_transcript(tmp_settings, tmp_db, tmp_path):
          patch("workflows.ingest_pdf.chunk_text", return_value=[_chunk()]), \
          patch("workflows.ingest_pdf.embed_text", return_value=make_embedding()):
 
-        result = ingest_pdf(str(pdf_file), settings)
+        result = ingest_pdf(str(pdf_file), ctx)
 
     stored = get_source(tmp_db, result.uid)
     assert stored.transcript == "PDF content here."
@@ -91,6 +106,7 @@ def test_ingest_pdf_livre_source_type(tmp_settings, tmp_db, tmp_path):
     from core.config import load_settings
     settings = load_settings(config_dir)
 
+    ctx = _make_ctx(settings, tmp_db, tmp_path)
     pdf_file = tmp_path / "book.pdf"
     pdf_file.write_bytes(b"fake pdf")
 
@@ -98,7 +114,7 @@ def test_ingest_pdf_livre_source_type(tmp_settings, tmp_db, tmp_path):
          patch("workflows.ingest_pdf.chunk_text", return_value=[_chunk()]), \
          patch("workflows.ingest_pdf.embed_text", return_value=make_embedding()):
 
-        result = ingest_pdf(str(pdf_file), settings, source_type="livre")
+        result = ingest_pdf(str(pdf_file), ctx, source_type="livre")
 
     assert result.source_type == "livre"
 
@@ -106,13 +122,7 @@ def test_ingest_pdf_livre_source_type(tmp_settings, tmp_db, tmp_path):
 def test_ingest_pdf_raises_large_format_error(tmp_settings, tmp_db, tmp_path):
     from workflows.ingest_pdf import ingest_pdf
 
-    settings = tmp_settings.model_copy(
-        update={"install": tmp_settings.install.model_copy(
-            update={"paths": tmp_settings.install.paths.model_copy(
-                update={"db_file": str(tmp_db)}
-            )}
-        )}
-    )
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
     pdf_file = tmp_path / "big.pdf"
     pdf_file.write_bytes(b"fake pdf")
 
@@ -122,7 +132,7 @@ def test_ingest_pdf_raises_large_format_error(tmp_settings, tmp_db, tmp_path):
          patch("workflows.ingest_pdf.embed_text", return_value=make_embedding()):
 
         with pytest.raises(LargeFormatError):
-            ingest_pdf(str(pdf_file), settings)
+            ingest_pdf(str(pdf_file), ctx)
 
 
 def test_ingest_pdf_auto_generate_true_creates_draft(tmp_settings, tmp_db, tmp_path):
@@ -142,24 +152,18 @@ def test_ingest_pdf_auto_generate_true_creates_draft(tmp_settings, tmp_db, tmp_p
         )
         return NoteResult(note=note, markdown_path="/vault/pdf-note.md")
 
-    settings = tmp_settings.model_copy(
-        update={"install": tmp_settings.install.model_copy(
-            update={"paths": tmp_settings.install.paths.model_copy(
-                update={"db_file": str(tmp_db)}
-            )}
-        )}
-    )
+    # Non-None generate so _llm_is_configured returns True
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path, generate=lambda *a: None)
     pdf_file = tmp_path / "test.pdf"
     pdf_file.write_bytes(b"fake pdf")
 
     with patch("workflows.ingest_pdf._extract_pdf_text", return_value="pdf text content"), \
          patch("workflows.ingest_pdf.chunk_text", return_value=[_chunk()]), \
          patch("workflows.ingest_pdf.embed_text", return_value=make_embedding()), \
-         patch("workflows.ingest_pdf._llm_is_configured", return_value=True), \
          patch("workflows.ingest_pdf.generate_note_from_source",
                return_value=_make_pdf_note_result()) as mock_gen:
 
-        result = ingest_pdf(str(pdf_file), settings, auto_generate_note=True)
+        result = ingest_pdf(str(pdf_file), ctx, auto_generate_note=True)
 
     assert result.status == "rag_ready"
     mock_gen.assert_called_once()
@@ -168,13 +172,7 @@ def test_ingest_pdf_auto_generate_true_creates_draft(tmp_settings, tmp_db, tmp_p
 def test_ingest_pdf_auto_generate_false_skips_note(tmp_settings, tmp_db, tmp_path):
     from workflows.ingest_pdf import ingest_pdf
 
-    settings = tmp_settings.model_copy(
-        update={"install": tmp_settings.install.model_copy(
-            update={"paths": tmp_settings.install.paths.model_copy(
-                update={"db_file": str(tmp_db)}
-            )}
-        )}
-    )
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
     pdf_file = tmp_path / "test2.pdf"
     pdf_file.write_bytes(b"fake pdf")
 
@@ -183,7 +181,7 @@ def test_ingest_pdf_auto_generate_false_skips_note(tmp_settings, tmp_db, tmp_pat
          patch("workflows.ingest_pdf.embed_text", return_value=make_embedding()), \
          patch("workflows.ingest_pdf.generate_note_from_source") as mock_gen:
 
-        result = ingest_pdf(str(pdf_file), settings, auto_generate_note=False)
+        result = ingest_pdf(str(pdf_file), ctx, auto_generate_note=False)
 
     assert result.status == "rag_ready"
     mock_gen.assert_not_called()

@@ -1,8 +1,9 @@
+"""Sources router — list, detail, delete/restore operations."""
+
 from fastapi import APIRouter, HTTPException, Request
 
 from api.models import SourceDetail, SourceListItem
 from core.schemas import DeleteSourceResult, RestoreSourceResult
-from infrastructure.db import get_source, list_sources
 from tools.vault.delete_source import delete_source
 from tools.vault.restore_source import restore_source
 
@@ -11,8 +12,8 @@ router = APIRouter(prefix="/sources", tags=["sources"])
 
 @router.get("", response_model=list[SourceListItem])
 def get_sources(request: Request, status: str | None = None, limit: int = 20, offset: int = 0):
-    db = request.app.state.settings.vault_db_path
-    sources = list_sources(db, status=status, limit=limit, offset=offset)
+    ctx = request.app.state.ctx
+    sources = ctx.db.list_sources(status=status, limit=limit, offset=offset)
     return [SourceListItem(
         uid=s.uid, slug=s.slug, source_type=s.source_type,
         status=s.status, title=s.title, date_added=s.date_added,
@@ -21,7 +22,7 @@ def get_sources(request: Request, status: str | None = None, limit: int = 20, of
 
 @router.get("/{uid}", response_model=SourceDetail)
 def get_source_by_uid(uid: str, request: Request):
-    source = get_source(request.app.state.settings.vault_db_path, uid)
+    source = request.app.state.ctx.db.get_source(uid)
     if source is None:
         raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
     return SourceDetail(
@@ -35,9 +36,9 @@ def get_source_by_uid(uid: str, request: Request):
 @router.delete("/{uid}", response_model=DeleteSourceResult)
 def delete_source_endpoint(uid: str, request: Request, force: bool = False):
     from core.errors import NotFoundError, ConflictError
-    settings = request.app.state.settings
+    ctx = request.app.state.ctx
     try:
-        return delete_source(uid, settings, force=force)
+        return delete_source(uid, ctx, force=force)
     except NotFoundError:
         raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
     except ConflictError as e:
@@ -47,9 +48,9 @@ def delete_source_endpoint(uid: str, request: Request, force: bool = False):
 @router.post("/{uid}/restore", response_model=RestoreSourceResult)
 def restore_source_endpoint(uid: str, request: Request):
     from core.errors import NotFoundError, ConflictError
-    settings = request.app.state.settings
+    ctx = request.app.state.ctx
     try:
-        return restore_source(uid, settings)
+        return restore_source(uid, ctx)
     except NotFoundError:
         raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
     except ConflictError as e:
@@ -66,9 +67,9 @@ def generate_note_from_source_endpoint(
     from tools.vault.generate_note_from_source import generate_note_from_source
     from core.errors import NotFoundError, ConflictError
 
-    settings = request.app.state.settings
+    ctx = request.app.state.ctx
     try:
-        result = generate_note_from_source(uid, settings, template=template)
+        result = generate_note_from_source(uid, ctx, template=template)
     except NotFoundError:
         raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
     except ValueError:

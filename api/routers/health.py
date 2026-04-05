@@ -1,3 +1,5 @@
+"""Health check router — DB connectivity and service status."""
+
 from fastapi import APIRouter, Request
 import requests
 
@@ -14,22 +16,19 @@ def _ping_ollama(base_url: str) -> bool:
         return False
 
 
-def _ping_db(db_path) -> bool:
+def _ping_db(db) -> bool:
+    # Delegate to VaultDB.ping() — avoids a direct infrastructure.db import
     try:
-        from infrastructure.db import get_vault_connection
-        conn = get_vault_connection(db_path)
-        conn.execute("SELECT 1")
-        conn.close()
-        return True
+        return db.ping()
     except Exception:
         return False
 
 
 @router.get("/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
-    settings = request.app.state.settings
-    ollama_up = _ping_ollama(settings.install.providers.ollama_base_url)
-    db_ok = _ping_db(settings.vault_db_path)
+    ctx = request.app.state.ctx
+    ollama_up = _ping_ollama(ctx.settings.install.providers.ollama_base_url)
+    db_ok = _ping_db(ctx.db)
     return HealthResponse(
         api="ok",
         ollama="up" if ollama_up else "down",

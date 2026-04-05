@@ -19,7 +19,7 @@ def _make_source(uid="suid-1", slug="ma-source", source_type="youtube", status="
 
 def test_source_list_default():
     sources = [_make_source()]
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._list_sources", return_value=sources):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list"])
@@ -29,7 +29,7 @@ def test_source_list_default():
 
 def test_source_list_json_mode():
     sources = [_make_source()]
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._list_sources", return_value=sources):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list", "--json"])
@@ -39,7 +39,7 @@ def test_source_list_json_mode():
 
 
 def test_source_list_filter_by_status():
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._list_sources", return_value=[]) as mock_list:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list", "--status", "rag_ready"])
@@ -49,7 +49,7 @@ def test_source_list_filter_by_status():
 
 def test_source_get_success():
     source = _make_source()
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._get_source", return_value=source):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["get", "suid-1"])
@@ -58,7 +58,7 @@ def test_source_get_success():
 
 
 def test_source_get_not_found():
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._get_source", return_value=None):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["get", "nonexistent"])
@@ -72,7 +72,7 @@ def test_source_get_verbose_shows_transcript():
         url="https://youtube.com/watch?v=test", title="Ma Source",
         date_added="2026-03-30", transcript="Transcription complète du contenu.",
     )
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._get_source", return_value=source):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["get", "suid-1", "--verbose"])
@@ -94,7 +94,7 @@ def test_source_generate_note_success():
     )
     note_result = NoteResult(note=note, markdown_path="/vault/gen-note.md")
 
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._generate_note_from_source",
                return_value=note_result) as mock_gen:
         mock_settings.return_value = MagicMock()
@@ -106,7 +106,7 @@ def test_source_generate_note_success():
 
 def test_source_generate_note_not_found():
     from core.errors import NotFoundError
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._generate_note_from_source",
                side_effect=NotFoundError("Source", "bad-uid")):
         mock_settings.return_value = MagicMock()
@@ -130,7 +130,7 @@ def test_source_generate_note_json_mode():
     )
     note_result = NoteResult(note=note, markdown_path="/vault/gen-note2.md")
 
-    with patch("cli.commands.sources._load_settings") as mock_settings, \
+    with patch("cli.commands.sources._build_ctx") as mock_settings, \
          patch("cli.commands.sources._generate_note_from_source",
                return_value=note_result):
         mock_settings.return_value = MagicMock()

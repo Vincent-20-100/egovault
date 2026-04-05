@@ -5,8 +5,8 @@ Any change to behavior, schema, or contracts → update this file immediately.
 
 > A doc that lies is worse than no doc.
 
-**Last updated:** 2026-03-28
-**History:** created 2026-03-25, updated 2026-03-26 (frontend, generation_templates, rating, notes_vec, granular statuses), updated 2026-03-28 (API integration, frontend, monitoring, reranking, semantic cache, RAG quality benchmark; vault.db/.system.db split; future work items externalized)
+**Last updated:** 2026-03-31
+**History:** created 2026-03-25, updated 2026-03-26 (frontend, generation_templates, rating, notes_vec, granular statuses), updated 2026-03-28 (API integration, frontend, monitoring, reranking, semantic cache, RAG quality benchmark; vault.db/.system.db split; future work items externalized), updated 2026-03-31 (VaultContext implemented, dependency rules updated, file tree synced with reality, A3 delete/restore/purge, API/CLI implemented)
 **Future work items:** `docs/FUTURE-WORK.md`
 
 ---
@@ -108,10 +108,13 @@ egovault/                          ← PUBLIC git repo
 │           └── standard.yaml      ← default template shipped with the repo
 ├── core/
 │   ├── config.py                  ← loads + validates the 3 yamls via Pydantic Settings
+│   ├── context.py                 ← VaultContext dataclass + Protocols (EmbedFn, GenerateFn, WriteNoteFn)
 │   ├── schemas.py                 ← ALL project Pydantic models
 │   ├── uid.py                     ← UUID4 generation + slug derivation
-│   ├── logging.py                 ← @loggable decorator + structured JSON logging
-│   └── errors.py                  ← project business exceptions
+│   ├── logging.py                 ← @loggable decorator + structured JSON logging (callback-based, no infra imports)
+│   ├── errors.py                  ← project business exceptions
+│   ├── sanitize.py                ← redact sensitive data (API keys) from log entries
+│   └── security.py                ← file path validation against allowed directories
 ├── tools/
 │   ├── media/
 │   │   ├── transcribe.py          ← audio/video → TranscriptResult
@@ -121,12 +124,19 @@ egovault/                          ← PUBLIC git repo
 │   ├── text/
 │   │   ├── chunk.py               ← text → list[ChunkResult]
 │   │   ├── embed.py               ← text → list[float]
-│   │   └── summarize.py           ← text → SummaryResult
+│   │   ├── embed_note.py          ← note_uid → EmbedNoteResult (re-embed after update)
+│   │   └── summarize.py           ← text → SummaryResult [NOT YET IMPLEMENTED]
 │   ├── vault/
 │   │   ├── create_note.py         ← NoteContentInput → NoteResult (writes to DB)
 │   │   ├── update_note.py         ← uid + partial update → NoteResult
-│   │   ├── search.py              ← SearchInput → list[SearchResult] (+ reranking + cache)
-│   │   └── finalize_source.py     ← marks source as processed, moves media
+│   │   ├── generate_note_from_source.py ← source_uid → NoteResult (LLM-generated draft)
+│   │   ├── search.py              ← query → list[SearchResult]
+│   │   ├── finalize_source.py     ← marks source as processed
+│   │   ├── delete_note.py         ← soft or hard delete a note
+│   │   ├── delete_source.py       ← soft or hard delete a source + its chunks
+│   │   ├── restore_note.py        ← restore a soft-deleted note
+│   │   ├── restore_source.py      ← restore a soft-deleted source
+│   │   └── purge.py               ← permanently remove all pending-deletion items
 │   └── export/
 │       ├── typst.py               ← note_uid → .typ file (print-ready document)
 │       └── mermaid.py             ← note_uid or tag → Mermaid diagram .md
@@ -137,21 +147,23 @@ egovault/                          ← PUBLIC git repo
 │                                    (also handles source_type: livre — same pipeline, different taxonomy value)
 │                                    (source_type: web — future work item, not yet implemented)
 ├── infrastructure/
-│   ├── db.py                      ← SQLite + sqlite-vec (swappable)
+│   ├── db.py                      ← SQLite + sqlite-vec — raw SQL functions
+│   ├── vault_db.py                ← VaultDB facade — binds db_path, one-line delegations to db.py
+│   ├── context.py                 ← build_context() factory — wires all providers into VaultContext
 │   ├── vault_writer.py            ← generates .md files from DB records
 │   ├── embedding_provider.py      ← Ollama or OpenAI (config-driven)
 │   ├── llm_provider.py            ← LLM provider (Claude, OpenAI, Ollama)
 │   ├── reranker_provider.py       ← local cross-encoder via sentence-transformers [SPEC READY]
 │   └── semantic_cache.py          ← semantic cache with dual MD5+vec lookup [SPEC READY]
-├── api/                           ← FastAPI — HTTP layer between frontend and tools/ [SPEC READY]
-│   ├── main.py                    ← FastAPI app, router mounting, ThreadPoolExecutor
-│   ├── models.py                  ← Pydantic request/response models (separate from core/schemas.py)
+├── api/                           ← FastAPI — HTTP layer between frontend and tools/
+│   ├── main.py                    ← FastAPI app, router mounting, ThreadPoolExecutor, build_context()
 │   └── routers/
 │       ├── ingest.py              ← POST /ingest/youtube|audio|pdf
 │       ├── jobs.py                ← GET /jobs, GET /jobs/{id}
-│       ├── notes.py               ← GET/PATCH /notes, GET /notes/{uid}
-│       ├── sources.py             ← GET /sources, GET /sources/{uid}
+│       ├── notes.py               ← GET/PATCH /notes, GET /notes/{uid}, POST /sources/{uid}/generate
+│       ├── sources.py             ← GET /sources, GET /sources/{uid}, DELETE
 │       ├── search.py              ← POST /search
+│       ├── vault.py               ← DELETE /vault/notes|sources, POST /vault/restore, POST /vault/purge
 │       ├── monitoring.py          ← GET /monitoring/runs, /cost, /cache [SPEC READY]
 │       ├── benchmark.py           ← POST /benchmark/run, GET /benchmark/results [SPEC READY]
 │       └── health.py              ← GET /health
@@ -162,7 +174,8 @@ egovault/                          ← PUBLIC git repo
 │       ├── ingest.py                  ← egovault ingest <url/file>
 │       ├── search.py                  ← egovault search <query>
 │       ├── notes.py                   ← egovault note list/get/create/update
-│       ├── sources.py                 ← egovault source list/get
+│       ├── sources.py                 ← egovault source list/get/delete/restore
+│       ├── purge.py                   ← egovault purge review/confirm
 │       └── status.py                  ← egovault status
 ├── frontend/                      ← Next.js 14, App Router, shadcn/ui + Tailwind [SPEC READY]
 │   └── (not implemented — prerequisite: api/ operational)
@@ -183,10 +196,13 @@ egovault/                          ← PUBLIC git repo
 │   └── temp/                      ← one-shot scripts (migrations, one-off fixes)
 │       └── (convention: numbered 001_, 002_, etc.)
 ├── docs/
-│   ├── ARCHITECTURE.md            ← THIS FILE — single project reference
-│   └── specs/
-│       ├── FUTURE-WORK.md         ← ideas and work items not yet specced
-│       └── (historical specs, do not modify)
+│   ├── architecture/
+│   │   ├── ARCHITECTURE.md        ← THIS FILE — single project reference
+│   │   ├── DATABASES.md           ← DB schema reference (vault.db + .system.db)
+│   │   └── CONTRACTS.md           ← Pydantic, MCP & API contracts
+│   ├── VISION.md                  ← strategic vision, competitive analysis, north star
+│   ├── FUTURE-WORK.md             ← ideas backlog (not yet specced)
+│   └── superpowers/               ← build artifacts (specs, plans, audits)
 └── tests/                         ← mirrors tools/, workflows/, api/, benchmark/
     ├── core/
     ├── infrastructure/
@@ -208,25 +224,34 @@ egovault-user/                     ← local storage (paths overridable)
     └── notes/                     ← Markdown files generated from the DB
 ```
 
-### 2.3 Dependency rules (strict)
+### 2.3 Dependency rules (strict) — VaultContext pattern
 
 ```
-clients (CLI, MCP server, api/)
+surfaces (CLI, MCP server, api/)
+    │  build_context() → VaultContext
     ↓
-tools/ and workflows/
+tools/ and workflows/          ← receive ctx: VaultContext, import core/ only
     ↓
-core/          ← defines interfaces (abstract classes)
+core/                          ← VaultContext, Protocols, schemas — zero project imports
     ↑
-infrastructure/  ← implements core/ interfaces (concrete classes)
+infrastructure/                ← VaultDB, build_context, providers — imports core/ only
 ```
 
-`api/` is at the client level — routes HTTP calls to `tools/` and `workflows/`, contains zero business logic.
+**VaultContext** is the dependency injection container. It holds all infrastructure dependencies
+(DB facade, embedding function, LLM function, vault writer) as a single dataclass.
 
-`core/` defines **what** storage and embedding are (abstract interfaces).
-`infrastructure/` implements **how** (SQLite, Ollama, etc.) and depends on `core/` — never the reverse.
-`tools/` and `workflows/` depend on `core/` interfaces, never on `infrastructure/` directly.
+- **Surfaces** call `build_context(settings)` at startup, then pass `ctx` to tools/workflows
+- **Tools** receive `ctx: VaultContext` — they never import infrastructure/ directly
+- **core/** defines Protocols (`EmbedFn`, `GenerateFn`, `WriteNoteFn`) — type-safe callables
+- **infrastructure/** implements the Protocols and provides `build_context()` factory
 
-**Consequence:** replacing `infrastructure/db.py` with a PostgreSQL implementation requires no changes in `core/` or `tools/`. A tool never imports another tool. If that need arises, the boundary is drawn incorrectly.
+**Hard rules:**
+- `tools/` has **zero imports** from `infrastructure/` (verified by grep)
+- `core/` has **zero runtime imports** from `infrastructure/` (TYPE_CHECKING only for VaultDB type hint)
+- A tool **never imports another tool** — if that need arises, the boundary is wrong
+- Surfaces contain **zero business logic** — routing only
+
+**Consequence:** replacing SQLite with PostgreSQL = change `infrastructure/db.py` + `VaultDB`. Zero changes in `core/` or `tools/`. Swapping the embedding provider = change `build_context()`. Tools never know.
 
 ---
 
@@ -409,10 +434,10 @@ reranker:
 
 These 6 specs are validated and ready to implement. Detailed specs in `docs/superpowers/specs/`.
 
-### 7.1 FastAPI API
+### 7.1 FastAPI API — IMPLEMENTED
 
 **Spec:** `docs/superpowers/specs/2026-03-27-api-design.md`
-**Files:** `api/` (new), `tests/api/` (new)
+**Files:** `api/`, `tests/api/`
 
 Main endpoints:
 ```

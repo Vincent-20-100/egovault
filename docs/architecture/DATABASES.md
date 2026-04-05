@@ -34,7 +34,7 @@ notes_vec    ← one embedding per note   (note-level semantic search)
 | `pre_vaulted` | **LLM path only.** LLM has generated a note draft, awaiting human validation before DB write. |
 | `vaulted` | Note validated and written to the vault. Source archived. |
 | `failed` | Processing error — see `tool_logs` in `.system.db` |
-| `pending_deletion` | Marked for deletion, awaiting explicit human confirmation. No MCP tool triggers this currently — future work item. |
+| `pending_deletion` | Marked for deletion via `delete_source`. Reversible via `restore_source`. Permanently removed by `purge`. |
 
 **Two paths from `rag_ready` to `vaulted`:**
 ```
@@ -51,6 +51,7 @@ Notes without a source (`reflexion`, `idee`, `personnel`) have no source status 
 | `synced` | Note embedding is up to date | Set by workflow after embed_note |
 | `needs_re_embedding` | Note body modified, re-embedding queued | Set by vault watcher on file save |
 | `embedding` | Re-embedding in progress | Set by embedding worker on pickup |
+| `pending_deletion` | Marked for deletion via `delete_note` | Reversible via `restore_note`, permanent via `purge` |
 
 ### 4.2 Large format policy
 
@@ -83,7 +84,8 @@ CREATE TABLE sources (
     date_source  DATE,
     media_path   TEXT,
     transcript   TEXT,
-    raw_metadata TEXT
+    raw_metadata TEXT,
+    previous_status TEXT          -- saved before soft delete, restored by restore_source
 );
 
 -- ============================================================
@@ -109,7 +111,8 @@ CREATE TABLE notes (
     url                 TEXT,               -- only for notes without a source (source_uid IS NULL)
     date_created        DATE NOT NULL,      -- IMMUTABLE after creation
     date_modified       DATE NOT NULL,
-    language            TEXT DEFAULT 'fr'
+    language            TEXT DEFAULT 'fr',
+    previous_sync_status TEXT       -- saved before soft delete, restored by restore_note
 );
 
 -- ============================================================

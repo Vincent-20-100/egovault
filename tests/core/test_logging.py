@@ -2,6 +2,26 @@ import pytest
 from core import logging as ev_logging
 
 
+# ---------------------------------------------------------------------------
+# Helper — builds a writer callback backed by a real system DB.
+# Reused by multiple tests to avoid repeating the DB insert logic.
+# ---------------------------------------------------------------------------
+def _make_log_writer(system_db_path):
+    from infrastructure.db import get_system_connection
+    from core.uid import generate_uid
+
+    def writer(uid, tool_name, input_json, output_json, duration_ms, status, error):
+        conn = get_system_connection(system_db_path)
+        conn.execute(
+            """INSERT INTO tool_logs (uid, tool_name, input_json, output_json, duration_ms, status, error)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (uid, tool_name, input_json, output_json, duration_ms, status, error),
+        )
+        conn.commit()
+        conn.close()
+    return writer
+
+
 def test_serialize_pydantic_model():
     from core.schemas import TranscriptResult
     result = TranscriptResult(text="hello", language="fr", duration_seconds=10.5)
@@ -39,10 +59,10 @@ def test_loggable_captures_exception():
 
 
 def test_loggable_writes_to_db_when_configured(tmp_path):
-    from infrastructure.db import init_db, get_vault_connection
+    from infrastructure.db import init_system_db, get_system_connection
     db_file = tmp_path / "log_test.db"
-    init_db(db_file)
-    ev_logging.configure(db_file)
+    init_system_db(db_file)
+    ev_logging.configure(_make_log_writer(db_file))
 
     @ev_logging.loggable("my_logged_tool")
     def add(a: int, b: int) -> int:
@@ -50,7 +70,7 @@ def test_loggable_writes_to_db_when_configured(tmp_path):
 
     add(1, 2)
 
-    conn = get_vault_connection(db_file)
+    conn = get_system_connection(db_file)
     rows = conn.execute("SELECT * FROM tool_logs WHERE tool_name = 'my_logged_tool'").fetchall()
     conn.close()
 
@@ -58,15 +78,15 @@ def test_loggable_writes_to_db_when_configured(tmp_path):
     assert rows[0]["status"] == "success"
     assert rows[0]["duration_ms"] >= 0
 
-    # cleanup: reset _db_path to avoid polluting other tests
+    # Reset to avoid polluting other tests
     ev_logging.configure(None)
 
 
 def test_loggable_writes_failed_status_to_db(tmp_path):
-    from infrastructure.db import init_db, get_vault_connection
+    from infrastructure.db import init_system_db, get_system_connection
     db_file = tmp_path / "log_test2.db"
-    init_db(db_file)
-    ev_logging.configure(db_file)
+    init_system_db(db_file)
+    ev_logging.configure(_make_log_writer(db_file))
 
     @ev_logging.loggable("bad_tool")
     def always_fails(x: int) -> int:
@@ -75,7 +95,7 @@ def test_loggable_writes_failed_status_to_db(tmp_path):
     with pytest.raises(RuntimeError):
         always_fails(5)
 
-    conn = get_vault_connection(db_file)
+    conn = get_system_connection(db_file)
     rows = conn.execute("SELECT * FROM tool_logs WHERE tool_name = 'bad_tool'").fetchall()
     conn.close()
 
@@ -90,7 +110,7 @@ def test_loggable_writes_to_system_db(tmp_path):
 
     system_db = tmp_path / ".system.db"
     init_system_db(system_db)
-    configure(system_db)
+    configure(_make_log_writer(system_db))
 
     @loggable("test_tool")
     def my_tool(x: int) -> int:
@@ -112,7 +132,7 @@ def test_loggable_logs_failure_to_system_db(tmp_path):
 
     system_db = tmp_path / ".system.db"
     init_system_db(system_db)
-    configure(system_db)
+    configure(_make_log_writer(system_db))
 
     @loggable("failing_tool")
     def bad_tool(x: int) -> int:
@@ -132,14 +152,11 @@ def test_loggable_logs_failure_to_system_db(tmp_path):
 def test_write_log_redacts_sensitive_data(tmp_path, monkeypatch):
     """Tool logs must redact API keys before writing."""
     from core import logging as log_mod
-    from core.sanitize import redact_sensitive
+    from infrastructure.db import init_system_db
 
     db_path = tmp_path / ".system.db"
-
-    # Init system DB
-    from infrastructure.db import init_system_db
     init_system_db(db_path)
-    log_mod.configure(db_path)
+    log_mod.configure(_make_log_writer(db_path))
 
     # Write a log entry with a fake API key
     log_mod._write_log(

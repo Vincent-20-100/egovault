@@ -22,7 +22,7 @@ def _make_result(title="Mon Note", score=0.9, content="Contenu du chunk", note_u
 
 def test_search_returns_results():
     results = [_make_result()]
-    with patch("cli.commands.search._load_settings") as mock_settings, \
+    with patch("cli.commands.search._build_ctx") as mock_settings, \
          patch("cli.commands.search._run_search", return_value=results):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["elasticite des prix"])
@@ -32,7 +32,7 @@ def test_search_returns_results():
 
 def test_search_json_mode():
     results = [_make_result()]
-    with patch("cli.commands.search._load_settings") as mock_settings, \
+    with patch("cli.commands.search._build_ctx") as mock_settings, \
          patch("cli.commands.search._run_search", return_value=results):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["elasticite des prix", "--json"])
@@ -45,7 +45,7 @@ def test_search_json_mode():
 
 def test_search_verbose_shows_distance():
     results = [_make_result()]
-    with patch("cli.commands.search._load_settings") as mock_settings, \
+    with patch("cli.commands.search._build_ctx") as mock_settings, \
          patch("cli.commands.search._run_search", return_value=results):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["query", "--verbose"])
@@ -54,7 +54,7 @@ def test_search_verbose_shows_distance():
 
 
 def test_search_empty_results():
-    with patch("cli.commands.search._load_settings") as mock_settings, \
+    with patch("cli.commands.search._build_ctx") as mock_settings, \
          patch("cli.commands.search._run_search", return_value=[]):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["nothing"])
@@ -63,7 +63,7 @@ def test_search_empty_results():
 
 
 def test_search_empty_query():
-    with patch("cli.commands.search._load_settings") as mock_settings:
+    with patch("cli.commands.search._build_ctx") as mock_settings:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, [""])
     assert result.exit_code == 1
