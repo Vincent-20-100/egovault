@@ -430,5 +430,57 @@ the intelligence.
 """
 
 
+# Destructive operations — only registered if allow_destructive_ops is True
+if settings and settings.user.allow_destructive_ops:
+    from tools.vault.delete_note import delete_note as _delete_note_tool
+    from tools.vault.delete_source import delete_source as _delete_source_tool
+    from tools.vault.restore_note import restore_note as _restore_note_tool
+    from tools.vault.restore_source import restore_source as _restore_source_tool
+    from tools.vault.purge import purge as _purge_tool
+
+    @mcp.tool()
+    def delete_note(uid: str, force: bool = False) -> dict:
+        """
+        Mark a note for deletion or permanently remove it.
+        Without force: marks as pending deletion, reversible via restore_note.
+        With force: permanently removes the note, its embedding, and its Markdown file.
+        """
+        return _delete_note_tool(uid, settings, force=force).model_dump(mode="json")
+
+    @mcp.tool()
+    def delete_source(uid: str, force: bool = False) -> dict:
+        """
+        Mark a source for deletion or permanently remove it.
+        Without force: marks as pending deletion, reversible via restore_source.
+        With force: permanently removes the source, all its chunks, embeddings, and media file.
+        Linked notes become orphaned — they are not deleted.
+        """
+        return _delete_source_tool(uid, settings, force=force).model_dump(mode="json")
+
+    @mcp.tool()
+    def restore_note(uid: str) -> dict:
+        """
+        Restore a note previously marked for deletion.
+        Reverts to the sync status it had before soft-deletion.
+        """
+        return _restore_note_tool(uid, settings).model_dump(mode="json")
+
+    @mcp.tool()
+    def restore_source(uid: str) -> dict:
+        """
+        Restore a source previously marked for deletion.
+        Reverts to the status it had before soft-deletion.
+        """
+        return _restore_source_tool(uid, settings).model_dump(mode="json")
+
+    @mcp.tool()
+    def purge() -> dict:
+        """
+        Permanently remove all notes and sources currently marked for deletion.
+        This operation cannot be undone.
+        """
+        return _purge_tool(settings).model_dump(mode="json")
+
+
 if __name__ == "__main__":
     mcp.run()

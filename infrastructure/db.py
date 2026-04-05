@@ -539,6 +539,117 @@ def list_sources(
     return [Source(**dict(row)) for row in rows]
 
 
+def soft_delete_source(db_path: Path, uid: str) -> None:
+    conn = get_vault_connection(db_path)
+    conn.execute(
+        "UPDATE sources SET previous_status = status, status = 'pending_deletion' WHERE uid = ?",
+        (uid,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def restore_source(db_path: Path, uid: str) -> str:
+    conn = get_vault_connection(db_path)
+    row = conn.execute(
+        "SELECT previous_status FROM sources WHERE uid = ?", (uid,)
+    ).fetchone()
+    previous = row[0] if row else None
+    conn.execute(
+        "UPDATE sources SET status = previous_status, previous_status = NULL WHERE uid = ?",
+        (uid,),
+    )
+    conn.commit()
+    conn.close()
+    return previous or "rag_ready"
+
+
+def hard_delete_source(db_path: Path, uid: str) -> None:
+    conn = get_vault_connection(db_path)
+    conn.execute("DELETE FROM sources WHERE uid = ?", (uid,))
+    conn.commit()
+    conn.close()
+
+
+def orphan_notes_for_source(db_path: Path, uid: str) -> list[str]:
+    conn = get_vault_connection(db_path)
+    rows = conn.execute(
+        "SELECT uid FROM notes WHERE source_uid = ?", (uid,)
+    ).fetchall()
+    note_uids = [row[0] for row in rows]
+    conn.execute("UPDATE notes SET source_uid = NULL WHERE source_uid = ?", (uid,))
+    conn.commit()
+    conn.close()
+    return note_uids
+
+
+def delete_chunk_embeddings_for_source(db_path: Path, uid: str) -> None:
+    conn = get_vault_connection(db_path)
+    conn.execute(
+        "DELETE FROM chunks_vec WHERE chunk_uid IN "
+        "(SELECT uid FROM chunks WHERE source_uid = ?)",
+        (uid,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def list_sources_pending_deletion(db_path: Path) -> list[Source]:
+    conn = get_vault_connection(db_path)
+    rows = conn.execute(
+        "SELECT * FROM sources WHERE status = 'pending_deletion'"
+    ).fetchall()
+    conn.close()
+    return [Source(**dict(row)) for row in rows]
+
+
+def soft_delete_note(db_path: Path, uid: str) -> None:
+    conn = get_vault_connection(db_path)
+    conn.execute(
+        "UPDATE notes SET previous_sync_status = sync_status, sync_status = 'pending_deletion' WHERE uid = ?",
+        (uid,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def restore_note(db_path: Path, uid: str) -> str:
+    conn = get_vault_connection(db_path)
+    row = conn.execute(
+        "SELECT previous_sync_status FROM notes WHERE uid = ?", (uid,)
+    ).fetchone()
+    previous = row[0] if row else None
+    conn.execute(
+        "UPDATE notes SET sync_status = previous_sync_status, previous_sync_status = NULL WHERE uid = ?",
+        (uid,),
+    )
+    conn.commit()
+    conn.close()
+    return previous or "synced"
+
+
+def hard_delete_note(db_path: Path, uid: str) -> None:
+    conn = get_vault_connection(db_path)
+    conn.execute("DELETE FROM notes WHERE uid = ?", (uid,))
+    conn.commit()
+    conn.close()
+
+
+def list_notes_pending_deletion(db_path: Path) -> list[Note]:
+    conn = get_vault_connection(db_path)
+    rows = conn.execute(
+        "SELECT * FROM notes WHERE sync_status = 'pending_deletion'"
+    ).fetchall()
+    results = []
+    for row in rows:
+        data = dict(row)
+        tags = _fetch_note_tags(conn, data["uid"])
+        data["tags"] = tags if tags else ["untagged"]
+        results.append(Note(**data))
+    conn.close()
+    return results
+
+
 # ============================================================
 # JOBS (.system.db)
 # ============================================================
