@@ -18,9 +18,10 @@ _AUDIO_EXTENSIONS = {".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm"}
 _YOUTUBE_PATTERNS = ("youtube.com", "youtu.be")
 
 
-def _load_settings():
+def _build_ctx():
     from core.config import load_settings
-    return load_settings()
+    from infrastructure.context import build_context
+    return build_context(load_settings())
 
 
 def _detect_type(target: str) -> str:
@@ -34,16 +35,16 @@ def _detect_type(target: str) -> str:
     raise ValueError(f"Unsupported input: '{target}'. Provide a YouTube URL, audio file, or PDF.")
 
 
-def _run_ingest(input_type: str, target: str, settings, auto_generate_note=None):
+def _run_ingest(input_type: str, target: str, ctx, auto_generate_note=None):
     if input_type == "youtube":
         from workflows.ingest_youtube import ingest_youtube
-        return ingest_youtube(target, settings, auto_generate_note=auto_generate_note)
+        return ingest_youtube(target, ctx, auto_generate_note=auto_generate_note)
     elif input_type == "audio":
         from workflows.ingest_audio import ingest_audio
-        return ingest_audio(target, settings, auto_generate_note=auto_generate_note)
+        return ingest_audio(target, ctx, auto_generate_note=auto_generate_note)
     else:
         from workflows.ingest_pdf import ingest_pdf
-        return ingest_pdf(target, settings, auto_generate_note=auto_generate_note)
+        return ingest_pdf(target, ctx, auto_generate_note=auto_generate_note)
 
 
 @app.command()
@@ -61,7 +62,7 @@ def ingest(
     from core.errors import LargeFormatError
 
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found. Run the setup script first.", "config_error",
                     json_mode, verbose, str(e))
@@ -76,7 +77,7 @@ def ingest(
     start = time.time()
     try:
         with spinner(f"Ingesting {input_type}..."):
-            source = _run_ingest(input_type, target, settings,
+            source = _run_ingest(input_type, target, ctx,
                                  auto_generate_note=generate_note)
     except LargeFormatError as e:
         print_error(

@@ -13,7 +13,7 @@ from core.logging import loggable
 @loggable("transcribe")
 def transcribe(file_path: str, language: str = "fr") -> TranscriptResult:
     """
-    Transcribe an audio or video file using faster-whisper.
+    Transcribe an audio or video file using the configured engine.
     Falls back to auto language detection if language hint is not recognised.
     No DB write.
     """

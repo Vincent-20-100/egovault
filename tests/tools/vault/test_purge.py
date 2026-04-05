@@ -3,17 +3,17 @@ from unittest.mock import patch, MagicMock
 from core.schemas import PurgeResult
 
 
-def test_purge_empty_vault(tmp_settings):
+def test_purge_empty_vault(ctx):
     with patch("infrastructure.db.list_notes_pending_deletion", return_value=[]), \
          patch("infrastructure.db.list_sources_pending_deletion", return_value=[]):
         from tools.vault.purge import purge
-        result = purge(tmp_settings)
+        result = purge(ctx)
     assert result.notes_purged == 0
     assert result.sources_purged == 0
     assert result.media_files_deleted == 0
 
 
-def test_purge_deletes_pending_notes(tmp_settings):
+def test_purge_deletes_pending_notes(ctx):
     from core.schemas import Note
     note = Note(
         uid="nuid-1", slug="test", title="Test", docstring="Doc",
@@ -24,15 +24,13 @@ def test_purge_deletes_pending_notes(tmp_settings):
     with patch("infrastructure.db.list_notes_pending_deletion", return_value=[note]), \
          patch("infrastructure.db.list_sources_pending_deletion", return_value=[]), \
          patch("infrastructure.db.delete_note_embedding"), \
-         patch("infrastructure.db.hard_delete_note"), \
-         patch.object(type(tmp_settings), "vault_path",
-                      new_callable=lambda: property(lambda self: MagicMock())):
+         patch("infrastructure.db.hard_delete_note"):
         from tools.vault.purge import purge
-        result = purge(tmp_settings)
+        result = purge(ctx)
     assert result.notes_purged == 1
 
 
-def test_purge_deletes_pending_sources(tmp_settings):
+def test_purge_deletes_pending_sources(ctx):
     from core.schemas import Source
     source = Source(
         uid="suid-1", slug="test-source", source_type="youtube",
@@ -45,6 +43,6 @@ def test_purge_deletes_pending_sources(tmp_settings):
          patch("infrastructure.db.delete_chunks_for_source"), \
          patch("infrastructure.db.hard_delete_source"):
         from tools.vault.purge import purge
-        result = purge(tmp_settings)
+        result = purge(ctx)
     assert result.sources_purged == 1
     assert result.media_files_deleted == 0

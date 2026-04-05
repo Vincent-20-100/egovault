@@ -140,7 +140,7 @@ Step N/M of <plan-name>
 **Trigger:** Tests pass.
 **Who:** Claude agents (parallel), using audit spec.
 **Skill:** Agents execute `docs/superpowers/specs/2026-03-31-project-audit-spec.md`
-**Output:** Results file `docs/superpowers/audit-results-<date>.md`
+**Output:** Results file `docs/superpowers/audits/audit-results-<date>.md`
 
 **Rules:**
 - Run only the audit domains relevant to the changes (not full audit every time)

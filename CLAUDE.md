@@ -13,6 +13,12 @@ extract and chunk content, embed it for semantic search, and generate structured
 
 **Philosophy:** This project prioritizes **architectural elegance and scalability** over
 shortcuts. It serves as both a functional tool and a portfolio-grade architecture reference.
+It is also designed as a **reusable template** — the architecture, behavior files, and
+project structure should be portable to any future ambitious project.
+
+**Vision & strategy:** `docs/VISION.md` — why this project exists, competitive landscape,
+buzz potential, and the north star (every decision must bring us closer to the 2-minute demo).
+Read this to understand the WHY before diving into the HOW.
 
 ---
 
@@ -41,20 +47,41 @@ shortcuts. It serves as both a functional tool and a portfolio-grade architectur
 | `docs/superpowers/specs/2026-03-31-development-workflow.md` | The 7-phase development process | Mandatory process for all changes |
 | `docs/superpowers/specs/2026-03-31-project-audit-spec.md` | Reusable audit method (8 domains) | Quality gate at Phase 6 |
 
-### 3.2 Provisional documents (dated, may become obsolete)
+### 3.2 The `docs/superpowers/` directory — all build artifacts
 
-| Document | Role | Lifecycle |
-|----------|------|-----------|
-| `docs/superpowers/specs/<date>-<name>.md` | Feature specs | Active until implemented, then archived |
-| `docs/superpowers/specs/<date>-<name>-notes.md` | Brainstorm notes | Reference for spec writing, then archived |
-| `docs/superpowers/plans/<date>-<name>.md` | Step-by-step execution plans | Active during implementation, then archived |
-| `docs/superpowers/audit-results-<date>.md` | Dated audit results | Discarded after fixes applied |
+**Everything in `docs/superpowers/` is provisional.** It is the workspace for specs, plans,
+brainstorm notes, and audits. At release, this entire directory can be cleaned or removed
+from the public repo. The skill auto-generates files here.
+
+```
+docs/superpowers/
+├── specs/              ← Active specs and brainstorm notes
+│   └── future/         ← Validated specs NOT YET implemented
+├── plans/              ← Active implementation plans
+├── audits/             ← Audit results (dated)
+└── archive/            ← Implemented or obsolete specs and plans
+    ├── specs/
+    └── plans/
+```
+
+**Lifecycle:** Spec/plan starts in `specs/` or `plans/`. Once implemented → move to `archive/`.
+Once validated but deferred → move to `specs/future/`. Obsolete → move to `archive/`.
+
+| Location | Content | Lifecycle |
+|----------|---------|-----------|
+| `specs/<date>-<name>.md` | Active feature specs | Implemented → `archive/specs/` |
+| `specs/<date>-<name>-notes.md` | Brainstorm notes | Reference for spec, then `archive/` |
+| `specs/future/<date>-<name>.md` | Validated but deferred specs | Implemented → `archive/specs/` |
+| `plans/<date>-<name>.md` | Active execution plans | Implemented → `archive/plans/` |
+| `audits/audit-results-<date>.md` | Dated audit results | Discarded after fixes applied |
+| `archive/specs/` | Implemented or obsolete specs | Historical reference only |
+| `archive/plans/` | Implemented plans | Historical reference only |
 
 ### 3.3 Reference documents (stable, rarely updated)
 
 | Document | Role |
 |----------|------|
-| `docs/PRODUCT-AUDIT.md` | Feature gaps, roadmap priorities |
+| `docs/VISION.md` | Strategic vision: WHY we build this, market positioning, north star |
 | `docs/FUTURE-WORK.md` | Ideas backlog (not yet specced) |
 | `docs/mcp-setup.md` | MCP client setup guide |
 
@@ -281,6 +308,17 @@ See `docs/superpowers/specs/2026-03-31-unified-ingest-architecture.md` §2.
 
 ---
 
+### G13 — Code comments: concise, surgical, no dead weight
+
+- **Module docstring:** role + why it exists (2-3 lines max)
+- **Class/function docstring:** one line "what", not "how". Args/Returns only if the signature isn't self-explanatory
+- **Inline comments:** only when the "why" isn't obvious. Never narrate the "what"
+- **Never reference** file paths, library names, or config values in comments — they go stale
+- **A good name replaces a comment.** If you need a comment to explain a variable, rename it first
+- English only (G7). Concise > exhaustive
+
+---
+
 ### Pre-commit checklist
 
 Before any change is considered complete:
@@ -297,6 +335,7 @@ Before any change is considered complete:
 - [ ] G10: No security anti-patterns
 - [ ] G11: Routing layers are thin
 - [ ] G12: No duplicated docs
+- [ ] G13: Code is properly commented for humans and LLMs
 
 ---
 
@@ -349,61 +388,23 @@ BRAINSTORM → SPEC → PLAN → IMPLEMENT → TEST → AUDIT → SHIP
 
 ---
 
-## 9. Current status
+## 9. Project status
 
-**Last audit:** 2026-03-31 — see `docs/superpowers/audit-results-2026-03-31.md`
-**Audit summary:** 4 critical (architecture debt), 30 major, 13 minor. Implementation, config, security clean.
+**Live project state:** `PROJECT-STATUS.md` — next action, debt, roadmap, session history.
+**Decision context:** `SESSION-CONTEXT.md` — WHY decisions were made, traps to avoid, open questions.
 
-### Implemented (verified by audit)
+Both files live at the root of the repo. Together they give a new LLM context
+everything it needs to continue work without making uninformed decisions.
 
-| Feature | Date | Key files |
-|---------|------|-----------|
-| Hexagonal architecture | 2026-03 | `core/`, `tools/`, `workflows/`, `infrastructure/`, `mcp/` |
-| Ingest workflows | 2026-03 | `workflows/ingest_{youtube,audio,pdf}.py` |
-| MCP server | 2026-03 | `mcp/server.py` (22+ tools) |
-| FastAPI API | 2026-03 | `api/` (7 routers, 19 endpoints) |
-| A1 — MCP flow fix | 2026-03-30 | `embed_note`, auto-embed, enriched MCP tools |
-| A2 — CLI | 2026-03-30 | `cli/commands/` (ingest, search, notes, sources, status, purge) |
-| A3 — Delete operations | 2026-03-31 | Soft-delete, restore, purge, `allow_destructive_ops` gate |
-| A4 — Internal LLM path | 2026-03-31 | `generate_note_from_source`, draft/active status, approve |
-| B1 — embedding.dims fix | 2026-03-31 | `EmbeddingConfig`, dynamic vec schema, dim-mismatch validation |
-| Test suite | 2026-03 | 367 tests across all layers |
+### Mandatory rules for these files
 
-### Known technical debt
-
-| Debt | Severity | Resolution |
-|------|----------|------------|
-| tools/ → infrastructure/ late imports (12 tools) | MAJOR | VaultContext refactoring (spec pending) |
-| core/logging.py → infrastructure.db | CRITICAL | Callback pattern during VaultContext refactor |
-| fetch_subtitles → transcribe (tool→tool import) | CRITICAL | Workflow orchestration during unified ingest |
-| MCP create_note has 45 lines of business logic | CRITICAL | Move to tools/ during VaultContext refactor |
-| API ingest router has file handling logic | MAJOR | Move to infrastructure/ during unified ingest |
-
-### Active work — current priorities
-
-> **Next action:** BRAINSTORM (Phase 1) for VaultContext refactoring.
-> Direction decided (Direction 2 — context object), but interactive brainstorm with user NOT done yet.
-> See `docs/superpowers/specs/2026-03-31-unified-ingest-notes.md` for prior discussion context.
-
-1. **VaultContext refactoring** — resolve G4 debt.
-   - Direction chosen: context object pattern (see G4 in §6).
-   - Status: **needs Phase 1 BRAINSTORM with user** → then spec → then plan → then implement.
-   - Key open questions: exact VaultContext fields, where `build_context()` lives, refactor scope.
-2. **Unified ingest architecture** — spec written, needs VaultContext first.
-   - Spec: `docs/superpowers/specs/2026-03-31-unified-ingest-architecture.md`
-   - Blocked by: VaultContext (tools need ctx param before unified workflow can use them).
-3. **ingest_text** — new pipeline, trivial once unified workflow exists.
-
-### Roadmap (future, not yet specced)
-
-See `docs/FUTURE-WORK.md` for full backlog. Key items:
-
-- **B2 — Security Phase 2** (application-level hardening)
-- **B3 — Monitoring** (observability)
-- **Web ingestion** (requires dedicated security brainstorm)
-- **Frontend** (Next.js, prerequisite: API stable)
-- **Search quality** (reranking, semantic cache, benchmark)
-- **Provider management** (CLI to swap LLM/embedder/transcriber)
-- **Extraction tiers** (builtin → markitdown → chandra)
-
-Each item follows the 7-phase workflow: brainstorm → spec → plan → implement → test → audit → ship.
+1. **Read both files at the start of every session** before doing anything.
+2. **Update both files at the end of every session:**
+   - `PROJECT-STATUS.md`: update next action, move completed items, add session to history
+   - `SESSION-CONTEXT.md`: rewrite with current decisions, reasoning, traps, and open questions.
+     This file is NOT a log — it is **rewritten** each session to stay concise. Old reasoning
+     that is no longer relevant is removed. New reasoning is added.
+3. **When the user signals they want to stop** (or asks "can I leave?", "on arrête?", etc.),
+   update both files and commit+push **before** confirming the session is safe to end.
+4. **Never make autonomous decisions on topics listed in "Open questions"** in SESSION-CONTEXT.md.
+   These require interactive discussion with the user.

@@ -10,15 +10,15 @@ Linked notes become orphaned (source_uid set to NULL) — they are NOT deleted.
 
 from pathlib import Path
 
+from core.context import VaultContext
 from core.schemas import DeleteSourceResult
-from core.config import Settings
 from core.logging import loggable
 
 
 @loggable("delete_source")
 def delete_source(
     uid: str,
-    settings: Settings,
+    ctx: VaultContext,
     force: bool = False,
 ) -> DeleteSourceResult:
     """
@@ -28,27 +28,22 @@ def delete_source(
     Linked notes become orphaned — their source_uid is set to NULL.
     """
     from core.errors import NotFoundError, ConflictError
-    from infrastructure.db import (
-        get_source, soft_delete_source, hard_delete_source,
-        orphan_notes_for_source, delete_chunk_embeddings_for_source,
-        delete_chunks_for_source,
-    )
 
-    source = get_source(settings.vault_db_path, uid)
+    source = ctx.db.get_source(uid)
     if source is None:
         raise NotFoundError("Source", uid)
 
     if not force:
         if source.status == "pending_deletion":
             raise ConflictError("Source", uid, "already marked for deletion")
-        soft_delete_source(settings.vault_db_path, uid)
+        ctx.db.soft_delete_source(uid)
         return DeleteSourceResult(
             uid=uid, action="soft_deleted", media_deleted=False, orphaned_note_uids=[]
         )
 
-    orphaned = orphan_notes_for_source(settings.vault_db_path, uid)
-    delete_chunk_embeddings_for_source(settings.vault_db_path, uid)
-    delete_chunks_for_source(settings.vault_db_path, uid)
+    orphaned = ctx.db.orphan_notes_for_source(uid)
+    ctx.db.delete_chunk_embeddings_for_source(uid)
+    ctx.db.delete_chunks_for_source(uid)
 
     media_deleted = False
     if source.media_path:
@@ -57,7 +52,7 @@ def delete_source(
             media_file.unlink()
             media_deleted = True
 
-    hard_delete_source(settings.vault_db_path, uid)
+    ctx.db.hard_delete_source(uid)
 
     return DeleteSourceResult(
         uid=uid, action="hard_deleted",

@@ -14,27 +14,27 @@ def _make_note(sync_status="pending_deletion"):
     )
 
 
-def test_restore_note_success(tmp_settings):
+def test_restore_note_success(ctx):
     note = _make_note(sync_status="pending_deletion")
     with patch("infrastructure.db.get_note", return_value=note), \
          patch("infrastructure.db.restore_note", return_value="synced") as mock_restore:
         from tools.vault.restore_note import restore_note
-        result = restore_note("nuid-1", tmp_settings)
+        result = restore_note("nuid-1", ctx)
     assert result.uid == "nuid-1"
     assert result.restored_sync_status == "synced"
     mock_restore.assert_called_once()
 
 
-def test_restore_note_not_found(tmp_settings):
+def test_restore_note_not_found(ctx):
     with patch("infrastructure.db.get_note", return_value=None):
         from tools.vault.restore_note import restore_note
         with pytest.raises(NotFoundError):
-            restore_note("nonexistent", tmp_settings)
+            restore_note("nonexistent", ctx)
 
 
-def test_restore_note_not_pending(tmp_settings):
+def test_restore_note_not_pending(ctx):
     note = _make_note(sync_status="synced")
     with patch("infrastructure.db.get_note", return_value=note):
         from tools.vault.restore_note import restore_note
         with pytest.raises(ConflictError):
-            restore_note("nuid-1", tmp_settings)
+            restore_note("nuid-1", ctx)

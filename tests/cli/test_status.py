@@ -23,7 +23,7 @@ def _make_job(job_id="job-abc-123", job_type="ingest_youtube", status="done"):
 
 def test_status_default():
     jobs = [_make_job()]
-    with patch("cli.commands.status._load_settings") as mock_settings, \
+    with patch("cli.commands.status._build_ctx") as mock_settings, \
          patch("cli.commands.status._list_jobs", return_value=jobs):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, [])
@@ -33,7 +33,7 @@ def test_status_default():
 
 def test_status_json_mode():
     jobs = [_make_job()]
-    with patch("cli.commands.status._load_settings") as mock_settings, \
+    with patch("cli.commands.status._build_ctx") as mock_settings, \
          patch("cli.commands.status._list_jobs", return_value=jobs):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["--json"])
@@ -45,7 +45,7 @@ def test_status_json_mode():
 
 def test_status_verbose_shows_full_id():
     jobs = [_make_job()]
-    with patch("cli.commands.status._load_settings") as mock_settings, \
+    with patch("cli.commands.status._build_ctx") as mock_settings, \
          patch("cli.commands.status._list_jobs", return_value=jobs):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["--verbose"])
@@ -54,7 +54,7 @@ def test_status_verbose_shows_full_id():
 
 
 def test_status_no_jobs():
-    with patch("cli.commands.status._load_settings") as mock_settings, \
+    with patch("cli.commands.status._build_ctx") as mock_settings, \
          patch("cli.commands.status._list_jobs", return_value=[]):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, [])

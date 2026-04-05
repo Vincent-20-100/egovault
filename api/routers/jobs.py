@@ -1,6 +1,9 @@
+"""Job status router — query async workflow execution state."""
+
 from fastapi import APIRouter, Request, HTTPException
 
 from api.models import JobListItem, JobResponse
+# System DB job functions — not in VaultDB (vault DB only); kept as direct imports
 from infrastructure.db import get_job, list_jobs
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -8,7 +11,8 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 @router.get("", response_model=list[JobListItem])
 def get_jobs(request: Request, status: str | None = None, limit: int = 20):
-    jobs = list_jobs(request.app.state.settings.system_db_path, status=status, limit=limit)
+    ctx = request.app.state.ctx
+    jobs = list_jobs(ctx.system_db_path, status=status, limit=limit)
     return [JobListItem(
         id=j["id"], status=j["status"],
         job_type=j["job_type"], created_at=j["created_at"],
@@ -17,7 +21,8 @@ def get_jobs(request: Request, status: str | None = None, limit: int = 20):
 
 @router.get("/{job_id}", response_model=JobResponse)
 def get_job_by_id(job_id: str, request: Request):
-    job = get_job(request.app.state.settings.system_db_path, job_id)
+    ctx = request.app.state.ctx
+    job = get_job(ctx.system_db_path, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
     return JobResponse(

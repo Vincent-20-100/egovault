@@ -15,9 +15,10 @@ app = typer.Typer(help="Browse ingested sources.")
 _TRANSCRIPT_PREVIEW_LEN = 300
 
 
-def _load_settings():
+def _build_ctx():
     from core.config import load_settings
-    return load_settings()
+    from infrastructure.context import build_context
+    return build_context(load_settings())
 
 
 def _list_sources(db_path, status, limit, offset):
@@ -40,12 +41,12 @@ def source_list(
 ) -> None:
     """List ingested sources."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
-    sources = _list_sources(settings.vault_db_path, status, limit, offset)
+    sources = _list_sources(ctx.settings.vault_db_path, status, limit, offset)
 
     if verbose:
         columns = ["uid", "slug", "type", "status", "url", "date_added"]
@@ -65,12 +66,12 @@ def source_get(
 ) -> None:
     """Get a source by UID."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
-    source = _get_source(settings.vault_db_path, uid)
+    source = _get_source(ctx.settings.vault_db_path, uid)
     if source is None:
         print_error(f"Source not found: {uid}", "not_found", json_mode, verbose)
         raise typer.Exit(1)
@@ -93,9 +94,9 @@ def source_get(
     print_panel(f"Source: {source.slug}", fields, json_mode)
 
 
-def _generate_note_from_source(source_uid, settings, template="standard"):
+def _generate_note_from_source(source_uid, ctx, template="standard"):
     from tools.vault.generate_note_from_source import generate_note_from_source
-    return generate_note_from_source(source_uid, settings, template=template)
+    return generate_note_from_source(source_uid, ctx, template=template)
 
 
 @app.command("generate-note")
@@ -110,13 +111,13 @@ def source_generate_note(
     from core.errors import NotFoundError, ConflictError
 
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     try:
-        result = _generate_note_from_source(uid, settings, template=template)
+        result = _generate_note_from_source(uid, ctx, template=template)
     except NotFoundError:
         print_error(f"Source not found: {uid}", "not_found", json_mode, verbose)
         raise typer.Exit(1)
@@ -143,14 +144,14 @@ def source_generate_note(
         print_panel("Draft note generated", fields, json_mode)
 
 
-def _delete_source(uid, settings, force):
+def _delete_source(uid, ctx, force):
     from tools.vault.delete_source import delete_source
-    return delete_source(uid, settings, force=force)
+    return delete_source(uid, ctx, force=force)
 
 
-def _restore_source(uid, settings):
+def _restore_source(uid, ctx):
     from tools.vault.restore_source import restore_source
-    return restore_source(uid, settings)
+    return restore_source(uid, ctx)
 
 
 @app.command("delete")
@@ -163,13 +164,13 @@ def source_delete(
 ) -> None:
     """Delete a source. Soft-delete by default; use --force for immediate removal."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     if force and not yes:
-        source = _get_source(settings.vault_db_path, uid)
+        source = _get_source(ctx.settings.vault_db_path, uid)
         summary = f"Source: {source.title or source.slug if source else uid}"
         if source and source.media_path:
             summary += f"\nMedia file: {source.media_path}"
@@ -179,7 +180,7 @@ def source_delete(
             raise typer.Exit(0)
 
     try:
-        result = _delete_source(uid, settings, force=force)
+        result = _delete_source(uid, ctx, force=force)
     except Exception as e:
         from core.errors import NotFoundError, ConflictError
         if isinstance(e, NotFoundError):
@@ -204,13 +205,13 @@ def source_restore(
 ) -> None:
     """Restore a source previously marked for deletion."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     try:
-        result = _restore_source(uid, settings)
+        result = _restore_source(uid, ctx)
     except Exception as e:
         from core.errors import NotFoundError, ConflictError
         if isinstance(e, NotFoundError):

@@ -16,14 +16,15 @@ app = typer.Typer(help="Semantic search over the vault.")
 _VALID_MODES = ("chunks", "notes")
 
 
-def _load_settings():
+def _build_ctx():
     from core.config import load_settings
-    return load_settings()
+    from infrastructure.context import build_context
+    return build_context(load_settings())
 
 
-def _run_search(query: str, settings, mode: str, limit: int):
+def _run_search(query: str, ctx, mode: str, limit: int):
     from tools.vault.search import search
-    return search(query, settings, mode=mode, limit=limit)
+    return search(query, ctx, mode=mode, limit=limit)
 
 
 @app.command()
@@ -44,7 +45,7 @@ def search_cmd(
         raise typer.Exit(1)
 
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found. Run the setup script first.", "config_error",
                     json_mode, verbose, str(e))
@@ -52,7 +53,7 @@ def search_cmd(
 
     start = time.time()
     try:
-        results = _run_search(query, settings, mode, limit)
+        results = _run_search(query, ctx, mode, limit)
     except Exception as e:
         print_error("Search failed.", "search_error", json_mode, verbose, str(e))
         raise typer.Exit(1)

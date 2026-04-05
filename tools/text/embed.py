@@ -1,20 +1,19 @@
 """
 Text embedding tool.
 
-Input  : text string + settings
+Input  : text string + VaultContext
 Output : list[float] (embedding vector)
-No DB write. Provider configured via user.yaml.
+No DB write. Provider is accessed via ctx.embed.
 """
 
-from core.config import Settings
+from core.context import VaultContext
 from core.logging import loggable
 
 
 @loggable("embed_text")
-def embed_text(text: str, settings: Settings) -> list[float]:
+def embed_text(text: str, ctx: VaultContext) -> list[float]:
     """
-    Embed a text string using the configured provider (Ollama or OpenAI).
+    Embed a text string using the configured provider.
     Returns a flat list of floats. No DB write.
     """
-    from infrastructure.embedding_provider import embed
-    return embed(text, settings)
+    return ctx.embed(text)

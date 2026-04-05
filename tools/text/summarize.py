@@ -1,21 +1,15 @@
 """
 Text summarization tool.
 
-Input  : text + settings
-Output : SummaryResult
-No DB write. Used internally by workflows — not exposed directly to users.
+Not yet implemented — placeholder for large-format workflow.
 """
 
+from core.context import VaultContext
 from core.schemas import SummaryResult
-from core.config import Settings
 from core.logging import loggable
 
 
 @loggable("summarize")
-def summarize(text: str, settings: Settings) -> SummaryResult:
-    """
-    Generate a concise summary of the provided text via LLM.
-    Used by large-format workflow (external summary path).
-    No DB write.
-    """
+def summarize(text: str, ctx: VaultContext) -> SummaryResult:
+    """Generate a concise summary via LLM. Not yet implemented."""
     ...

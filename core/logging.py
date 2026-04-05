@@ -1,22 +1,29 @@
 """
 @loggable decorator and structured JSON logging for EgoVault v2.
 
-Every tool call is logged to tool_logs table automatically.
-Zero boilerplate in tool code — just decorate with @loggable("tool_name").
+Every tool call is logged automatically — zero boilerplate in tool code.
+Uses a callback injected at startup so core/ stays free of infrastructure imports (G4).
 """
 
 import json
 import time
 from functools import wraps
-from pathlib import Path
+from typing import Callable
 
-_db_path: Path | None = None
+# Callback injected at app startup — signature matches _write_log's call site.
+# Kept as None when logging is disabled (e.g. tests that don't need DB writes).
+_log_writer: Callable | None = None
 
 
-def configure(db_path: Path | None) -> None:
-    """Call at app startup with the resolved .system.db path. Pass None to disable."""
-    global _db_path
-    _db_path = db_path
+def configure(log_writer: Callable | None) -> None:
+    """
+    Call at app startup with a writer callback, or None to disable logging.
+
+    Expected signature:
+        writer(uid, tool_name, input_json, output_json, duration_ms, status, error) -> None
+    """
+    global _log_writer
+    _log_writer = log_writer
 
 
 def _serialize(obj) -> str:
@@ -46,33 +53,29 @@ def _write_log(
     status: str,
     error: str | None = None,
 ) -> None:
-    """Write a tool_log entry to .system.db. Redacts sensitive data before writing."""
-    if _db_path is None:
+    """Write a tool_log entry via the injected writer callback. Redacts sensitive data first."""
+    if _log_writer is None:
         return
     try:
-        from infrastructure.db import get_system_connection
         from core.uid import generate_uid
         from core.sanitize import redact_sensitive
 
-        conn = get_system_connection(_db_path)
-        conn.execute(
-            """INSERT INTO tool_logs (uid, tool_name, input_json, output_json, duration_ms, status, error)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (generate_uid(), tool_name,
-             redact_sensitive(input_json),
-             redact_sensitive(output_json),
-             duration_ms, status,
-             redact_sensitive(error)),
+        _log_writer(
+            generate_uid(),
+            tool_name,
+            redact_sensitive(input_json),
+            redact_sensitive(output_json),
+            duration_ms,
+            status,
+            redact_sensitive(error),
         )
-        conn.commit()
-        conn.close()
     except Exception:
         pass  # logging must never crash the tool
 
 
 def loggable(tool_name: str):
     """
-    Decorator: logs every tool call to tool_logs table.
+    Decorator: logs every tool call to the tool_logs table.
 
     Tools MUST accept their primary input as first positional arg or as 'input' kwarg.
     Input/output serialized via _serialize() (Pydantic-aware).

@@ -2,9 +2,12 @@
 Tests for rate limiting middleware.
 
 The ingest routes are limited to 10 requests/min.
+Background workflows are mocked to avoid DB lock conflicts with other tests.
 """
 
 import pytest
+from unittest.mock import patch
+
 import api.main as main_module
 
 
@@ -14,6 +17,13 @@ def reset_rate_counts():
     main_module._request_counts.clear()
     yield
     main_module._request_counts.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_background_jobs():
+    """Prevent background workflow threads from touching the DB."""
+    with patch("api.routers.ingest._run_youtube"):
+        yield
 
 
 def test_ingest_youtube_rate_limit(client):

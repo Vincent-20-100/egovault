@@ -2,31 +2,20 @@
 PDF/book ingestion workflow.
 
 Pipeline:
-  extract_text (pypdf) → chunk_text → embed_chunks → [LLM → create_note → embed_note]
+  extract_text → chunk_text → embed_chunks → [LLM → create_note → embed_note]
 
 Handles source_types: pdf, livre (same pipeline, different taxonomy value).
 Status transitions: raw → transcribing → text_ready → embedding → rag_ready [→ pre_vaulted → vaulted]
-
-Note: pypdf used in v1 for simplicity. Docling is a future upgrade for better layout analysis.
 """
 
 import logging
 from datetime import date
 from pathlib import Path
 
-from core.config import Settings
+from core.context import VaultContext
 from core.errors import LargeFormatError
 from core.schemas import Source
 from core.uid import generate_uid, make_unique_slug
-from infrastructure.db import (
-    get_vault_connection,
-    get_source,
-    insert_chunk_embeddings,
-    insert_chunks,
-    insert_source,
-    update_source_status,
-    update_source_transcript,
-)
 from tools.text.chunk import chunk_text
 from tools.text.embed import embed_text
 from tools.vault.generate_note_from_source import generate_note_from_source
@@ -34,15 +23,14 @@ from tools.vault.generate_note_from_source import generate_note_from_source
 logger = logging.getLogger(__name__)
 
 
-def _llm_is_configured(settings) -> bool:
+def _llm_is_configured(ctx: VaultContext) -> bool:
     """Return True only if a supported LLM is configured with credentials."""
-    if settings.user.llm.provider == "claude":
-        return bool(settings.install.providers.anthropic_api_key)
-    return False
+    # ctx.generate is None when no LLM provider was wired at startup
+    return ctx.generate is not None
 
 
 def _extract_pdf_text(file_path: str) -> str:
-    """Extract full text from a PDF using pypdf."""
+    """Extract full text from a PDF using the configured PDF parser."""
     import pypdf
     reader = pypdf.PdfReader(file_path)
     pages = [page.extract_text() or "" for page in reader.pages]
@@ -51,7 +39,7 @@ def _extract_pdf_text(file_path: str) -> str:
 
 def ingest_pdf(
     file_path: str,
-    settings: Settings,
+    ctx: VaultContext,
     title: str | None = None,
     source_type: str = "pdf",
     auto_generate_note: bool | None = None,
@@ -62,15 +50,11 @@ def ingest_pdf(
     Returns the Source record at rag_ready status.
     Raises LargeFormatError if extracted text exceeds token threshold.
     """
-    db = settings.vault_db_path
     today = date.today().isoformat()
     source_uid = generate_uid()
     file_stem = Path(file_path).stem
 
-    conn = get_vault_connection(db)
-    existing_slugs = {row[0] for row in conn.execute("SELECT slug FROM sources").fetchall()}
-    conn.close()
-
+    existing_slugs = ctx.db.get_existing_slugs("sources")
     base_name = title if title else file_stem
     slug = make_unique_slug(base_name, existing_slugs)
 
@@ -82,30 +66,30 @@ def ingest_pdf(
         title=title,
         date_added=today,
     )
-    insert_source(db, source)
+    ctx.db.insert_source(source)
 
     # Step 1: Extract text
-    update_source_status(db, source_uid, "transcribing")
+    ctx.db.update_source_status(source_uid, "transcribing")
     text = _extract_pdf_text(file_path)
-    update_source_transcript(db, source_uid, text)
-    update_source_status(db, source_uid, "text_ready")
+    ctx.db.update_source_transcript(source_uid, text)
+    ctx.db.update_source_status(source_uid, "text_ready")
 
     # Step 2: Chunk + embed
     token_count = len(text.split())
-    threshold = settings.system.llm.large_format_threshold_tokens
+    threshold = ctx.settings.system.llm.large_format_threshold_tokens
 
-    update_source_status(db, source_uid, "embedding")
-    chunks = chunk_text(text, settings.system)
-    insert_chunks(db, source_uid, chunks)
+    ctx.db.update_source_status(source_uid, "embedding")
+    chunks = chunk_text(text, ctx.settings.system)
+    ctx.db.insert_chunks(source_uid, chunks)
     for chunk in chunks:
-        embedding = embed_text(chunk.content, settings)
-        insert_chunk_embeddings(db, chunk.uid, embedding)
+        embedding = embed_text(chunk.content, ctx)
+        ctx.db.insert_chunk_embeddings(chunk.uid, embedding)
 
-    update_source_status(db, source_uid, "rag_ready")
+    ctx.db.update_source_status(source_uid, "rag_ready")
 
     should_generate = (
         auto_generate_note if auto_generate_note is not None
-        else settings.user.llm.auto_generate_note
+        else ctx.settings.user.llm.auto_generate_note
     )
 
     if token_count > threshold:
@@ -118,9 +102,9 @@ def ingest_pdf(
         )
 
     if should_generate:
-        if not _llm_is_configured(settings):
+        if not _llm_is_configured(ctx):
             logger.info("LLM not configured, skipping note generation")
         else:
-            generate_note_from_source(source_uid, settings)
+            generate_note_from_source(source_uid, ctx)
 
-    return get_source(db, source_uid)
+    return ctx.db.get_source(source_uid)

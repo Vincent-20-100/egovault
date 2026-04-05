@@ -8,47 +8,42 @@ Writes to DB, re-embeds into notes_vec, regenerates Markdown.
 
 from datetime import date
 
+from core.context import VaultContext
 from core.schemas import NoteResult
-from core.config import Settings
 from core.logging import loggable
 from core.errors import NotFoundError
 
+# System fields are immutable — silently ignored if included in the update dict
 _SYSTEM_FIELDS = {"uid", "date_created", "source_uid", "generation_template"}
 
 
 @loggable("update_note")
-def update_note(uid: str, fields: dict, settings: Settings) -> NoteResult:
+def update_note(uid: str, fields: dict, ctx: VaultContext) -> NoteResult:
     """
     Update editable fields of an existing note.
     SYSTEM fields (uid, date_created, source_uid, generation_template) are silently ignored.
     Re-embeds the note into notes_vec after any update.
-    Updates date_modified. Regenerates Markdown file via vault_writer.
+    Updates date_modified. Regenerates Markdown file via write_note().
     """
-    from infrastructure.db import (
-        get_note, update_note as db_update,
-        delete_note_embedding, insert_note_embedding,
-    )
-    from infrastructure.embedding_provider import embed
-    from infrastructure.vault_writer import write_note
-
-    note = get_note(settings.vault_db_path, uid)
+    note = ctx.db.get_note(uid)
     if note is None:
         raise NotFoundError("Note", uid)
 
     safe_fields = {k: v for k, v in fields.items() if k not in _SYSTEM_FIELDS}
     safe_fields["date_modified"] = date.today().isoformat()
 
-    db_update(settings.vault_db_path, uid, safe_fields)
-    updated_note = get_note(settings.vault_db_path, uid)
+    ctx.db.update_note(uid, safe_fields)
+    updated_note = ctx.db.get_note(uid)
 
+    # Re-embed after content change so search index stays current
     text = "\n\n".join(filter(None, [updated_note.title, updated_note.docstring, updated_note.body]))
-    embedding = embed(text, settings)
-    delete_note_embedding(settings.vault_db_path, uid)
-    insert_note_embedding(settings.vault_db_path, uid, embedding)
-    db_update(settings.vault_db_path, uid, {"sync_status": "synced"})
-    updated_note = get_note(settings.vault_db_path, uid)
+    embedding = ctx.embed(text)
+    ctx.db.delete_note_embedding(uid)
+    ctx.db.insert_note_embedding(uid, embedding)
+    ctx.db.update_note(uid, {"sync_status": "synced"})
+    updated_note = ctx.db.get_note(uid)
 
-    settings.vault_path.mkdir(parents=True, exist_ok=True)
-    markdown_path = write_note(updated_note, settings.vault_path)
+    ctx.vault_path.mkdir(parents=True, exist_ok=True)
+    markdown_path = ctx.write_note(updated_note, ctx.vault_path)
 
     return NoteResult(note=updated_note, markdown_path=str(markdown_path))

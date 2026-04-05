@@ -1,32 +1,28 @@
-import pytest
-from unittest.mock import patch, MagicMock
-
 from tests.conftest import make_embedding, EMBEDDING_DIMS
 
 
-def test_embed_text_returns_vector(tmp_settings):
+def test_embed_text_returns_vector(ctx):
     from tools.text.embed import embed_text
 
-    mock_resp = MagicMock()
-    mock_resp.json.return_value = {"embedding": make_embedding(0.5)}
-    mock_resp.raise_for_status = MagicMock()
-
-    with patch("requests.post", return_value=mock_resp):
-        result = embed_text("hello", tmp_settings)
+    result = embed_text("hello", ctx)
 
     assert isinstance(result, list)
     assert len(result) == EMBEDDING_DIMS
 
 
-def test_embed_text_delegates_to_provider(tmp_settings):
+def test_embed_text_delegates_to_provider(ctx):
+    """embed_text must call ctx.embed and pass the text through."""
     from tools.text.embed import embed_text
 
-    mock_resp = MagicMock()
-    mock_resp.json.return_value = {"embedding": make_embedding()}
-    mock_resp.raise_for_status = MagicMock()
+    received: list[str] = []
 
-    with patch("requests.post", return_value=mock_resp) as mock_post:
-        embed_text("test text", tmp_settings)
+    def tracking_embed(text: str) -> list[float]:
+        received.append(text)
+        return make_embedding()
 
-    assert mock_post.called
-    assert "test text" in str(mock_post.call_args)
+    ctx.embed = tracking_embed
+
+    embed_text("test text", ctx)
+
+    assert len(received) == 1
+    assert received[0] == "test text"

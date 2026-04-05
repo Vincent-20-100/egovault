@@ -1,3 +1,10 @@
+"""
+Shared pytest fixtures for EgoVault tests.
+
+Provides a minimal VaultContext (ctx) wired to temp storage and mock providers,
+plus lower-level helpers (tmp_settings, tmp_db) for tests that need finer control.
+"""
+
 import pytest
 import yaml
 from pathlib import Path
@@ -64,3 +71,40 @@ def tmp_db(tmp_path):
     db_file = tmp_path / "test.db"
     init_db(db_file)
     return db_file
+
+
+@pytest.fixture
+def ctx(tmp_settings, tmp_path):
+    """
+    Fully wired VaultContext for tool-level tests.
+
+    Uses a real SQLite DB, mock embed/write_note, and no LLM (generate=None).
+    Prefer this fixture over wiring infrastructure manually in each test.
+    """
+    from infrastructure.db import init_db
+    from infrastructure.vault_db import VaultDB
+    from core.context import VaultContext
+
+    # Real DB so tools can read back what they write
+    db_path = tmp_path / "vault.db"
+    init_db(db_path)
+    db = VaultDB(db_path)
+
+    vault_path = tmp_path / "vault"
+    vault_path.mkdir()
+    media_path = tmp_path / "media"
+    media_path.mkdir()
+
+    from infrastructure.vault_writer import write_note as _write_note
+
+    return VaultContext(
+        settings=tmp_settings,
+        db=db,
+        system_db_path=tmp_path / ".system.db",
+        embed=lambda text: make_embedding(0.0),
+        generate=None,
+        # Real vault_writer so tests that check markdown file existence work correctly
+        write_note=_write_note,
+        vault_path=vault_path,
+        media_path=media_path,
+    )

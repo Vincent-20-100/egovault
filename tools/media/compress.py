@@ -17,7 +17,7 @@ from core.logging import loggable
 @loggable("compress_audio")
 def compress_audio(file_path: str, bitrate_kbps: int = 12) -> CompressResult:
     """
-    Compress audio to Opus mono via ffmpeg.
+    Compress audio to a low-bitrate mono format.
     Default: 12kbps mono 16kHz (~5MB/hour).
     Output file written alongside source with .opus extension.
     No DB write.
@@ -50,7 +50,7 @@ def compress_audio(file_path: str, bitrate_kbps: int = 12) -> CompressResult:
 @loggable("compress_video")
 def compress_video(file_path: str) -> CompressResult:
     """
-    Compress video to AV1 via ffmpeg.
+    Compress video to a compact format.
     No DB write.
     """
     raise NotImplementedError("compress_video not implemented in v1")

@@ -1,6 +1,17 @@
-import pytest
+"""Tests for fetch_subtitles tool — mocks external APIs at module level."""
+
+import sys
 from unittest.mock import patch, MagicMock
+
+import pytest
+
 from core.schemas import SubtitleResult
+
+# Inject fake modules so late imports succeed without the real packages
+if "youtube_transcript_api" not in sys.modules:
+    sys.modules["youtube_transcript_api"] = MagicMock()
+if "faster_whisper" not in sys.modules:
+    sys.modules["faster_whisper"] = MagicMock()
 
 
 YT_URL = "https://youtube.com/watch?v=dQw4w9WgXcQ"
@@ -8,12 +19,12 @@ YT_URL = "https://youtube.com/watch?v=dQw4w9WgXcQ"
 
 def _make_mock_transcript(entries):
     """Build a mock FetchedTranscript from a list of dicts with 'text' keys."""
-    mock_transcript = MagicMock()
     snippets = []
     for entry in entries:
         snippet = MagicMock()
         snippet.text = entry["text"]
         snippets.append(snippet)
+    mock_transcript = MagicMock()
     mock_transcript.__iter__ = MagicMock(return_value=iter(snippets))
     mock_transcript.language_code = "fr"
     return mock_transcript
@@ -26,8 +37,10 @@ def test_fetch_subtitles_returns_subtitle_result():
         {"text": "Hello world"},
         {"text": "Foo bar"},
     ])
-    with patch("youtube_transcript_api.YouTubeTranscriptApi.fetch",
-               return_value=mock_transcript):
+    # Patch the class so that instances return the mock transcript on .fetch()
+    mock_api = MagicMock()
+    mock_api.fetch.return_value = mock_transcript
+    with patch("youtube_transcript_api.YouTubeTranscriptApi", return_value=mock_api):
         result = fetch_subtitles(YT_URL, language="fr")
 
     assert isinstance(result, SubtitleResult)
@@ -40,8 +53,9 @@ def test_fetch_subtitles_joins_entries():
     from tools.media.fetch_subtitles import fetch_subtitles
 
     mock_transcript = _make_mock_transcript([{"text": "A"}, {"text": "B"}, {"text": "C"}])
-    with patch("youtube_transcript_api.YouTubeTranscriptApi.fetch",
-               return_value=mock_transcript):
+    mock_api = MagicMock()
+    mock_api.fetch.return_value = mock_transcript
+    with patch("youtube_transcript_api.YouTubeTranscriptApi", return_value=mock_api):
         result = fetch_subtitles(YT_URL)
 
     assert "A" in result.text and "B" in result.text and "C" in result.text
@@ -51,9 +65,10 @@ def test_fetch_subtitles_fallback_to_transcription(tmp_path):
     from tools.media.fetch_subtitles import fetch_subtitles
     from core.schemas import TranscriptResult
 
-    # Force subtitle fetch to fail
-    with patch("youtube_transcript_api.YouTubeTranscriptApi.fetch",
-               side_effect=Exception("No subtitles")), \
+    # Make the API instance raise so the fallback path triggers
+    mock_api = MagicMock()
+    mock_api.fetch.side_effect = Exception("No subtitles")
+    with patch("youtube_transcript_api.YouTubeTranscriptApi", return_value=mock_api), \
          patch("tools.media.fetch_subtitles._download_audio",
                return_value=str(tmp_path / "audio.mp3")), \
          patch("tools.media.fetch_subtitles.transcribe",

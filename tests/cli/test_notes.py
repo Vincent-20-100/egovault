@@ -30,7 +30,7 @@ def _make_note_result(note=None):
 
 def test_note_list_default():
     notes = [_make_note()]
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._list_notes", return_value=notes):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list"])
@@ -40,7 +40,7 @@ def test_note_list_default():
 
 def test_note_list_json_mode():
     notes = [_make_note()]
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._list_notes", return_value=notes):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list", "--json"])
@@ -50,7 +50,7 @@ def test_note_list_json_mode():
 
 
 def test_note_list_filter_by_type():
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._list_notes", return_value=[]) as mock_list:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list", "--type", "synthese"])
@@ -64,7 +64,7 @@ def test_note_list_filter_by_type():
 
 def test_note_get_success():
     note = _make_note()
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._get_note", return_value=note):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["get", "nuid-1"])
@@ -73,7 +73,7 @@ def test_note_get_success():
 
 
 def test_note_get_not_found():
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._get_note", return_value=None):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["get", "nonexistent"])
@@ -94,9 +94,9 @@ def test_note_create_from_file(tmp_path):
         "tags": ["elasticite"],
     }))
     note_result = _make_note_result()
-    mock_settings = MagicMock()
-    mock_settings.taxonomy = MagicMock(note_types=["synthese"], source_types=["youtube"])
-    with patch("cli.commands.notes._load_settings", return_value=mock_settings), \
+    mock_ctx = MagicMock()
+    mock_ctx.settings.taxonomy = MagicMock(note_types=["synthese"], source_types=["youtube"])
+    with patch("cli.commands.notes._build_ctx", return_value=mock_ctx), \
          patch("cli.commands.notes._get_existing_slugs", return_value=set()), \
          patch("cli.commands.notes._create_note", return_value=note_result):
         result = runner.invoke(app, ["create", "--from-file", str(yaml_file)])
@@ -107,13 +107,13 @@ def test_note_create_from_file(tmp_path):
 def test_note_create_invalid_yaml(tmp_path):
     yaml_file = tmp_path / "bad.yaml"
     yaml_file.write_text("not: valid: yaml: {{{")
-    with patch("cli.commands.notes._load_settings", return_value=MagicMock()):
+    with patch("cli.commands.notes._build_ctx", return_value=MagicMock()):
         result = runner.invoke(app, ["create", "--from-file", str(yaml_file)])
     assert result.exit_code == 1
 
 
 def test_note_create_file_not_found():
-    with patch("cli.commands.notes._load_settings", return_value=MagicMock()):
+    with patch("cli.commands.notes._build_ctx", return_value=MagicMock()):
         result = runner.invoke(app, ["create", "--from-file", "/nonexistent/note.yaml"])
     assert result.exit_code == 1
 
@@ -122,7 +122,7 @@ def test_note_create_file_not_found():
 
 def test_note_update_title():
     note_result = _make_note_result()
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._update_note", return_value=note_result):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["update", "nuid-1", "--title", "Nouveau titre"])
@@ -130,7 +130,7 @@ def test_note_update_title():
 
 
 def test_note_update_no_fields():
-    with patch("cli.commands.notes._load_settings") as mock_settings:
+    with patch("cli.commands.notes._build_ctx") as mock_settings:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["update", "nuid-1"])
     assert result.exit_code == 1
@@ -138,7 +138,7 @@ def test_note_update_no_fields():
 
 def test_note_update_json_mode():
     note_result = _make_note_result()
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._update_note", return_value=note_result):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["update", "nuid-1", "--title", "Nouveau", "--json"])
@@ -149,7 +149,7 @@ def test_note_update_json_mode():
 
 def test_note_update_status():
     note_result = _make_note_result()
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._update_note", return_value=note_result) as mock_update:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["update", "nuid-1", "--status", "draft"])
@@ -159,14 +159,14 @@ def test_note_update_status():
 
 
 def test_note_update_invalid_status():
-    with patch("cli.commands.notes._load_settings") as mock_settings:
+    with patch("cli.commands.notes._build_ctx") as mock_settings:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["update", "nuid-1", "--status", "invalid"])
     assert result.exit_code == 1
 
 
 def test_note_list_filter_by_status():
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._list_notes", return_value=[]) as mock_list:
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["list", "--status", "draft"])
@@ -192,7 +192,7 @@ def test_note_approve_success():
         status="rag_ready", date_added="2026-03-30",
     )
 
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._get_note", return_value=note), \
          patch("cli.commands.notes._update_note", return_value=note_result) as mock_update, \
          patch("cli.commands.notes._get_source", return_value=mock_source), \
@@ -210,7 +210,7 @@ def test_note_approve_no_source():
     note = _make_note(uid="nuid-nosrc")
     note_result = _make_note_result(note)
 
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._get_note", return_value=note), \
          patch("cli.commands.notes._update_note", return_value=note_result), \
          patch("cli.commands.notes._finalize_source") as mock_finalize:
@@ -223,7 +223,7 @@ def test_note_approve_no_source():
 
 def test_note_approve_not_found():
     """Returns exit code 1 when note does not exist."""
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._get_note", return_value=None):
         mock_settings.return_value = MagicMock()
         result = runner.invoke(app, ["approve", "nonexistent"])
@@ -237,7 +237,7 @@ def test_note_approve_json_mode():
     note = _make_note(uid="nuid-json")
     note_result = _make_note_result(note)
 
-    with patch("cli.commands.notes._load_settings") as mock_settings, \
+    with patch("cli.commands.notes._build_ctx") as mock_settings, \
          patch("cli.commands.notes._get_note", return_value=note), \
          patch("cli.commands.notes._update_note", return_value=note_result), \
          patch("cli.commands.notes._finalize_source", return_value=None):

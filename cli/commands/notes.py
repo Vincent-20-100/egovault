@@ -14,9 +14,10 @@ from cli.output import print_table, print_panel, print_error
 app = typer.Typer(help="Manage notes in the vault.")
 
 
-def _load_settings():
+def _build_ctx():
     from core.config import load_settings
-    return load_settings()
+    from infrastructure.context import build_context
+    return build_context(load_settings())
 
 
 def _list_notes(db_path, note_type, tags, limit, offset, status=None):
@@ -37,14 +38,14 @@ def _get_existing_slugs(db_path) -> set[str]:
     return slugs
 
 
-def _create_note(content, system_fields, settings):
+def _create_note(content, system_fields, ctx):
     from tools.vault.create_note import create_note
-    return create_note(content, system_fields, settings)
+    return create_note(content, system_fields, ctx)
 
 
-def _update_note(uid, fields, settings):
+def _update_note(uid, fields, ctx):
     from tools.vault.update_note import update_note
-    return update_note(uid, fields, settings)
+    return update_note(uid, fields, ctx)
 
 
 def _get_source(db_path, source_uid):
@@ -52,9 +53,9 @@ def _get_source(db_path, source_uid):
     return get_source(db_path, source_uid)
 
 
-def _finalize_source(source_uid, settings):
+def _finalize_source(source_uid, ctx):
     from tools.vault.finalize_source import finalize_source
-    return finalize_source(source_uid, settings)
+    return finalize_source(source_uid, ctx)
 
 
 @app.command("list")
@@ -69,14 +70,14 @@ def note_list(
 ) -> None:
     """List notes in the vault."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
 
-    notes = _list_notes(settings.vault_db_path, note_type, tag_list, limit, offset, status=status)
+    notes = _list_notes(ctx.settings.vault_db_path, note_type, tag_list, limit, offset, status=status)
 
     if verbose:
         columns = ["uid", "title", "type", "source_uid", "date_created"]
@@ -96,12 +97,12 @@ def note_get(
 ) -> None:
     """Get a note by UID."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
-    note = _get_note(settings.vault_db_path, uid)
+    note = _get_note(ctx.settings.vault_db_path, uid)
     if note is None:
         print_error(f"Note not found: {uid}", "not_found", json_mode, verbose)
         raise typer.Exit(1)
@@ -140,7 +141,7 @@ def note_create(
     from datetime import date
 
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
@@ -162,13 +163,13 @@ def note_create(
     source_uid = raw.pop("source_uid", None)
 
     try:
-        content = NoteContentInput.model_validate(raw, context={"taxonomy": settings.taxonomy})
+        content = NoteContentInput.model_validate(raw, context={"taxonomy": ctx.settings.taxonomy})
     except (ValidationError, Exception) as e:
         print_error("Invalid note fields.", "validation_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     try:
-        existing_slugs = _get_existing_slugs(settings.vault_db_path)
+        existing_slugs = _get_existing_slugs(ctx.settings.vault_db_path)
 
         system_fields = NoteSystemFields(
             uid=generate_uid(),
@@ -178,7 +179,7 @@ def note_create(
             generation_template=None,
         )
 
-        result = _create_note(content, system_fields, settings)
+        result = _create_note(content, system_fields, ctx)
     except Exception as e:
         print_error("Note creation failed.", "create_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
@@ -234,13 +235,13 @@ def note_update(
         raise typer.Exit(1)
 
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     try:
-        result = _update_note(uid, fields, settings)
+        result = _update_note(uid, fields, ctx)
     except Exception as e:
         from core.errors import NotFoundError
         if isinstance(e, NotFoundError):
@@ -265,28 +266,28 @@ def note_approve(
 ) -> None:
     """Approve a draft note and finalize its linked source if applicable."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
-    note = _get_note(settings.vault_db_path, uid)
+    note = _get_note(ctx.settings.vault_db_path, uid)
     if note is None:
         print_error(f"Note not found: {uid}", "not_found", json_mode, verbose)
         raise typer.Exit(1)
 
     try:
-        result = _update_note(uid, {"status": "active"}, settings)
+        result = _update_note(uid, {"status": "active"}, ctx)
     except Exception as e:
         print_error("Failed to approve note.", "approve_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     finalized = False
     if note.source_uid:
-        source = _get_source(settings.vault_db_path, note.source_uid)
+        source = _get_source(ctx.settings.vault_db_path, note.source_uid)
         if source and source.status == "rag_ready":
             try:
-                _finalize_source(note.source_uid, settings)
+                _finalize_source(note.source_uid, ctx)
                 finalized = True
             except Exception as e:
                 print_error("Note approved but source finalization failed.",
@@ -304,19 +305,19 @@ def note_approve(
     print_panel("Note approved", out_fields, json_mode)
 
 
-def _delete_note(uid, settings, force):
+def _delete_note(uid, ctx, force):
     from tools.vault.delete_note import delete_note
-    return delete_note(uid, settings, force=force)
+    return delete_note(uid, ctx, force=force)
 
 
-def _restore_note(uid, settings):
+def _restore_note(uid, ctx):
     from tools.vault.restore_note import restore_note
-    return restore_note(uid, settings)
+    return restore_note(uid, ctx)
 
 
-def _delete_source_tool(source_uid, settings):
+def _delete_source_tool(source_uid, ctx):
     from tools.vault.delete_source import delete_source
-    return delete_source(source_uid, settings, force=True)
+    return delete_source(source_uid, ctx, force=True)
 
 
 @app.command("delete")
@@ -330,7 +331,7 @@ def note_delete(
 ) -> None:
     """Delete a note. Soft-delete by default; use --force for immediate removal."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
@@ -338,12 +339,12 @@ def note_delete(
     # Pre-fetch source_uid for cascade before note is deleted
     source_uid_to_delete = None
     if delete_source and force:
-        note_before = _get_note(settings.vault_db_path, uid)
+        note_before = _get_note(ctx.settings.vault_db_path, uid)
         if note_before and note_before.source_uid:
             source_uid_to_delete = note_before.source_uid
 
     if force and not yes:
-        note = _get_note(settings.vault_db_path, uid)
+        note = _get_note(ctx.settings.vault_db_path, uid)
         summary = f"Note: {note.title if note else uid}"
         if source_uid_to_delete:
             summary += f"\nLinked source: {source_uid_to_delete} (and all its chunks, media)"
@@ -352,7 +353,7 @@ def note_delete(
             raise typer.Exit(0)
 
     try:
-        result = _delete_note(uid, settings, force=force)
+        result = _delete_note(uid, ctx, force=force)
     except Exception as e:
         from core.errors import NotFoundError, ConflictError
         if isinstance(e, NotFoundError):
@@ -365,7 +366,7 @@ def note_delete(
 
     if source_uid_to_delete:
         try:
-            _delete_source_tool(source_uid_to_delete, settings)
+            _delete_source_tool(source_uid_to_delete, ctx)
             result = result.model_copy(update={"deleted_source_uid": source_uid_to_delete})
         except Exception as e:
             print_error(f"Note deleted but source deletion failed: {e}", "source_error", json_mode, verbose)
@@ -382,13 +383,13 @@ def note_restore(
 ) -> None:
     """Restore a note previously marked for deletion."""
     try:
-        settings = _load_settings()
+        ctx = _build_ctx()
     except Exception as e:
         print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
         raise typer.Exit(1)
 
     try:
-        result = _restore_note(uid, settings)
+        result = _restore_note(uid, ctx)
     except Exception as e:
         from core.errors import NotFoundError, ConflictError
         if isinstance(e, NotFoundError):

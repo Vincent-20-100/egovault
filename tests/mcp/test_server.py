@@ -33,11 +33,14 @@ def test_mcp_chunk_text_calls_tool(tmp_settings):
 def test_mcp_embed_text_calls_tool(tmp_settings):
     import mcp.server as srv
 
+    mock_ctx = MagicMock()
     with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
          patch("mcp.server._embed_text_tool", return_value=make_embedding()) as mock_tool:
         result = srv.embed_text("hello")
 
-    mock_tool.assert_called_once_with("hello", tmp_settings)
+    # embed_text passes ctx, not settings (G4 — tool receives VaultContext)
+    mock_tool.assert_called_once_with("hello", mock_ctx)
     assert len(result) == EMBEDDING_DIMS
 
 
@@ -128,11 +131,14 @@ def test_mcp_export_typst_calls_tool(tmp_settings):
     import mcp.server as srv
 
     er = ExportResult(output_path="/tmp/note.typ", format="typst")
+    mock_ctx = MagicMock()
     with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
          patch("mcp.server._export_typst_tool", return_value=er) as mock_tool:
         result = srv.export_typst("note-uid-1")
 
-    mock_tool.assert_called_once_with("note-uid-1", tmp_settings)
+    # export_typst passes ctx (G4)
+    mock_tool.assert_called_once_with("note-uid-1", mock_ctx)
     assert result["output_path"] == "/tmp/note.typ"
 
 
@@ -169,11 +175,14 @@ def test_mcp_update_note_calls_tool(tmp_settings):
     )
     mock_result = NoteResult(note=note, markdown_path="/tmp/test.md")
 
+    mock_ctx = MagicMock()
     with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
          patch("mcp.server._update_note_tool", return_value=mock_result) as mock_tool:
         result = srv.update_note("n1", {"rating": 4})
 
-    mock_tool.assert_called_once_with("n1", {"rating": 4}, tmp_settings)
+    # update_note passes ctx, not settings (G4)
+    mock_tool.assert_called_once_with("n1", {"rating": 4}, mock_ctx)
     assert result["note"]["rating"] == 4
 
 
@@ -192,10 +201,13 @@ def test_mcp_get_source_returns_source(tmp_settings):
         title="My Video",
     )
 
+    mock_ctx = MagicMock()
+    mock_ctx.db.get_source.return_value = source
     with patch("mcp.server.settings", tmp_settings), \
-         patch("mcp.server._get_source_db", return_value=source):
+         patch("mcp.server.ctx", mock_ctx):
         result = srv.get_source("src-1")
 
+    mock_ctx.db.get_source.assert_called_once_with("src-1")
     assert result["uid"] == "src-1"
     assert result["title"] == "My Video"
 
@@ -203,8 +215,10 @@ def test_mcp_get_source_returns_source(tmp_settings):
 def test_mcp_get_source_not_found_raises(tmp_settings):
     import mcp.server as srv
 
+    mock_ctx = MagicMock()
+    mock_ctx.db.get_source.return_value = None
     with patch("mcp.server.settings", tmp_settings), \
-         patch("mcp.server._get_source_db", return_value=None):
+         patch("mcp.server.ctx", mock_ctx):
         with pytest.raises(ValueError, match="not found"):
             srv.get_source("nonexistent")
 
@@ -224,11 +238,13 @@ def test_mcp_list_notes_returns_notes(tmp_settings):
         date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
     )
 
+    mock_ctx = MagicMock()
+    mock_ctx.db.list_notes.return_value = [note]
     with patch("mcp.server.settings", tmp_settings), \
-         patch("mcp.server._list_notes_db", return_value=[note]) as mock_fn:
+         patch("mcp.server.ctx", mock_ctx):
         result = srv.list_notes(limit=10, offset=0)
 
-    mock_fn.assert_called_once_with(tmp_settings.vault_db_path, None, None, 10, 0)
+    mock_ctx.db.list_notes.assert_called_once_with(None, None, 10, 0)
     assert len(result) == 1
     assert result[0]["uid"] == "n1"
 
@@ -247,11 +263,13 @@ def test_mcp_list_sources_returns_sources(tmp_settings):
         status="rag_ready", date_added=date.today().isoformat(),
     )
 
+    mock_ctx = MagicMock()
+    mock_ctx.db.list_sources.return_value = [source]
     with patch("mcp.server.settings", tmp_settings), \
-         patch("mcp.server._list_sources_db", return_value=[source]) as mock_fn:
+         patch("mcp.server.ctx", mock_ctx):
         result = srv.list_sources(limit=10, offset=0, status="rag_ready")
 
-    mock_fn.assert_called_once_with(tmp_settings.vault_db_path, "rag_ready", 10, 0)
+    mock_ctx.db.list_sources.assert_called_once_with("rag_ready", 10, 0)
     assert len(result) == 1
     assert result[0]["uid"] == "src-1"
 
@@ -287,10 +305,13 @@ def test_mcp_generate_note_from_source_calls_tool(tmp_settings):
     )
     mock_result = NoteResult(note=note, markdown_path="/vault/note-mcp.md")
 
+    mock_ctx = MagicMock()
     with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
          patch("mcp.server._generate_note_from_source_tool",
                return_value=mock_result) as mock_tool:
         result = srv.generate_note_from_source("src-mcp")
 
-    mock_tool.assert_called_once_with("src-mcp", tmp_settings, "standard")
+    # generate_note_from_source passes ctx, not settings (G4)
+    mock_tool.assert_called_once_with("src-mcp", mock_ctx, "standard")
     assert result["note"]["status"] == "draft"

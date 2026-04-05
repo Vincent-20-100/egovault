@@ -1,15 +1,15 @@
 """
-Typst export tool.
+Document export tool — generates print-ready output from a note.
 
 Input  : note uid
 Output : ExportResult (path to .typ file)
-No DB write. Generates a print-ready Typst document from a note.
+No DB write.
 """
 
 from pathlib import Path
 
+from core.context import VaultContext
 from core.schemas import ExportResult
-from core.config import Settings
 from core.logging import loggable
 
 
@@ -33,20 +33,18 @@ def _note_to_typst(note) -> str:
 
 
 @loggable("export_typst")
-def export_typst(note_uid: str, settings: Settings) -> ExportResult:
+def export_typst(note_uid: str, ctx: VaultContext) -> ExportResult:
     """
     Export a note to Typst format (.typ file).
     Reads note from DB, generates a print-ready document.
     Output written to media/<slug>/<slug>.typ.
     No DB write.
     """
-    from infrastructure.db import get_note
-
-    note = get_note(settings.vault_db_path, note_uid)
+    note = ctx.db.get_note(note_uid)
     if note is None:
         raise ValueError(f"Note not found: {note_uid}")
 
-    output_dir = settings.media_path / note.slug
+    output_dir = ctx.media_path / note.slug
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{note.slug}.typ"
     output_path.write_text(_note_to_typst(note), encoding="utf-8")

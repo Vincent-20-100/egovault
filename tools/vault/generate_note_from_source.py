@@ -1,7 +1,7 @@
 """
 Generate a draft note from an ingested source via the configured LLM.
 
-Input  : source_uid (str) + Settings + optional template name
+Input  : source_uid (str) + VaultContext + optional template name
 Output : NoteResult with note.status == 'draft'
 
 The note is immediately embedded and searchable. It must be approved
@@ -11,7 +11,7 @@ The note is immediately embedded and searchable. It must be approved
 import logging
 from datetime import date
 
-from core.config import Settings
+from core.context import VaultContext
 from core.schemas import Note, NoteResult, NoteSystemFields
 from core.uid import generate_uid, make_unique_slug
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def generate_note_from_source(
     source_uid: str,
-    settings: Settings,
+    ctx: VaultContext,
     template: str = "standard",
 ) -> NoteResult:
     """
@@ -35,21 +35,8 @@ def generate_note_from_source(
     Raises ConflictError if a note already exists for this source.
     """
     from core.errors import NotFoundError, ConflictError
-    from infrastructure.db import (
-        get_source,
-        get_note_by_source,
-        get_note,
-        get_vault_connection,
-        insert_note,
-        insert_note_embedding,
-    )
-    from infrastructure.embedding_provider import embed
-    from infrastructure.llm_provider import generate_note_content
-    from infrastructure.vault_writer import write_note
 
-    db = settings.vault_db_path
-
-    source = get_source(db, source_uid)
+    source = ctx.db.get_source(source_uid)
     if source is None:
         raise NotFoundError("Source", source_uid)
 
@@ -58,7 +45,7 @@ def generate_note_from_source(
             f"Source '{source_uid}' is not at rag_ready status (current: {source.status})"
         )
 
-    if get_note_by_source(db, source_uid) is not None:
+    if ctx.db.get_note_by_source(source_uid) is not None:
         raise ConflictError("Source", source_uid, "a note already exists for this source")
 
     metadata = {
@@ -68,13 +55,15 @@ def generate_note_from_source(
         "date_source": source.date_source,
         "source_type": source.source_type,
     }
-    content_input = generate_note_content(
-        source.transcript or "", metadata, template, settings
-    )
 
-    conn = get_vault_connection(db)
-    existing_slugs = {row[0] for row in conn.execute("SELECT slug FROM notes").fetchall()}
-    conn.close()
+    # ctx.generate holds the LLM callable; None means no LLM configured
+    if ctx.generate is None:
+        raise ValueError("No LLM provider configured. Cannot generate note content.")
+
+    content_input = ctx.generate(source.transcript or "", metadata, template)
+
+    # Fetch existing slugs to guarantee uniqueness
+    existing_slugs = ctx.db.get_existing_slugs("notes")
 
     today = date.today().isoformat()
     system_fields = NoteSystemFields(
@@ -92,14 +81,14 @@ def generate_note_from_source(
         sync_status="synced",
         status="draft",
     )
-    insert_note(db, note)
+    ctx.db.insert_note(note)
 
     text = "\n\n".join(filter(None, [note.title, note.docstring, note.body]))
-    embedding = embed(text, settings)
-    insert_note_embedding(db, note.uid, embedding)
+    embedding = ctx.embed(text)
+    ctx.db.insert_note_embedding(note.uid, embedding)
 
-    settings.vault_path.mkdir(parents=True, exist_ok=True)
-    write_note(note, settings.vault_path)
+    ctx.vault_path.mkdir(parents=True, exist_ok=True)
+    ctx.write_note(note, ctx.vault_path)
 
-    updated_note = get_note(db, note.uid)
-    return NoteResult(note=updated_note, markdown_path=str(settings.vault_path / f"{note.slug}.md"))
+    updated_note = ctx.db.get_note(note.uid)
+    return NoteResult(note=updated_note, markdown_path=str(ctx.vault_path / f"{note.slug}.md"))

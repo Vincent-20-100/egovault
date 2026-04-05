@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import Settings, load_settings
+from infrastructure.context import build_context
 from infrastructure.db import init_db, init_system_db, mark_orphan_jobs_failed
 
 # ---------------------------------------------------------------------------
@@ -51,9 +52,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         init_system_db(settings.system_db_path)
         mark_orphan_jobs_failed(settings.system_db_path)
 
-        # Configure tool logging to .system.db
+        # Configure tool logging — pass a writer callback so core/ stays
+        # free of infrastructure imports (G4).
         import core.logging as log_mod
-        log_mod.configure(settings.system_db_path)
+        from infrastructure.db import get_system_connection
+        from core.uid import generate_uid
+
+        def _make_log_writer(system_db_path):
+            def writer(uid, tool_name, input_json, output_json, duration_ms, status, error):
+                conn = get_system_connection(system_db_path)
+                conn.execute(
+                    """INSERT INTO tool_logs (uid, tool_name, input_json, output_json, duration_ms, status, error)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (uid, tool_name, input_json, output_json, duration_ms, status, error),
+                )
+                conn.commit()
+                conn.close()
+            return writer
+
+        log_mod.configure(_make_log_writer(settings.system_db_path))
 
         yield
 
@@ -98,8 +115,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         _request_counts[key].append(now)
         return await call_next(request)
 
-    # Attach settings and executor so routers can access them via request.app.state
-    app.state.settings = settings
+    # Build the VaultContext (wires DB, embedding, LLM, vault writer providers).
+    ctx = build_context(settings)
+    app.state.ctx = ctx
     app.state.executor = executor
 
     # Mount routers
