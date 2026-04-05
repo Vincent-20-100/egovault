@@ -1,7 +1,7 @@
 # Spec: Security Audit — Pre-launch & Hardening
 
 **Date:** 2026-03-29
-**Status:** Validated, ready to implement
+**Status:** ✅ Implemented (Phase 1 + Phase 2) — archived 2026-04-04
 **Dependencies:** all existing specs (monitoring, reranking, semantic-cache, evaluation, frontend)
 
 ---
