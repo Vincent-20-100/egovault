@@ -4,14 +4,14 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-04
+**Last updated:** 2026-04-05
 **Last session branch:** `claude/brainstorming-pending-ideas-5zR2H`
 
 ---
 
 ## Next action
 
-Next roadmap item — see Roadmap section below.
+**Search quality (reranking)** — brainstorm session needed.
 
 ---
 
@@ -31,7 +31,7 @@ Next roadmap item — see Roadmap section below.
 | `specs/future/2026-03-28-semantic-cache-design.md` | Query caching |
 | `specs/future/2026-03-28-reranking-design.md` | Search reranking |
 | `specs/future/2026-03-28-frontend-design.md` | Next.js frontend |
-| `specs/future/2026-03-28-monitoring-design.md` | Monitoring (partial — run_id/token_count missing) |
+| ~~`specs/future/2026-03-28-monitoring-design.md`~~ | ~~Monitoring~~ → **implemented & archived** |
 | ~~`specs/future/2026-03-29-security-design.md`~~ | ~~Security Phase 2~~ → **archived** |
 
 ## Last audit
@@ -51,14 +51,14 @@ Next roadmap item — see Roadmap section below.
 | **VaultContext refactoring** | **2026-03-31** | **Done — G4 fully compliant** |
 | Ingest workflows (youtube, audio, pdf) | 2026-03 | Done |
 | MCP server (22+ tools) | 2026-03 | Done |
-| FastAPI API (7 routers, 19 endpoints) | 2026-03 | Done |
+| FastAPI API (8 routers, 22 endpoints) | 2026-03 | Done |
 | A1 — MCP flow fix | 2026-03-30 | Done |
 | A2 — CLI | 2026-03-30 | Done |
 | A3 — Delete operations | 2026-03-31 | Done |
 | A4 — Internal LLM path | 2026-03-31 | Done |
 | B1 — embedding.dims fix | 2026-03-31 | Done |
 | **Post-VaultContext cleanup** | **2026-04-01** | **Done** |
-| Test suite (374 tests) | 2026-04 | Done |
+| Test suite (331 tests) | 2026-04 | Done |
 | **Unified ingest workflow** | **2026-04-03** | **Done — 7 extractors, ingest_text on all surfaces** |
 | **Post-VaultContext architecture audit** | **2026-04-03** | **Done — broken mocks fixed, ctx.db migration** |
 | **G13 comments audit** | **2026-04-03** | **Done — 20 files cleaned** |
@@ -66,6 +66,8 @@ Next roadmap item — see Roadmap section below.
 | **Old workflow wrappers cleanup** | **2026-04-03** | **Done — deleted ingest_youtube/audio/pdf + tests** |
 | **metadev-protocol adoption** | **2026-04-04** | **Done — split CLAUDE.md, .meta/ workspace, 3 skills, output paths** |
 | **B2 — Security Phase 1+2** | **2026-04-04** | **Done — all hardening implemented, 30 tests pass, spec archived** |
+| **Web ingestion V1** | **2026-04-05** | **Done — single URL fetch, SSRF protection, 2-tier extraction, 4 e2e tests** |
+| **Monitoring (run tracking + observability)** | **2026-04-05** | **Done — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints, 6 new tests** |
 
 ---
 
@@ -97,6 +99,8 @@ Next roadmap item — see Roadmap section below.
 - [x] **Archive completed specs** — VaultContext + unified ingest specs/plans moved to archive
 - [x] **metadev-protocol adoption** — DONE: split CLAUDE.md (law+mentor), renamed .meta/, added skills, output paths configured
 - [x] **B2 — Security Phase 1+2** — DONE: all pre-launch docs + all hardening items already implemented. 30 security tests pass. Spec archived.
+- [x] **Web ingestion V1** — DONE: fetch_web tool, SSRF protection, parse_html/trafilatura extraction, web extractor in ingest pipeline, API/CLI/MCP surfaces, 4 e2e tests.
+- [x] **Monitoring (run tracking)** — DONE: run_id via contextvars, token_count/provider auto-extraction, workflow_runs table, 3 API endpoints (/monitoring/runs), 6 new tests.
 
 ---
 
@@ -110,8 +114,11 @@ Next roadmap item — see Roadmap section below.
 6. ~~**G13 comments audit**~~ — **DONE**
 7. ~~**metadev-protocol adoption**~~ — **DONE**
 8. ~~**B2 — Security Phase 1+2**~~ — **DONE**
-9. **Web ingestion** — needs dedicated security brainstorm (future)
-10. **Frontend, search quality, monitoring** — see `docs/FUTURE-WORK.md`
+9. ~~**Web ingestion V1**~~ — **DONE**
+10. ~~**Monitoring (run tracking)**~~ — **DONE**
+11. **Search quality (reranking)** — needs brainstorm
+12. **Evaluation framework** — needs brainstorm
+13. **Frontend** — see `docs/FUTURE-WORK.md`
 
 ---
 
@@ -125,3 +132,4 @@ Next roadmap item — see Roadmap section below.
 | 2026-04-01 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest brainstorm (7 decisions validated), spec updated, 11-step plan written. Phases 1-3 complete. |
 | 2026-04-03 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest Phase 4 (11 steps). All audits. MCP/CLI G11 fix. Specs archived. Old wrappers deleted. **metadev-protocol adoption brainstorm** (5 decisions: Superpowers plugin, split CLAUDE.md, rename .meta/, hooks, /ship skill). |
 | 2026-04-04 | `claude/brainstorming-pending-ideas-5zR2H` | **metadev-protocol adoption executed** — split CLAUDE.md (408→109 lines law + 193 lines mentor), renamed docs/superpowers/ → .meta/, created 3 project skills (save-progress, lint, test), configured Superpowers output paths. Git rebase completed and pushed. |
+| 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |

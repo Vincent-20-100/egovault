@@ -120,6 +120,9 @@ def ingest(
     Unified ingest pipeline. Dispatches to the right extractor
     based on source_type, then runs chunk → embed → [generate note].
     """
+    from core.logging import set_run_id, reset_run_id
+    from infrastructure.db import create_workflow_run, close_workflow_run
+
     extractor = _EXTRACTORS.get(source_type)
     if extractor is None:
         raise ValueError(f"No extractor for source type '{source_type}'")
@@ -142,48 +145,62 @@ def ingest(
     )
     ctx.db.insert_source(source)
 
-    # Step 1: Extract text
-    ctx.db.update_source_status(source_uid, "transcribing")
-    text, metadata = extractor(target, ctx)
+    # Workflow run tracking
+    run_id = generate_uid()
+    create_workflow_run(ctx.system_db_path, run_id, f"ingest_{source_type}", source_uid)
+    token = set_run_id(run_id)
+    try:
+        # Step 1: Extract text
+        ctx.db.update_source_status(source_uid, "transcribing")
+        text, metadata = extractor(target, ctx)
 
-    if not text or not text.strip():
-        raise EmptyContentError()
+        if not text or not text.strip():
+            raise EmptyContentError()
 
-    ctx.db.update_source_transcript(source_uid, text)
-    ctx.db.update_source_status(source_uid, "text_ready")
+        ctx.db.update_source_transcript(source_uid, text)
+        ctx.db.update_source_status(source_uid, "text_ready")
 
-    # Step 2: Chunk + embed
-    token_count = len(text.split())
-    threshold = ctx.settings.system.llm.large_format_threshold_tokens
+        # Step 2: Chunk + embed
+        token_count = len(text.split())
+        threshold = ctx.settings.system.llm.large_format_threshold_tokens
 
-    ctx.db.update_source_status(source_uid, "embedding")
-    chunks = chunk_text(text, ctx.settings.system)
-    ctx.db.insert_chunks(source_uid, chunks)
-    for chunk in chunks:
-        embedding = embed_text(chunk.content, ctx)
-        ctx.db.insert_chunk_embeddings(chunk.uid, embedding)
+        ctx.db.update_source_status(source_uid, "embedding")
+        chunks = chunk_text(text, ctx.settings.system)
+        ctx.db.insert_chunks(source_uid, chunks)
+        for chunk in chunks:
+            embedding = embed_text(chunk.content, ctx)
+            ctx.db.insert_chunk_embeddings(chunk.uid, embedding)
 
-    ctx.db.update_source_status(source_uid, "rag_ready")
+        ctx.db.update_source_status(source_uid, "rag_ready")
 
-    # Step 3: Optional note generation
-    should_generate = (
-        auto_generate_note if auto_generate_note is not None
-        else ctx.settings.user.llm.auto_generate_note
-    )
-
-    if token_count > threshold:
-        if should_generate:
-            logger.info("Source exceeds token threshold, skipping note generation")
-        raise LargeFormatError(
-            source_uid=source_uid,
-            token_count=token_count,
-            threshold=threshold,
+        # Step 3: Optional note generation
+        should_generate = (
+            auto_generate_note if auto_generate_note is not None
+            else ctx.settings.user.llm.auto_generate_note
         )
 
-    if should_generate:
-        if ctx.generate is None:
-            logger.info("LLM not configured, skipping note generation")
-        else:
-            generate_note_from_source(source_uid, ctx)
+        if token_count > threshold:
+            if should_generate:
+                logger.info("Source exceeds token threshold, skipping note generation")
+            close_workflow_run(ctx.system_db_path, run_id, "success")
+            raise LargeFormatError(
+                source_uid=source_uid,
+                token_count=token_count,
+                threshold=threshold,
+            )
 
-    return ctx.db.get_source(source_uid)
+        if should_generate:
+            if ctx.generate is None:
+                logger.info("LLM not configured, skipping note generation")
+            else:
+                generate_note_from_source(source_uid, ctx)
+
+        close_workflow_run(ctx.system_db_path, run_id, "success")
+        return ctx.db.get_source(source_uid)
+    except LargeFormatError:
+        raise  # already closed above
+    except Exception:
+        close_workflow_run(ctx.system_db_path, run_id, "failed")
+        raise
+    finally:
+        reset_run_id(token)

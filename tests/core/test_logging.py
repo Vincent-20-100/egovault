@@ -4,18 +4,20 @@ from core import logging as ev_logging
 
 # ---------------------------------------------------------------------------
 # Helper — builds a writer callback backed by a real system DB.
-# Reused by multiple tests to avoid repeating the DB insert logic.
 # ---------------------------------------------------------------------------
 def _make_log_writer(system_db_path):
     from infrastructure.db import get_system_connection
-    from core.uid import generate_uid
 
-    def writer(uid, tool_name, input_json, output_json, duration_ms, status, error):
+    def writer(uid, tool_name, input_json, output_json, duration_ms, status, error,
+               run_id=None, token_count=None, provider=None):
         conn = get_system_connection(system_db_path)
         conn.execute(
-            """INSERT INTO tool_logs (uid, tool_name, input_json, output_json, duration_ms, status, error)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (uid, tool_name, input_json, output_json, duration_ms, status, error),
+            """INSERT INTO tool_logs
+               (uid, run_id, tool_name, input_json, output_json, duration_ms,
+                token_count, provider, status, error)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (uid, run_id, tool_name, input_json, output_json, duration_ms,
+             token_count, provider, status, error),
         )
         conn.commit()
         conn.close()
@@ -78,7 +80,6 @@ def test_loggable_writes_to_db_when_configured(tmp_path):
     assert rows[0]["status"] == "success"
     assert rows[0]["duration_ms"] >= 0
 
-    # Reset to avoid polluting other tests
     ev_logging.configure(None)
 
 
@@ -149,8 +150,7 @@ def test_loggable_logs_failure_to_system_db(tmp_path):
     configure(None)
 
 
-def test_write_log_redacts_sensitive_data(tmp_path, monkeypatch):
-    """Tool logs must redact API keys before writing."""
+def test_write_log_redacts_sensitive_data(tmp_path):
     from core import logging as log_mod
     from infrastructure.db import init_system_db
 
@@ -158,7 +158,6 @@ def test_write_log_redacts_sensitive_data(tmp_path, monkeypatch):
     init_system_db(db_path)
     log_mod.configure(_make_log_writer(db_path))
 
-    # Write a log entry with a fake API key
     log_mod._write_log(
         tool_name="test_tool",
         input_json='{"api_key": "sk-abc123def456ghi789jkl012mno345pqr678"}',
@@ -168,7 +167,6 @@ def test_write_log_redacts_sensitive_data(tmp_path, monkeypatch):
         error=None,
     )
 
-    # Read back and check redaction
     import sqlite3
     conn = sqlite3.connect(str(db_path))
     row = conn.execute("SELECT input_json FROM tool_logs ORDER BY rowid DESC LIMIT 1").fetchone()
@@ -176,3 +174,152 @@ def test_write_log_redacts_sensitive_data(tmp_path, monkeypatch):
     assert row is not None
     assert "sk-abc123" not in row[0]
     assert "***REDACTED***" in row[0]
+    log_mod.configure(None)
+
+
+# ---------------------------------------------------------------------------
+# NEW — run_id, token_count, provider
+# ---------------------------------------------------------------------------
+
+
+def test_run_id_propagation(tmp_path):
+    """run_id set via contextvars is automatically captured in tool_logs."""
+    from infrastructure.db import init_system_db, get_system_connection
+    from core.logging import loggable, configure, set_run_id, reset_run_id
+
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+    configure(_make_log_writer(system_db))
+
+    @loggable("tracked_tool")
+    def my_tool(x: int) -> int:
+        return x + 1
+
+    token = set_run_id("run-123")
+    try:
+        my_tool(5)
+    finally:
+        reset_run_id(token)
+
+    conn = get_system_connection(system_db)
+    row = conn.execute("SELECT run_id FROM tool_logs WHERE tool_name = 'tracked_tool'").fetchone()
+    conn.close()
+    assert row["run_id"] == "run-123"
+    configure(None)
+
+
+def test_run_id_none_when_not_set(tmp_path):
+    """Without set_run_id, run_id is NULL."""
+    from infrastructure.db import init_system_db, get_system_connection
+    from core.logging import loggable, configure
+
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+    configure(_make_log_writer(system_db))
+
+    @loggable("untracked_tool")
+    def my_tool(x: int) -> int:
+        return x
+
+    my_tool(1)
+
+    conn = get_system_connection(system_db)
+    row = conn.execute("SELECT run_id FROM tool_logs WHERE tool_name = 'untracked_tool'").fetchone()
+    conn.close()
+    assert row["run_id"] is None
+    configure(None)
+
+
+def test_token_count_extracted_from_result(tmp_path):
+    """token_count is auto-extracted from result's token_count attribute."""
+    from infrastructure.db import init_system_db, get_system_connection
+    from core.logging import loggable, configure
+    from pydantic import BaseModel
+
+    class ResultWithTokens(BaseModel):
+        value: str
+        token_count: int
+
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+    configure(_make_log_writer(system_db))
+
+    @loggable("token_tool")
+    def my_tool(x: str) -> ResultWithTokens:
+        return ResultWithTokens(value=x, token_count=42)
+
+    my_tool("hello")
+
+    conn = get_system_connection(system_db)
+    row = conn.execute("SELECT token_count FROM tool_logs WHERE tool_name = 'token_tool'").fetchone()
+    conn.close()
+    assert row["token_count"] == 42
+    configure(None)
+
+
+def test_provider_captured_from_decorator(tmp_path):
+    """provider param from @loggable is stored in tool_logs."""
+    from infrastructure.db import init_system_db, get_system_connection
+    from core.logging import loggable, configure
+
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+    configure(_make_log_writer(system_db))
+
+    @loggable("embed_tool", provider="ollama")
+    def my_embed(text: str) -> list:
+        return [0.1, 0.2]
+
+    my_embed("test")
+
+    conn = get_system_connection(system_db)
+    row = conn.execute("SELECT provider FROM tool_logs WHERE tool_name = 'embed_tool'").fetchone()
+    conn.close()
+    assert row["provider"] == "ollama"
+    configure(None)
+
+
+# ---------------------------------------------------------------------------
+# Workflow run DB functions
+# ---------------------------------------------------------------------------
+
+
+def test_workflow_run_crud(tmp_path):
+    from infrastructure.db import (
+        init_system_db, create_workflow_run, close_workflow_run,
+        get_workflow_runs, get_workflow_run_detail, get_workflow_run_cost,
+    )
+
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+
+    create_workflow_run(system_db, "run-1", "ingest_youtube", source_uid="src-1")
+
+    runs = get_workflow_runs(system_db)
+    assert len(runs) == 1
+    assert runs[0]["run_id"] == "run-1"
+    assert runs[0]["status"] == "running"
+
+    close_workflow_run(system_db, "run-1", "success")
+    runs = get_workflow_runs(system_db, status="success")
+    assert len(runs) == 1
+    assert runs[0]["ended_at"] is not None
+
+    detail = get_workflow_run_detail(system_db, "run-1")
+    assert detail is not None
+    assert detail["run"]["workflow"] == "ingest_youtube"
+    assert detail["tool_logs"] == []
+
+    cost = get_workflow_run_cost(system_db, "run-1")
+    assert cost["total_tokens"] == 0
+    assert cost["tool_count"] == 0
+
+
+def test_workflow_run_not_found(tmp_path):
+    from infrastructure.db import init_system_db, get_workflow_run_detail, get_workflow_run_cost
+
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+
+    assert get_workflow_run_detail(system_db, "nonexistent") is None
+    assert get_workflow_run_cost(system_db, "nonexistent") is None

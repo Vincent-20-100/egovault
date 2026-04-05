@@ -60,12 +60,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         from core.uid import generate_uid
 
         def _make_log_writer(system_db_path):
-            def writer(uid, tool_name, input_json, output_json, duration_ms, status, error):
+            def writer(uid, tool_name, input_json, output_json, duration_ms, status, error,
+                       run_id=None, token_count=None, provider=None):
                 conn = get_system_connection(system_db_path)
                 conn.execute(
-                    """INSERT INTO tool_logs (uid, tool_name, input_json, output_json, duration_ms, status, error)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (uid, tool_name, input_json, output_json, duration_ms, status, error),
+                    """INSERT INTO tool_logs
+                       (uid, run_id, tool_name, input_json, output_json, duration_ms,
+                        token_count, provider, status, error)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (uid, run_id, tool_name, input_json, output_json, duration_ms,
+                     token_count, provider, status, error),
                 )
                 conn.commit()
                 conn.close()
@@ -133,6 +137,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from api.routers.sources import router as sources_router
     from api.routers.search import router as search_router
     from api.routers.vault import router as vault_router
+    from api.routers.monitoring import router as monitoring_router
 
     app.include_router(health_router)
     app.include_router(jobs_router)
@@ -141,6 +146,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(sources_router)
     app.include_router(search_router)
     app.include_router(vault_router)
+    app.include_router(monitoring_router)
 
     return app
 
