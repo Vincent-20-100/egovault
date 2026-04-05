@@ -2,7 +2,10 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from typing import Annotated
 
 from api.models import NoteDetail, NoteListItem, NotePatch
+from core.schemas import DeleteNoteResult, RestoreNoteResult
 from infrastructure.db import get_note, list_notes, update_note, set_note_tags
+from tools.vault.delete_note import delete_note
+from tools.vault.restore_note import restore_note
 
 router = APIRouter(prefix="/notes", tags=["notes"])
 
@@ -64,3 +67,50 @@ def patch_note(uid: str, patch: NotePatch, request: Request):
 
     updated = get_note(db, uid)
     return _to_detail(updated)
+
+
+@router.delete("/{uid}", response_model=DeleteNoteResult)
+def delete_note_endpoint(
+    uid: str,
+    request: Request,
+    force: bool = False,
+    delete_source: bool = False,
+):
+    from core.errors import NotFoundError, ConflictError
+    settings = request.app.state.settings
+
+    # Pre-fetch source_uid for cascade before note is deleted
+    source_uid = None
+    if delete_source and force:
+        note = get_note(settings.vault_db_path, uid)
+        if note:
+            source_uid = note.source_uid
+
+    try:
+        result = delete_note(uid, settings, force=force)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail=f"Note '{uid}' not found")
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    if source_uid and delete_source and force:
+        from tools.vault.delete_source import delete_source as _delete_source
+        try:
+            _delete_source(source_uid, settings, force=True)
+            result = result.model_copy(update={"deleted_source_uid": source_uid})
+        except Exception:
+            pass  # source deletion is best-effort; note already deleted
+
+    return result
+
+
+@router.post("/{uid}/restore", response_model=RestoreNoteResult)
+def restore_note_endpoint(uid: str, request: Request):
+    from core.errors import NotFoundError, ConflictError
+    settings = request.app.state.settings
+    try:
+        return restore_note(uid, settings)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail=f"Note '{uid}' not found")
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))

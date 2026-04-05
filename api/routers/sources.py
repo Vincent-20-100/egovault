@@ -1,7 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request
 
 from api.models import SourceDetail, SourceListItem
+from core.schemas import DeleteSourceResult, RestoreSourceResult
 from infrastructure.db import get_source, list_sources
+from tools.vault.delete_source import delete_source
+from tools.vault.restore_source import restore_source
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
@@ -27,3 +30,27 @@ def get_source_by_uid(uid: str, request: Request):
         transcript=source.transcript, date_added=source.date_added,
         date_source=source.date_source,
     )
+
+
+@router.delete("/{uid}", response_model=DeleteSourceResult)
+def delete_source_endpoint(uid: str, request: Request, force: bool = False):
+    from core.errors import NotFoundError, ConflictError
+    settings = request.app.state.settings
+    try:
+        return delete_source(uid, settings, force=force)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.post("/{uid}/restore", response_model=RestoreSourceResult)
+def restore_source_endpoint(uid: str, request: Request):
+    from core.errors import NotFoundError, ConflictError
+    settings = request.app.state.settings
+    try:
+        return restore_source(uid, settings)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))

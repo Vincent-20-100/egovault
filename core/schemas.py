@@ -201,3 +201,32 @@ class ExportResult(BaseModel):
 class EmbedNoteResult(BaseModel):
     note_uid: str
     embedding_dim: int
+
+
+class DeleteNoteResult(BaseModel):
+    uid: str
+    action: Literal["soft_deleted", "hard_deleted"]
+    deleted_source_uid: str | None = None  # set by routing layer when --delete-source is used
+
+
+class DeleteSourceResult(BaseModel):
+    uid: str
+    action: Literal["soft_deleted", "hard_deleted"]
+    media_deleted: bool
+    orphaned_note_uids: list[str]
+
+
+class RestoreNoteResult(BaseModel):
+    uid: str
+    restored_sync_status: str
+
+
+class RestoreSourceResult(BaseModel):
+    uid: str
+    restored_status: str
+
+
+class PurgeResult(BaseModel):
+    notes_purged: int
+    sources_purged: int
+    media_files_deleted: int

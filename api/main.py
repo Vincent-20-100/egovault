@@ -104,6 +104,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from api.routers.notes import router as notes_router
     from api.routers.sources import router as sources_router
     from api.routers.search import router as search_router
+    from api.routers.vault import router as vault_router
 
     app.include_router(health_router)
     app.include_router(jobs_router)
@@ -111,6 +112,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(notes_router)
     app.include_router(sources_router)
     app.include_router(search_router)
+    app.include_router(vault_router)
 
     return app
 

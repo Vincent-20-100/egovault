@@ -302,3 +302,101 @@ def note_approve(
         out_fields["source_finalized"] = note.source_uid
 
     print_panel("Note approved", out_fields, json_mode)
+
+
+def _delete_note(uid, settings, force):
+    from tools.vault.delete_note import delete_note
+    return delete_note(uid, settings, force=force)
+
+
+def _restore_note(uid, settings):
+    from tools.vault.restore_note import restore_note
+    return restore_note(uid, settings)
+
+
+def _delete_source_tool(source_uid, settings):
+    from tools.vault.delete_source import delete_source
+    return delete_source(source_uid, settings, force=True)
+
+
+@app.command("delete")
+def note_delete(
+    uid: Annotated[str, typer.Argument(help="Note UID to delete")],
+    force: Annotated[bool, typer.Option("--force", help="Hard-delete immediately (irreversible)")] = False,
+    delete_source: Annotated[bool, typer.Option("--delete-source", help="Also delete linked source")] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation prompt")] = False,
+    json_mode: Annotated[bool, typer.Option("--json")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose")] = False,
+) -> None:
+    """Delete a note. Soft-delete by default; use --force for immediate removal."""
+    try:
+        settings = _load_settings()
+    except Exception as e:
+        print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    # Pre-fetch source_uid for cascade before note is deleted
+    source_uid_to_delete = None
+    if delete_source and force:
+        note_before = _get_note(settings.vault_db_path, uid)
+        if note_before and note_before.source_uid:
+            source_uid_to_delete = note_before.source_uid
+
+    if force and not yes:
+        note = _get_note(settings.vault_db_path, uid)
+        summary = f"Note: {note.title if note else uid}"
+        if source_uid_to_delete:
+            summary += f"\nLinked source: {source_uid_to_delete} (and all its chunks, media)"
+        typer.echo(f"This will permanently delete:\n  {summary}")
+        if not typer.confirm("Confirm permanent deletion?"):
+            raise typer.Exit(0)
+
+    try:
+        result = _delete_note(uid, settings, force=force)
+    except Exception as e:
+        from core.errors import NotFoundError, ConflictError
+        if isinstance(e, NotFoundError):
+            print_error(f"Note not found: {uid}", "not_found", json_mode, verbose)
+        elif isinstance(e, ConflictError):
+            print_error(str(e), "conflict", json_mode, verbose)
+        else:
+            print_error("Delete failed.", "delete_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    if source_uid_to_delete:
+        try:
+            _delete_source_tool(source_uid_to_delete, settings)
+            result = result.model_copy(update={"deleted_source_uid": source_uid_to_delete})
+        except Exception as e:
+            print_error(f"Note deleted but source deletion failed: {e}", "source_error", json_mode, verbose)
+
+    fields = {"uid": result.uid, "action": result.action}
+    print_panel("Note deleted", fields, json_mode)
+
+
+@app.command("restore")
+def note_restore(
+    uid: Annotated[str, typer.Argument(help="Note UID to restore")],
+    json_mode: Annotated[bool, typer.Option("--json")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose")] = False,
+) -> None:
+    """Restore a note previously marked for deletion."""
+    try:
+        settings = _load_settings()
+    except Exception as e:
+        print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    try:
+        result = _restore_note(uid, settings)
+    except Exception as e:
+        from core.errors import NotFoundError, ConflictError
+        if isinstance(e, NotFoundError):
+            print_error(f"Note not found: {uid}", "not_found", json_mode, verbose)
+        elif isinstance(e, ConflictError):
+            print_error(str(e), "conflict", json_mode, verbose)
+        else:
+            print_error("Restore failed.", "restore_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    print_panel("Note restored", {"uid": result.uid, "sync_status": result.restored_sync_status}, json_mode)

@@ -27,6 +27,7 @@ def tmp_settings(tmp_path):
             "obsidian_sync": True,
             "default_generation_template": "standard",
         },
+        "allow_destructive_ops": False,
     }))
 
     user_dir = tmp_path / "egovault-user"

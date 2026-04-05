@@ -91,3 +91,84 @@ def source_get(
         fields["transcript"] = preview + "..." if len(source.transcript) > _TRANSCRIPT_PREVIEW_LEN else preview
 
     print_panel(f"Source: {source.slug}", fields, json_mode)
+
+
+def _delete_source(uid, settings, force):
+    from tools.vault.delete_source import delete_source
+    return delete_source(uid, settings, force=force)
+
+
+def _restore_source(uid, settings):
+    from tools.vault.restore_source import restore_source
+    return restore_source(uid, settings)
+
+
+@app.command("delete")
+def source_delete(
+    uid: Annotated[str, typer.Argument(help="Source UID to delete")],
+    force: Annotated[bool, typer.Option("--force", help="Hard-delete immediately (irreversible)")] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation prompt")] = False,
+    json_mode: Annotated[bool, typer.Option("--json")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose")] = False,
+) -> None:
+    """Delete a source. Soft-delete by default; use --force for immediate removal."""
+    try:
+        settings = _load_settings()
+    except Exception as e:
+        print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    if force and not yes:
+        source = _get_source(settings.vault_db_path, uid)
+        summary = f"Source: {source.title or source.slug if source else uid}"
+        if source and source.media_path:
+            summary += f"\nMedia file: {source.media_path}"
+        summary += "\nAll chunks and embeddings"
+        typer.echo(f"This will permanently delete:\n  {summary}")
+        if not typer.confirm("Confirm permanent deletion?"):
+            raise typer.Exit(0)
+
+    try:
+        result = _delete_source(uid, settings, force=force)
+    except Exception as e:
+        from core.errors import NotFoundError, ConflictError
+        if isinstance(e, NotFoundError):
+            print_error(f"Source not found: {uid}", "not_found", json_mode, verbose)
+        elif isinstance(e, ConflictError):
+            print_error(str(e), "conflict", json_mode, verbose)
+        else:
+            print_error("Delete failed.", "delete_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    fields: dict = {"uid": result.uid, "action": result.action}
+    if result.orphaned_note_uids:
+        fields["orphaned_notes"] = ", ".join(result.orphaned_note_uids)
+    print_panel("Source deleted", fields, json_mode)
+
+
+@app.command("restore")
+def source_restore(
+    uid: Annotated[str, typer.Argument(help="Source UID to restore")],
+    json_mode: Annotated[bool, typer.Option("--json")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose")] = False,
+) -> None:
+    """Restore a source previously marked for deletion."""
+    try:
+        settings = _load_settings()
+    except Exception as e:
+        print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    try:
+        result = _restore_source(uid, settings)
+    except Exception as e:
+        from core.errors import NotFoundError, ConflictError
+        if isinstance(e, NotFoundError):
+            print_error(f"Source not found: {uid}", "not_found", json_mode, verbose)
+        elif isinstance(e, ConflictError):
+            print_error(str(e), "conflict", json_mode, verbose)
+        else:
+            print_error("Restore failed.", "restore_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    print_panel("Source restored", {"uid": result.uid, "status": result.restored_status}, json_mode)

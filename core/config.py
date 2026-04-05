@@ -74,6 +74,7 @@ class UserConfig(BaseModel):
     embedding: EmbeddingUserConfig
     llm: LLMUserConfig
     vault: VaultUserConfig
+    allow_destructive_ops: bool = False  # expose delete/purge tools to the LLM via MCP
 
 
 # ============================================================
