@@ -148,12 +148,24 @@ CREATE TABLE IF NOT EXISTS jobs (
     updated_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS workflow_runs (
+    run_id      TEXT PRIMARY KEY,
+    workflow    TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'running',
+    started_at  TEXT NOT NULL,
+    ended_at    TEXT,
+    source_uid  TEXT
+);
+
 CREATE TABLE IF NOT EXISTS tool_logs (
     uid         TEXT PRIMARY KEY,
+    run_id      TEXT,
     tool_name   TEXT NOT NULL,
     input_json  TEXT,
     output_json TEXT,
     duration_ms INTEGER,
+    token_count INTEGER,
+    provider    TEXT,
     status      TEXT NOT NULL,
     error       TEXT,
     timestamp   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -784,6 +796,9 @@ def insert_tool_log(
     duration_ms: int,
     status: str,
     error: str | None = None,
+    run_id: str | None = None,
+    token_count: int | None = None,
+    provider: str | None = None,
 ) -> None:
     from core.uid import generate_uid
     conn = get_vault_connection(db_path)
@@ -794,3 +809,104 @@ def insert_tool_log(
     )
     conn.commit()
     conn.close()
+
+
+# ============================================================
+# WORKFLOW RUNS (system DB)
+# ============================================================
+
+
+def create_workflow_run(
+    db_path: Path,
+    run_id: str,
+    workflow: str,
+    source_uid: str | None = None,
+) -> None:
+    from datetime import datetime
+    conn = get_system_connection(db_path)
+    conn.execute(
+        """INSERT INTO workflow_runs (run_id, workflow, status, started_at, source_uid)
+           VALUES (?, ?, 'running', ?, ?)""",
+        (run_id, workflow, datetime.now(timezone.utc).isoformat(), source_uid),
+    )
+    conn.commit()
+    conn.close()
+
+
+def close_workflow_run(db_path: Path, run_id: str, status: str) -> None:
+    from datetime import datetime
+    conn = get_system_connection(db_path)
+    conn.execute(
+        "UPDATE workflow_runs SET status = ?, ended_at = ? WHERE run_id = ?",
+        (status, datetime.now(timezone.utc).isoformat(), run_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_workflow_runs(
+    db_path: Path,
+    status: str | None = None,
+    workflow: str | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    conn = get_system_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    query = "SELECT * FROM workflow_runs WHERE 1=1"
+    params: list = []
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    if workflow:
+        query += " AND workflow = ?"
+        params.append(workflow)
+    query += " ORDER BY started_at DESC LIMIT ?"
+    params.append(limit)
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_workflow_run_detail(db_path: Path, run_id: str) -> dict | None:
+    conn = get_system_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    run_row = conn.execute(
+        "SELECT * FROM workflow_runs WHERE run_id = ?", (run_id,)
+    ).fetchone()
+    if run_row is None:
+        conn.close()
+        return None
+    logs = conn.execute(
+        "SELECT * FROM tool_logs WHERE run_id = ? ORDER BY timestamp", (run_id,)
+    ).fetchall()
+    conn.close()
+    return {
+        "run": dict(run_row),
+        "tool_logs": [dict(r) for r in logs],
+    }
+
+
+def get_workflow_run_cost(db_path: Path, run_id: str) -> dict | None:
+    conn = get_system_connection(db_path)
+    conn.row_factory = sqlite3.Row
+    run_row = conn.execute(
+        "SELECT * FROM workflow_runs WHERE run_id = ?", (run_id,)
+    ).fetchone()
+    if run_row is None:
+        conn.close()
+        return None
+    row = conn.execute(
+        """SELECT COUNT(*) as tool_count,
+                  SUM(COALESCE(token_count, 0)) as total_tokens,
+                  SUM(duration_ms) as total_duration_ms
+           FROM tool_logs WHERE run_id = ?""",
+        (run_id,),
+    ).fetchone()
+    conn.close()
+    return {
+        "run_id": run_id,
+        "workflow": dict(run_row)["workflow"],
+        "tool_count": row["tool_count"],
+        "total_tokens": row["total_tokens"] or 0,
+        "total_duration_ms": row["total_duration_ms"] or 0,
+    }

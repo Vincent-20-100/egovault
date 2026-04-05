@@ -5,22 +5,20 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-04-04
+**Last updated:** 2026-04-05
 **Last session:** `claude/brainstorming-pending-ideas-5zR2H`
 
 ---
 
-## Current state: Clean codebase, metadev-protocol adopted
+## Current state: Web ingestion + Monitoring shipped
 
-All major refactoring is complete. Codebase is stable. Development process is now formalized
-with the metadev-protocol patterns (split CLAUDE.md, .meta/ workspace, project skills).
+Codebase is stable with two major features added this session:
+1. **Web ingestion V1** — full pipeline from URL to RAG-ready source
+2. **Monitoring** — workflow run tracking with observability
 
-**What was done this session:**
-- Completed git rebase (conflicts from previous session resolved)
-- Pushed metadev-protocol adoption to main
-- Merged main into feature branch
+**331 tests pass, 0 failures.**
 
-**Next priority:** **B2 — Security Phase 2** — needs brainstorm
+**Next priority:** **Search quality (reranking)** — needs brainstorm
 
 ---
 
@@ -33,14 +31,20 @@ with the metadev-protocol patterns (split CLAUDE.md, .meta/ workspace, project s
 - **Unified ingest with extractor registry** — add a source type = add an extractor function + register it
 - **create_note_from_content()** builds system fields inside the tool — MCP/CLI/API are routing-only
 
-### metadev-protocol adoption (implemented)
+### Web ingestion architecture (new)
 
-- **CLAUDE.md = law** (109 lines, always loaded) — identity, structure, automatisms, key docs
-- **.meta/GUIDELINES.md = mentor** (193 lines) — G1-G13 rules, conventions, pre-commit checklist
-- **.meta/ = process workspace** — specs, plans, audits, scratch (drafts), archive
-- **Superpowers plugin** for generic workflow skills (brainstorming, plans, code review, debugging)
-- **Project skills** (.claude/skills/) for project-specific tasks: save-progress, lint, test
-- **Output path redirection** — Superpowers drafts → `.meta/scratch/`, validated → `.meta/specs/` or `.meta/plans/`
+- **SSRF protection** in `core/security.py` — private IP rejection, DNS rebinding defense, cloud metadata blocking
+- **2-tier extraction** — Tier 0 (parse_html/bs4, always available), Tier 1 (trafilatura, optional dep)
+- **tools/web/ package** — separate from tools/text/ because web content is mixed (text+structure), not pure text
+- **httpx streaming** with size limits and post-redirect DNS re-validation
+
+### Monitoring architecture (new)
+
+- **run_id via contextvars** — zero changes to tool signatures, transparent to all @loggable-decorated tools
+- **Token count auto-extraction** — checks result for `token_count`/`tokens_used`/`total_tokens` attributes
+- **Provider captured from @loggable decorator** — `@loggable("embed_tool", provider="ollama")`
+- **workflow_runs table** — tracks pipeline runs with status, timing, source_uid linkage
+- **tool_logs.run_id is plain TEXT** (no FK) — allows standalone tool calls without a workflow run
 
 ---
 
@@ -57,6 +61,8 @@ with the metadev-protocol patterns (split CLAUDE.md, .meta/ workspace, project s
 9. When editing CLAUDE.md, keep it ≤110 lines — detailed rules go in GUIDELINES.md
 10. Superpowers output paths override is in CLAUDE.md §7, NOT in skill wrappers
 11. PostToolUse ruff hook was deferred — `$FILE` variable doesn't exist in hook context
+12. pypdf tests need `patch.dict(sys.modules, {"pypdf": mock})` — env has broken cryptography module
+13. tool_logs.run_id must NOT have FK to workflow_runs — standalone tool calls have no run
 
 ---
 
@@ -64,9 +70,9 @@ with the metadev-protocol patterns (split CLAUDE.md, .meta/ workspace, project s
 
 | Item | Where documented | When to do |
 |------|-----------------|------------|
-| Crash recovery (`recover_source`) | Archive spec §16, brainstorm note F | After B2 or web ingest |
+| Crash recovery (`recover_source`) | Archive spec §16, brainstorm note F | After web ingest or monitoring |
 | `source_assets` table | Archive spec §15, brainstorm note G | When image handling implemented |
-| Web ingestion | Archive spec §2.1 Family C | After security brainstorm |
+| Web ingestion V2 (batch, JS rendering) | `.meta/specs/2026-04-05-web-ingestion-spec.md` §Future | When single-page is validated |
 | API test seed fixtures | PROJECT-STATUS.md debt | When fixture pattern refactored |
 | System DB facade | PROJECT-STATUS.md debt | If 3+ callers need system DB via ctx |
 | PostToolUse ruff hook | `.meta/specs/2026-04-03-metadev-protocol-adoption-notes.md` | When Claude Code exposes `$FILE` in hooks |
@@ -75,7 +81,6 @@ with the metadev-protocol patterns (split CLAUDE.md, .meta/ workspace, project s
 
 ## Open questions (require interactive discussion)
 
-1. **B2 Security Phase 2** — what scope? The existing spec (`specs/future/2026-03-29-security-design.md`) needs review and brainstorm
-2. **Monitoring spec gap** — run_id and token_count missing from tool_logs table
-3. **Web ingestion security brainstorm** — needed before any network-facing fetch code
-4. **ARCHITECTURE.md location** — move from `docs/architecture/` to `.meta/`? Or keep separate since it's a permanent doc?
+1. **Search quality (reranking)** — what approach? The spec (`specs/future/2026-03-28-reranking-design.md`) needs brainstorm
+2. **Evaluation framework** — priority vs search quality? User said "monitoring then search quality, we'll decide next later"
+3. **ARCHITECTURE.md location** — move from `docs/architecture/` to `.meta/`? Or keep separate since it's a permanent doc?

@@ -34,7 +34,7 @@ tools/
 workflows/
 └── ingest.py            ← unified pipeline — ingest(source_type, target, ctx)
 infrastructure/          ← db.py, vault_writer.py, embedding_provider.py, llm_provider.py
-api/                     ← FastAPI — routers: health, jobs, ingest, notes, sources, search, vault
+api/                     ← FastAPI — routers: health, jobs, ingest, notes, sources, search, vault, monitoring
 cli/                     ← Click CLI — commands: ingest, search, notes, sources, status, purge
 mcp/server.py            ← exposes tools/ via MCP protocol
 config/                  ← system.yaml (versioned), user.yaml + install.yaml (gitignored)

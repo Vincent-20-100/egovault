@@ -14,6 +14,7 @@ from core.errors import LargeFormatError, EmptyContentError
 
 def _make_ctx(tmp_settings, tmp_db, tmp_path, generate=None):
     from infrastructure.vault_db import VaultDB
+    from infrastructure.db import init_system_db
     from core.context import VaultContext
     from infrastructure.vault_writer import write_note as _write_note
 
@@ -22,10 +23,13 @@ def _make_ctx(tmp_settings, tmp_db, tmp_path, generate=None):
     media_path = tmp_path / "media"
     media_path.mkdir(exist_ok=True)
 
+    system_db = tmp_path / ".system.db"
+    init_system_db(system_db)
+
     return VaultContext(
         settings=tmp_settings,
         db=VaultDB(tmp_db),
-        system_db_path=tmp_path / ".system.db",
+        system_db_path=system_db,
         embed=lambda text: make_embedding(0.0),
         generate=generate,
         write_note=_write_note,

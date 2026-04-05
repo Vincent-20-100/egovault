@@ -138,6 +138,48 @@ class SearchResultResponse(BaseModel):
 # HEALTH
 # ============================================================
 
+# ============================================================
+# MONITORING
+# ============================================================
+
+class WorkflowRunResponse(BaseModel):
+    run_id: str
+    workflow: str
+    status: str
+    started_at: str
+    ended_at: str | None = None
+    source_uid: str | None = None
+
+
+class ToolLogResponse(BaseModel):
+    uid: str
+    run_id: str | None = None
+    tool_name: str
+    duration_ms: int | None = None
+    token_count: int | None = None
+    provider: str | None = None
+    status: str
+    error: str | None = None
+    timestamp: str
+
+
+class WorkflowRunDetailResponse(BaseModel):
+    run: WorkflowRunResponse
+    tool_logs: list[ToolLogResponse]
+
+
+class WorkflowRunCostResponse(BaseModel):
+    run_id: str
+    workflow: str
+    tool_count: int
+    total_tokens: int
+    total_duration_ms: int
+
+
+# ============================================================
+# HEALTH
+# ============================================================
+
 class HealthResponse(BaseModel):
     api: str
     ollama: str

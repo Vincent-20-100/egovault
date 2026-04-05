@@ -3,16 +3,33 @@
 
 Every tool call is logged automatically — zero boilerplate in tool code.
 Uses a callback injected at startup so core/ stays free of infrastructure imports (G4).
+run_id propagated via contextvars — thread-safe, async-safe, zero tool signature changes.
 """
 
 import json
 import time
+from contextvars import ContextVar, Token
 from functools import wraps
 from typing import Callable
 
-# Callback injected at app startup — signature matches _write_log's call site.
-# Kept as None when logging is disabled (e.g. tests that don't need DB writes).
 _log_writer: Callable | None = None
+
+_run_id: ContextVar[str | None] = ContextVar("run_id", default=None)
+
+
+def set_run_id(run_id: str) -> Token:
+    """Set the current workflow run_id. Returns a token for reset."""
+    return _run_id.set(run_id)
+
+
+def reset_run_id(token: Token) -> None:
+    """Reset run_id to its previous value."""
+    _run_id.reset(token)
+
+
+def get_run_id() -> str | None:
+    """Get the current workflow run_id (or None)."""
+    return _run_id.get()
 
 
 def configure(log_writer: Callable | None) -> None:
@@ -20,18 +37,15 @@ def configure(log_writer: Callable | None) -> None:
     Call at app startup with a writer callback, or None to disable logging.
 
     Expected signature:
-        writer(uid, tool_name, input_json, output_json, duration_ms, status, error) -> None
+        writer(uid, tool_name, input_json, output_json, duration_ms, status, error,
+               run_id=None, token_count=None, provider=None) -> None
     """
     global _log_writer
     _log_writer = log_writer
 
 
 def _serialize(obj) -> str:
-    """
-    Serialize tool input/output to JSON string.
-    Pydantic models: model_dump(mode='json').
-    Other types: json.dumps with str() fallback.
-    """
+    """Serialize tool input/output to JSON string."""
     if hasattr(obj, "model_dump"):
         return json.dumps(obj.model_dump(mode="json"))
     try:
@@ -41,8 +55,21 @@ def _serialize(obj) -> str:
 
 
 def _elapsed_ms(start: float) -> int:
-    """Return elapsed milliseconds since start."""
     return int((time.monotonic() - start) * 1000)
+
+
+def _extract_token_count(result) -> int | None:
+    """Auto-extract token_count from result if available."""
+    for attr in ("token_count", "tokens_used", "total_tokens"):
+        val = getattr(result, attr, None)
+        if isinstance(val, int):
+            return val
+    if isinstance(result, dict):
+        for key in ("token_count", "tokens_used", "total_tokens"):
+            val = result.get(key)
+            if isinstance(val, int):
+                return val
+    return None
 
 
 def _write_log(
@@ -52,8 +79,10 @@ def _write_log(
     duration_ms: int,
     status: str,
     error: str | None = None,
+    token_count: int | None = None,
+    provider: str | None = None,
 ) -> None:
-    """Write a tool_log entry via the injected writer callback. Redacts sensitive data first."""
+    """Write a tool_log entry via the injected writer callback."""
     if _log_writer is None:
         return
     try:
@@ -68,22 +97,20 @@ def _write_log(
             duration_ms,
             status,
             redact_sensitive(error),
+            run_id=_run_id.get(),
+            token_count=token_count,
+            provider=provider,
         )
     except Exception:
         pass  # logging must never crash the tool
 
 
-def loggable(tool_name: str):
+def loggable(tool_name: str, provider: str | None = None):
     """
     Decorator: logs every tool call to the tool_logs table.
 
-    Tools MUST accept their primary input as first positional arg or as 'input' kwarg.
-    Input/output serialized via _serialize() (Pydantic-aware).
-    Duration and status recorded automatically.
-
-    Usage:
-        @loggable("transcribe")
-        def transcribe(input: TranscribeInput) -> TranscriptResult: ...
+    Automatically captures run_id (from contextvars), token_count (from result),
+    and provider (from decorator arg or None).
     """
     def decorator(func):
         @wraps(func)
@@ -94,13 +121,16 @@ def loggable(tool_name: str):
                 result = func(*args, **kwargs)
                 _write_log(
                     tool_name, _serialize(input_obj),
-                    _serialize(result), _elapsed_ms(start), "success"
+                    _serialize(result), _elapsed_ms(start), "success",
+                    token_count=_extract_token_count(result),
+                    provider=provider,
                 )
                 return result
             except Exception as e:
                 _write_log(
                     tool_name, _serialize(input_obj),
-                    None, _elapsed_ms(start), "failed", str(e)
+                    None, _elapsed_ms(start), "failed", str(e),
+                    provider=provider,
                 )
                 raise
         return wrapper
