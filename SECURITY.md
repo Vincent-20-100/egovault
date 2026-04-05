@@ -24,7 +24,7 @@ If you discover a security vulnerability in EgoVault:
 
 ## Security Model
 
-EgoVault's security audit (`docs/superpowers/specs/2026-03-29-security-design.md`) covers:
+EgoVault's security audit (`.meta/specs/future/2026-03-29-security-design.md`) covers:
 - Input validation (URLs, file paths, user-provided content)
 - Log redaction (API keys, system paths)
 - Database constraints (slug format, foreign key enforcement)

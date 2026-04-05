@@ -1,6 +1,10 @@
 # Brainstorming sessions
 .superpowers/
 
+# Process workspace — scratch is drafts, not committed
+.meta/scratch/
+!.meta/scratch/.gitkeep
+
 # Git worktrees
 .worktrees/
 

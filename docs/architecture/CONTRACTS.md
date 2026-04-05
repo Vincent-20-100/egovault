@@ -235,4 +235,4 @@ Key points:
 - **No auth**: local MVP, API bound to `127.0.0.1` only
 - **api/models.py** separate from `core/schemas.py` — internal fields not exposed: `sync_status`, `generation_template`, `source_uid`
 
-Detailed spec: `docs/superpowers/specs/2026-03-27-api-design.md`
+Detailed spec: `.meta/specs/future/2026-03-27-api-design.md`

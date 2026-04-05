@@ -26,12 +26,12 @@
 
 | # | Check | Where to look | Violation criteria |
 |---|-------|---------------|-------------------|
-| 1.1 | No contradictions between specs | `docs/superpowers/specs/*.md` | Two specs describe the same thing differently |
-| 1.2 | Superseded specs are marked OBSOLETE | `docs/superpowers/specs/*.md` | A superseded spec has no OBSOLETE marker |
+| 1.1 | No contradictions between specs | `.meta/specs/*.md` | Two specs describe the same thing differently |
+| 1.2 | Superseded specs are marked OBSOLETE | `.meta/specs/*.md` | A superseded spec has no OBSOLETE marker |
 | 1.3 | CLAUDE.md progress section matches reality | `CLAUDE.md` §Progress | A feature listed as "done" has no code, or code exists but isn't listed |
 | 1.4 | Roadmap in CLAUDE.md matches spec priorities | `CLAUDE.md` §Roadmap | Roadmap order contradicts latest spec decisions |
 | 1.5 | Future work items are documented | `docs/FUTURE-WORK.md`, spec §Future work | A discussed future feature has no written trace |
-| 1.6 | Plans reference correct spec versions | `docs/superpowers/plans/*.md` | A plan references an obsolete spec |
+| 1.6 | Plans reference correct spec versions | `.meta/plans/*.md` | A plan references an obsolete spec |
 
 ### How to check
 

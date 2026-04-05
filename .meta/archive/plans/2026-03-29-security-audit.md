@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.x, FastAPI, SQLite, pytest
 
-**Spec:** `docs/superpowers/specs/2026-03-29-security-design.md`
+**Spec:** `.meta/specs/2026-03-29-security-design.md`
 
 ---
 
@@ -84,7 +84,7 @@ If you discover a security vulnerability in EgoVault:
 
 ## Security Model
 
-EgoVault's security audit (`docs/superpowers/specs/2026-03-29-security-design.md`) covers:
+EgoVault's security audit (`.meta/specs/2026-03-29-security-design.md`) covers:
 - Input validation (URLs, file paths, user-provided content)
 - Log redaction (API keys, system paths)
 - Database constraints (slug format, foreign key enforcement)
@@ -272,7 +272,7 @@ Insert before the final `*Spec initiale...` lines (after line 1130 `---`):
 ## 10. Security Model
 
 **Last updated:** 2026-03-29
-**Full spec:** `docs/superpowers/specs/2026-03-29-security-design.md`
+**Full spec:** `.meta/specs/2026-03-29-security-design.md`
 
 ### 10.1 Scope — Local use only
 
@@ -447,7 +447,7 @@ Expected: `OK: All sensitive files properly ignored.`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add pyproject.toml uv.lock docs/superpowers/plans/2026-03-29-security-audit.md
+git add pyproject.toml uv.lock .meta/plans/2026-03-29-security-audit.md
 git commit -m "chore: security Phase 1 — upgrade requests 2.33 (CVE-2026-25645), document pygments CVE-2026-4539 accepted"
 ```
 

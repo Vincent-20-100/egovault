@@ -199,7 +199,7 @@ egovault/                          ← PUBLIC git repo
 │   │   └── CONTRACTS.md           ← Pydantic, MCP & API contracts
 │   ├── VISION.md                  ← strategic vision, competitive analysis, north star
 │   ├── FUTURE-WORK.md             ← ideas backlog (not yet specced)
-│   └── superpowers/               ← build artifacts (specs, plans, audits)
+│   └── (see .meta/ at repo root for build artifacts)
 └── tests/                         ← mirrors tools/, workflows/, api/, benchmark/
     ├── core/
     ├── infrastructure/
@@ -429,11 +429,11 @@ reranker:
 
 ## 7. Approved extensions
 
-These 6 specs are validated and ready to implement. Detailed specs in `docs/superpowers/specs/`.
+These 6 specs are validated and ready to implement. Detailed specs in `.meta/specs/future/`.
 
 ### 7.1 FastAPI API — IMPLEMENTED
 
-**Spec:** `docs/superpowers/specs/2026-03-27-api-design.md`
+**Spec:** `.meta/specs/future/2026-03-27-api-design.md`
 **Files:** `api/`, `tests/api/`
 
 Main endpoints:
@@ -454,7 +454,7 @@ GET  /benchmark/results, /benchmark/results/{id}
 
 ### 7.2 Next.js frontend
 
-**Spec:** `docs/superpowers/specs/2026-03-28-frontend-design.md`
+**Spec:** `.meta/specs/future/2026-03-28-frontend-design.md`
 **Files:** `frontend/` (new)
 **Prerequisite:** `api/` operational
 
@@ -464,7 +464,7 @@ Pages: dashboard, ingest, sources (list + detail), notes (list + detail), search
 
 ### 7.3 Monitoring & rating stack
 
-**Spec:** `docs/superpowers/specs/2026-03-28-monitoring-design.md`
+**Spec:** `.meta/specs/future/2026-03-28-monitoring-design.md`
 **Files:** `core/logging.py` (enrichment), `infrastructure/db.py` (add .system.db), `scripts/temp/001_move_tool_logs_to_system_db.py`
 
 `@loggable` enrichments:
@@ -489,7 +489,7 @@ finally:
 
 ### 7.4 Reranking
 
-**Spec:** `docs/superpowers/specs/2026-03-28-reranking-design.md`
+**Spec:** `.meta/specs/future/2026-03-28-reranking-design.md`
 **Files:** `infrastructure/reranker_provider.py` (new), `tools/vault/search.py` (modified), `core/schemas.py` (modified)
 
 Model: `cross-encoder/ms-marco-MiniLM-L-6-v2` (~80MB, CPU, ~50-100ms for 20 candidates).
@@ -500,7 +500,7 @@ Optional dependency: `uv sync --extra reranker`.
 
 ### 7.5 Semantic cache
 
-**Spec:** `docs/superpowers/specs/2026-03-28-semantic-cache-design.md`
+**Spec:** `.meta/specs/future/2026-03-28-semantic-cache-design.md`
 **Files:** `infrastructure/semantic_cache.py` (new), `infrastructure/db.py` (modified), `tools/vault/search.py` (modified)
 
 **Includes the cross-cutting fix:** `embedding.dims` configurable in `system.yaml` — removes the hardcoded `768` in `infrastructure/db.py` and tests.
@@ -518,7 +518,7 @@ Benchmark calls: `use_cache=False` forced — the golden dataset always tests re
 
 ### 7.6 RAG benchmark framework
 
-**Spec:** `docs/superpowers/specs/2026-03-28-evaluation-design.md` *(note: spec written under the old name "eval", renamed to "benchmark" at consolidation)*
+**Spec:** `.meta/specs/future/2026-03-28-evaluation-design.md` *(note: spec written under the old name "eval", renamed to "benchmark" at consolidation)*
 **Files:** `benchmark/` (new), `tests/benchmark/` (new)
 
 Dual-entry architecture:
@@ -615,7 +615,7 @@ note_type: str | None = None
 ## 10. Security Model
 
 **Last updated:** 2026-03-29
-**Full spec:** `docs/superpowers/specs/2026-03-29-security-design.md`
+**Full spec:** `.meta/specs/future/2026-03-29-security-design.md`
 
 ### 10.1 Scope — Local use only
 

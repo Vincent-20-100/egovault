@@ -1,8 +1,8 @@
 # VaultContext Refactoring — Implementation Plan
 
 **Date:** 2026-03-31
-**Spec:** `docs/superpowers/specs/2026-03-31-vaultcontext-refactoring-spec.md`
-**Brainstorm:** `docs/superpowers/specs/2026-03-31-vaultcontext-refactoring-notes.md`
+**Spec:** `.meta/specs/2026-03-31-vaultcontext-refactoring-spec.md`
+**Brainstorm:** `.meta/specs/2026-03-31-vaultcontext-refactoring-notes.md`
 **Phase:** 3 — PLAN
 
 ---

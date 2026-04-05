@@ -590,8 +590,8 @@ If something goes wrong, the wrapper pattern means we can revert `workflows/inge
 |----------|--------|
 | `docs/architecture/ARCHITECTURE.md` | Update section 2.2 (workflows), add unified ingest description |
 | `CLAUDE.md` | Update Structure section, mark ingest_web/text as implemented |
-| `docs/superpowers/specs/2026-03-31-extraction-provider-design.md` | Mark as superseded |
-| `docs/superpowers/specs/2026-03-31-ingest-text-web-design.md` | Mark as superseded |
+| `.meta/specs/2026-03-31-extraction-provider-design.md` | Mark as superseded |
+| `.meta/specs/2026-03-31-ingest-text-web-design.md` | Mark as superseded |
 
 ---
 
