@@ -17,6 +17,7 @@ from infrastructure.db import init_db, init_system_db
 def _write_configs(config_dir: Path, user_dir: Path) -> None:
     (config_dir / "system.yaml").write_text(yaml.dump({
         "chunking": {"size": 800, "overlap": 80},
+        "embedding": {"dims": 768, "provider": "ollama", "model": "nomic-embed-text"},
         "llm": {"max_retries": 2, "large_format_threshold_tokens": 50000},
         "taxonomy": {
             "note_types": ["synthese", "reflexion"],
@@ -48,7 +49,12 @@ def tmp_settings(tmp_path_factory):
     _write_configs(config_dir, user_dir)
     settings = load_settings(config_dir)
 
-    init_db(settings.vault_db_path)
+    init_db(
+        settings.vault_db_path,
+        dims=settings.system.embedding.dims,
+        provider=settings.system.embedding.provider,
+        model=settings.system.embedding.model,
+    )
     init_system_db(settings.system_db_path)
 
     return settings

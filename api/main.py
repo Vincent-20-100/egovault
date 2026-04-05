@@ -42,7 +42,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # Startup: ensure DBs exist, mark orphan jobs failed
-        init_db(settings.vault_db_path)
+        init_db(
+            settings.vault_db_path,
+            dims=settings.system.embedding.dims,
+            provider=settings.system.embedding.provider,
+            model=settings.system.embedding.model,
+        )
         init_system_db(settings.system_db_path)
         mark_orphan_jobs_failed(settings.system_db_path)
 

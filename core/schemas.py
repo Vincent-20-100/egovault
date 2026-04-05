@@ -93,7 +93,7 @@ class Note(NoteSystemFields, NoteContentInput):
     date_modified: str
     rating: int | None = Field(None, ge=1, le=5)  # user-only signal, semantics open
     sync_status: str = "synced"                    # synced|needs_re_embedding|embedding
-    status: str = "active"       # approval state: draft (auto-generated) | active (human-approved)
+    status: Literal["draft", "active"] = "active"   # approval state: draft (auto-generated) | active (human-approved)
 
 
 # ============================================================

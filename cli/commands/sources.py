@@ -93,6 +93,56 @@ def source_get(
     print_panel(f"Source: {source.slug}", fields, json_mode)
 
 
+def _generate_note_from_source(source_uid, settings, template="standard"):
+    from tools.vault.generate_note_from_source import generate_note_from_source
+    return generate_note_from_source(source_uid, settings, template=template)
+
+
+@app.command("generate-note")
+def source_generate_note(
+    uid: Annotated[str, typer.Argument(help="Source UID")],
+    template: Annotated[str, typer.Option("--template",
+                        help="Generation template name")] = "standard",
+    json_mode: Annotated[bool, typer.Option("--json")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose")] = False,
+) -> None:
+    """Generate a draft note from an ingested source via the configured LLM."""
+    from core.errors import NotFoundError, ConflictError
+
+    try:
+        settings = _load_settings()
+    except Exception as e:
+        print_error("Configuration not found.", "config_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    try:
+        result = _generate_note_from_source(uid, settings, template=template)
+    except NotFoundError:
+        print_error(f"Source not found: {uid}", "not_found", json_mode, verbose)
+        raise typer.Exit(1)
+    except ConflictError:
+        print_error(f"A note already exists for source: {uid}", "conflict",
+                    json_mode, verbose)
+        raise typer.Exit(1)
+    except Exception as e:
+        print_error("Note generation failed.", "generation_error", json_mode, verbose, str(e))
+        raise typer.Exit(1)
+
+    if json_mode:
+        import json
+        print(json.dumps(result.model_dump(mode="json")))
+    else:
+        fields: dict = {
+            "note_uid": result.note.uid,
+            "slug": result.note.slug,
+            "status": result.note.status,
+            "template": result.note.generation_template,
+        }
+        if verbose:
+            fields["markdown_path"] = result.markdown_path
+        print_panel("Draft note generated", fields, json_mode)
+
+
 def _delete_source(uid, settings, force):
     from tools.vault.delete_source import delete_source
     return delete_source(uid, settings, force=force)

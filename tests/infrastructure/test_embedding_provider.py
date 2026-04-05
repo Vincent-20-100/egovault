@@ -1,19 +1,21 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
+from tests.conftest import make_embedding, EMBEDDING_DIMS
+
 
 def test_embed_ollama_returns_vector(tmp_settings):
     from infrastructure.embedding_provider import embed
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {"embedding": [0.1] * 768}
+    mock_response.json.return_value = {"embedding": make_embedding()}
     mock_response.raise_for_status = MagicMock()
 
     with patch("requests.post", return_value=mock_response) as mock_post:
         result = embed("hello world", tmp_settings)
 
     assert isinstance(result, list)
-    assert len(result) == 768
+    assert len(result) == EMBEDDING_DIMS
     assert result[0] == pytest.approx(0.1)
 
     call_kwargs = mock_post.call_args
@@ -25,7 +27,7 @@ def test_embed_ollama_uses_correct_url(tmp_settings):
     from infrastructure.embedding_provider import embed
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {"embedding": [0.0] * 768}
+    mock_response.json.return_value = {"embedding": make_embedding(0.0)}
     mock_response.raise_for_status = MagicMock()
 
     with patch("requests.post", return_value=mock_response) as mock_post:

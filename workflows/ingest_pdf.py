@@ -10,6 +10,7 @@ Status transitions: raw → transcribing → text_ready → embedding → rag_re
 Note: pypdf used in v1 for simplicity. Docling is a future upgrade for better layout analysis.
 """
 
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -28,6 +29,16 @@ from infrastructure.db import (
 )
 from tools.text.chunk import chunk_text
 from tools.text.embed import embed_text
+from tools.vault.generate_note_from_source import generate_note_from_source
+
+logger = logging.getLogger(__name__)
+
+
+def _llm_is_configured(settings) -> bool:
+    """Return True only if a supported LLM is configured with credentials."""
+    if settings.user.llm.provider == "claude":
+        return bool(settings.install.providers.anthropic_api_key)
+    return False
 
 
 def _extract_pdf_text(file_path: str) -> str:
@@ -43,6 +54,7 @@ def ingest_pdf(
     settings: Settings,
     title: str | None = None,
     source_type: str = "pdf",
+    auto_generate_note: bool | None = None,
 ) -> Source:
     """
     Run the full PDF ingestion pipeline.
@@ -91,11 +103,24 @@ def ingest_pdf(
 
     update_source_status(db, source_uid, "rag_ready")
 
+    should_generate = (
+        auto_generate_note if auto_generate_note is not None
+        else settings.user.llm.auto_generate_note
+    )
+
     if token_count > threshold:
+        if should_generate:
+            logger.info("Source exceeds token threshold, skipping note generation")
         raise LargeFormatError(
             source_uid=source_uid,
             token_count=token_count,
             threshold=threshold,
         )
+
+    if should_generate:
+        if not _llm_is_configured(settings):
+            logger.info("LLM not configured, skipping note generation")
+        else:
+            generate_note_from_source(source_uid, settings)
 
     return get_source(db, source_uid)

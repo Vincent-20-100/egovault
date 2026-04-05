@@ -1,6 +1,8 @@
 import pytest
 from pathlib import Path
 
+from tests.conftest import make_embedding
+
 
 def test_get_vault_connection_loads_sqlite_vec(tmp_path):
     from infrastructure.db import init_db, get_vault_connection
@@ -80,6 +82,48 @@ def test_init_db_idempotent(tmp_path):
     db_file = tmp_path / "test.db"
     init_db(db_file)
     init_db(db_file)  # second call must not raise
+
+
+def test_init_db_creates_vec_tables_with_custom_dims(tmp_path):
+    from infrastructure.db import init_db, get_vault_connection
+    db_file = tmp_path / "custom_dims.db"
+    init_db(db_file, dims=512)
+    conn = get_vault_connection(db_file)
+    meta = dict(conn.execute("SELECT key, value FROM db_metadata").fetchall())
+    conn.close()
+    assert meta["embedding_dim"] == "512"
+
+
+def test_init_db_metadata_reflects_params(tmp_path):
+    from infrastructure.db import init_db, get_vault_connection
+    db_file = tmp_path / "params.db"
+    init_db(db_file, dims=1536, provider="openai", model="text-embedding-3-small")
+    conn = get_vault_connection(db_file)
+    meta = dict(conn.execute("SELECT key, value FROM db_metadata").fetchall())
+    conn.close()
+    assert meta["embedding_dim"] == "1536"
+    assert meta["embedding_provider"] == "openai"
+    assert meta["embedding_model"] == "text-embedding-3-small"
+
+
+def test_init_db_warns_on_dim_mismatch(tmp_path, caplog):
+    import logging
+    from infrastructure.db import init_db
+    db_file = tmp_path / "mismatch.db"
+    init_db(db_file, dims=768)
+    with caplog.at_level(logging.WARNING, logger="infrastructure.db"):
+        init_db(db_file, dims=1536)
+    assert any("does not match" in r.message for r in caplog.records)
+
+
+def test_init_db_no_warning_when_dims_match(tmp_path, caplog):
+    import logging
+    from infrastructure.db import init_db
+    db_file = tmp_path / "match.db"
+    init_db(db_file, dims=768)
+    with caplog.at_level(logging.WARNING, logger="infrastructure.db"):
+        init_db(db_file, dims=768)
+    assert not any("does not match" in r.message for r in caplog.records)
 
 
 # ---- Sources CRUD ----
@@ -248,7 +292,7 @@ def test_insert_chunk_embeddings(tmp_db):
     from infrastructure.db import insert_source, insert_chunks, insert_chunk_embeddings, get_vault_connection
     insert_source(tmp_db, _make_source())
     insert_chunks(tmp_db, "src-uid-1", _make_chunks())
-    embedding = [0.1] * 768
+    embedding = make_embedding()
     insert_chunk_embeddings(tmp_db, "chunk-0", embedding)
     conn = get_vault_connection(tmp_db)
     count = conn.execute("SELECT COUNT(*) FROM chunks_vec").fetchone()[0]
@@ -261,7 +305,7 @@ def test_insert_chunk_embeddings(tmp_db):
 def test_insert_and_delete_note_embedding(tmp_db):
     from infrastructure.db import insert_note, insert_note_embedding, delete_note_embedding, get_vault_connection
     insert_note(tmp_db, _make_note())
-    insert_note_embedding(tmp_db, "note-uid-1", [0.1] * 768)
+    insert_note_embedding(tmp_db, "note-uid-1", make_embedding())
     conn = get_vault_connection(tmp_db)
     count = conn.execute("SELECT COUNT(*) FROM notes_vec").fetchone()[0]
     assert count == 1
@@ -282,9 +326,9 @@ def test_search_chunks_returns_results(tmp_db):
     chunks = _make_chunks()
     insert_chunks(tmp_db, "src-uid-1", chunks)
     for chunk in chunks:
-        insert_chunk_embeddings(tmp_db, chunk.uid, [0.1] * 768)
+        insert_chunk_embeddings(tmp_db, chunk.uid, make_embedding())
 
-    query = [0.1] * 768
+    query = make_embedding()
     results = search_chunks(tmp_db, query, filters=None, limit=5)
     assert len(results) == 3
     assert all(r.distance >= 0 for r in results)
@@ -294,8 +338,8 @@ def test_search_chunks_returns_results(tmp_db):
 def test_search_notes_returns_results(tmp_db):
     from infrastructure.db import insert_note, insert_note_embedding, search_notes
     insert_note(tmp_db, _make_note())
-    insert_note_embedding(tmp_db, "note-uid-1", [0.1] * 768)
-    results = search_notes(tmp_db, [0.1] * 768, filters=None, limit=5)
+    insert_note_embedding(tmp_db, "note-uid-1", make_embedding())
+    results = search_notes(tmp_db, make_embedding(), filters=None, limit=5)
     assert len(results) == 1
     assert results[0].title == "Test Note"
     assert results[0].note_uid == "note-uid-1"

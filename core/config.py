@@ -43,8 +43,15 @@ class UploadConfig(BaseModel):
     max_pdf_mb: int = 100
 
 
+class EmbeddingConfig(BaseModel):
+    dims: int = 768
+    provider: str = "ollama"
+    model: str = "nomic-embed-text"
+
+
 class SystemConfig(BaseModel):
     chunking: ChunkingConfig
+    embedding: EmbeddingConfig = EmbeddingConfig()
     llm: LLMSystemConfig
     upload: UploadConfig = UploadConfig()
     taxonomy: TaxonomyConfig
@@ -62,6 +69,7 @@ class EmbeddingUserConfig(BaseModel):
 class LLMUserConfig(BaseModel):
     provider: str = "ollama"
     model: str = "llama3"
+    auto_generate_note: bool = False
 
 
 class VaultUserConfig(BaseModel):

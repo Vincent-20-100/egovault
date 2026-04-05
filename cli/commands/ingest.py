@@ -34,21 +34,26 @@ def _detect_type(target: str) -> str:
     raise ValueError(f"Unsupported input: '{target}'. Provide a YouTube URL, audio file, or PDF.")
 
 
-def _run_ingest(input_type: str, target: str, settings):
+def _run_ingest(input_type: str, target: str, settings, auto_generate_note=None):
     if input_type == "youtube":
         from workflows.ingest_youtube import ingest_youtube
-        return ingest_youtube(target, settings)
+        return ingest_youtube(target, settings, auto_generate_note=auto_generate_note)
     elif input_type == "audio":
         from workflows.ingest_audio import ingest_audio
-        return ingest_audio(target, settings)
+        return ingest_audio(target, settings, auto_generate_note=auto_generate_note)
     else:
         from workflows.ingest_pdf import ingest_pdf
-        return ingest_pdf(target, settings)
+        return ingest_pdf(target, settings, auto_generate_note=auto_generate_note)
 
 
 @app.command()
 def ingest(
     target: Annotated[str, typer.Argument(help="YouTube URL or path to audio/PDF file")],
+    generate_note: Annotated[
+        bool | None,
+        typer.Option("--generate-note/--no-generate-note",
+                     help="Generate a draft note after ingestion. Default: reads user.yaml.")
+    ] = None,
     json_mode: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="Show step timings and details")] = False,
 ) -> None:
@@ -71,7 +76,8 @@ def ingest(
     start = time.time()
     try:
         with spinner(f"Ingesting {input_type}..."):
-            source = _run_ingest(input_type, target, settings)
+            source = _run_ingest(input_type, target, settings,
+                                 auto_generate_note=generate_note)
     except LargeFormatError as e:
         print_error(
             "Source is too large for automatic note generation. "

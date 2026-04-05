@@ -1,5 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
+
+from tests.conftest import make_embedding, EMBEDDING_DIMS
+
 from core.schemas import (
     ChunkResult, SearchResult, NoteResult, FinalizeResult,
     TranscriptResult, CompressResult, SubtitleResult, ExportResult,
@@ -31,11 +34,11 @@ def test_mcp_embed_text_calls_tool(tmp_settings):
     import mcp.server as srv
 
     with patch("mcp.server.settings", tmp_settings), \
-         patch("mcp.server._embed_text_tool", return_value=[0.1] * 768) as mock_tool:
+         patch("mcp.server._embed_text_tool", return_value=make_embedding()) as mock_tool:
         result = srv.embed_text("hello")
 
     mock_tool.assert_called_once_with("hello", tmp_settings)
-    assert len(result) == 768
+    assert len(result) == EMBEDDING_DIMS
 
 
 # ---------------------------------------------------------------------------
@@ -266,3 +269,28 @@ def test_mcp_get_workflow_guide_returns_string(tmp_settings):
     assert isinstance(result, str)
     assert "create_note" in result
     assert "finalize_source" in result
+
+
+def test_mcp_generate_note_from_source_calls_tool(tmp_settings):
+    import mcp.server as srv
+    from unittest.mock import patch
+    from core.schemas import NoteResult, Note
+    from datetime import date
+
+    note = Note(
+        uid="note-mcp", source_uid="src-mcp", slug="note-mcp",
+        note_type=None, source_type=None, generation_template="standard",
+        rating=None, sync_status="synced", title="MCP Note",
+        docstring="desc", body="body content here", url=None, status="draft",
+        date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
+        tags=["test-tag"],
+    )
+    mock_result = NoteResult(note=note, markdown_path="/vault/note-mcp.md")
+
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server._generate_note_from_source_tool",
+               return_value=mock_result) as mock_tool:
+        result = srv.generate_note_from_source("src-mcp")
+
+    mock_tool.assert_called_once_with("src-mcp", tmp_settings, "standard")
+    assert result["note"]["status"] == "draft"

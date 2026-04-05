@@ -20,6 +20,7 @@ from tools.text.embed import embed_text as _embed_text_tool
 from tools.vault.create_note import create_note as _create_note_tool
 from tools.vault.update_note import update_note as _update_note_tool
 from tools.vault.finalize_source import finalize_source as _finalize_source_tool
+from tools.vault.generate_note_from_source import generate_note_from_source as _generate_note_from_source_tool
 from tools.vault.search import search as _search_tool
 from tools.export.typst import export_typst as _export_typst_tool
 from tools.export.mermaid import export_mermaid as _export_mermaid_tool
@@ -372,6 +373,27 @@ def update_note(uid: str, fields: dict) -> dict:
 
 
 @mcp.tool()
+def generate_note_from_source(source_uid: str, template: str = "standard") -> dict:
+    """
+    Generate a draft note from an ingested source.
+
+    The source must be at rag_ready status. The configured LLM generates
+    note content automatically. The note is created as draft — it must be
+    reviewed and approved before the source is finalized.
+
+    When to use: After a source has been ingested and indexed (rag_ready status),
+    to automatically generate a note draft without composing content manually.
+    Use list_sources(status='rag_ready') to find candidates.
+
+    What to call next: get_note(uid) to review the draft, then
+    update_note(uid, {'status': 'active'}) to approve it, then
+    finalize_source(source_uid) to archive the source.
+    """
+    result = _generate_note_from_source_tool(source_uid, settings, template)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
 def get_workflow_guide() -> str:
     """
     Return the recommended MCP workflow for EgoVault.
@@ -420,6 +442,22 @@ the intelligence.
 - list_sources(status='rag_ready') → sources ready for note creation
 - list_notes(note_type='synthese') → browse by type
 - search(query, mode='notes') → semantic note search
+
+## Internal path: automatic note generation
+
+If auto_generate_note is configured in user.yaml, draft notes are created
+automatically after ingestion. To generate a note on demand:
+
+1. generate_note_from_source(source_uid) → draft note created automatically
+2. get_note(uid) → review the draft content
+3. update_note(uid, {'status': 'active'}) → approve the note
+4. finalize_source(source_uid) → archive the source as vaulted
+
+## Draft note approval (manual MCP workflow)
+
+After reviewing a draft note:
+1. update_note(uid, {'status': 'active'}) → mark as approved
+2. finalize_source(source_uid) → archive the linked source
 
 ## Key rules
 

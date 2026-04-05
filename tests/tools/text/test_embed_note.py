@@ -2,6 +2,9 @@ import pytest
 import unittest.mock as mock
 from unittest.mock import patch
 from datetime import date
+
+from tests.conftest import make_embedding, EMBEDDING_DIMS
+
 from core.schemas import Note, EmbedNoteResult
 
 
@@ -28,12 +31,12 @@ def test_embed_note_returns_result(tmp_settings, tmp_db):
 
     with mock.patch.object(type(tmp_settings), "vault_db_path",
                            new_callable=lambda: property(lambda self: tmp_db)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         result = embed_note("n1", tmp_settings)
 
     assert isinstance(result, EmbedNoteResult)
     assert result.note_uid == "n1"
-    assert result.embedding_dim == 768
+    assert result.embedding_dim == EMBEDDING_DIMS
 
 
 def test_embed_note_populates_notes_vec(tmp_settings, tmp_db):
@@ -44,10 +47,10 @@ def test_embed_note_populates_notes_vec(tmp_settings, tmp_db):
 
     with mock.patch.object(type(tmp_settings), "vault_db_path",
                            new_callable=lambda: property(lambda self: tmp_db)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         embed_note("n1", tmp_settings)
 
-    results = search_notes(tmp_db, [0.1] * 768, None, 5)
+    results = search_notes(tmp_db, make_embedding(), None, 5)
     assert len(results) == 1
     assert results[0].note_uid == "n1"
 
@@ -61,11 +64,11 @@ def test_embed_note_replaces_existing_embedding(tmp_settings, tmp_db):
 
     with mock.patch.object(type(tmp_settings), "vault_db_path",
                            new_callable=lambda: property(lambda self: tmp_db)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         embed_note("n1", tmp_settings)
         embed_note("n1", tmp_settings)  # second call — must not duplicate
 
-    results = search_notes(tmp_db, [0.1] * 768, None, 10)
+    results = search_notes(tmp_db, make_embedding(), None, 10)
     assert len(results) == 1
 
 
@@ -77,7 +80,7 @@ def test_embed_note_sets_sync_status_synced(tmp_settings, tmp_db):
 
     with mock.patch.object(type(tmp_settings), "vault_db_path",
                            new_callable=lambda: property(lambda self: tmp_db)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         embed_note("n1", tmp_settings)
 
     note = get_note(tmp_db, "n1")

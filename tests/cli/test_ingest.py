@@ -72,3 +72,70 @@ def test_ingest_verbose_shows_elapsed():
         result = runner.invoke(app, ["https://youtube.com/watch?v=abc", "--verbose"])
     assert result.exit_code == 0
     assert "elapsed" in result.output
+
+
+def test_ingest_generate_note_flag_passed_to_workflow():
+    """--generate-note passes auto_generate_note=True to the workflow."""
+    from core.schemas import Source
+    from datetime import date
+
+    source = Source(
+        uid="src-ingest-gen", slug="youtube-abc", source_type="youtube",
+        status="rag_ready", url="https://youtube.com/watch?v=abc",
+        date_added=date.today().isoformat(),
+    )
+    with patch("cli.commands.ingest._load_settings") as mock_settings, \
+         patch("cli.commands.ingest._run_ingest", return_value=source) as mock_run:
+        mock_settings.return_value = MagicMock()
+        result = runner.invoke(
+            app, ["https://youtube.com/watch?v=abc", "--generate-note"]
+        )
+
+    assert result.exit_code == 0
+    call_kwargs = mock_run.call_args
+    auto = call_kwargs[1].get("auto_generate_note") if call_kwargs[1] else call_kwargs[0][3]
+    assert auto is True
+
+
+def test_ingest_no_generate_note_flag_passed():
+    """--no-generate-note passes auto_generate_note=False to the workflow."""
+    from core.schemas import Source
+    from datetime import date
+
+    source = Source(
+        uid="src-ingest-nogen", slug="youtube-nogen", source_type="youtube",
+        status="rag_ready", url="https://youtube.com/watch?v=nogen",
+        date_added=date.today().isoformat(),
+    )
+    with patch("cli.commands.ingest._load_settings") as mock_settings, \
+         patch("cli.commands.ingest._run_ingest", return_value=source) as mock_run:
+        mock_settings.return_value = MagicMock()
+        result = runner.invoke(
+            app, ["https://youtube.com/watch?v=nogen", "--no-generate-note"]
+        )
+
+    assert result.exit_code == 0
+    call_kwargs = mock_run.call_args
+    auto = call_kwargs[1].get("auto_generate_note") if call_kwargs[1] else call_kwargs[0][3]
+    assert auto is False
+
+
+def test_ingest_no_flag_passes_none():
+    """No flag passes auto_generate_note=None (read from config)."""
+    from core.schemas import Source
+    from datetime import date
+
+    source = Source(
+        uid="src-ingest-cfg", slug="youtube-cfg", source_type="youtube",
+        status="rag_ready", url="https://youtube.com/watch?v=cfg",
+        date_added=date.today().isoformat(),
+    )
+    with patch("cli.commands.ingest._load_settings") as mock_settings, \
+         patch("cli.commands.ingest._run_ingest", return_value=source) as mock_run:
+        mock_settings.return_value = MagicMock()
+        result = runner.invoke(app, ["https://youtube.com/watch?v=cfg"])
+
+    assert result.exit_code == 0
+    call_kwargs = mock_run.call_args
+    auto = call_kwargs[1].get("auto_generate_note") if call_kwargs[1] else (call_kwargs[0][3] if len(call_kwargs[0]) > 3 else None)
+    assert auto is None

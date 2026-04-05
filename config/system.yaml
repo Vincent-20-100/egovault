@@ -7,6 +7,11 @@ chunking:
   size: 800          # tokens per chunk
   overlap: 80        # sliding window (10% of size)
 
+embedding:
+  dims: 768              # dimension of embedding vectors — single source of truth
+  provider: ollama       # embedding provider (ollama | openai)
+  model: nomic-embed-text
+
 llm:
   max_retries: 2     # Pydantic validation retries before human-in-the-loop
   large_format_threshold_tokens: 50000

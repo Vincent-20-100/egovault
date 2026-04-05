@@ -122,6 +122,39 @@ def test_media_path_default(tmp_path):
     assert settings.media_path == user_dir / "data" / "media"
 
 
+def test_embedding_config_loads_from_system_yaml(tmp_path):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    user_dir = tmp_path / "user"
+    user_dir.mkdir()
+    _write_configs(config_dir, user_dir)
+    import yaml
+    sys_yaml = yaml.safe_load((config_dir / "system.yaml").read_text())
+    sys_yaml["embedding"] = {"dims": 512, "provider": "openai", "model": "text-embedding-3-small"}
+    (config_dir / "system.yaml").write_text(yaml.dump(sys_yaml))
+
+    from core.config import load_settings
+    settings = load_settings(config_dir)
+
+    assert settings.system.embedding.dims == 512
+    assert settings.system.embedding.provider == "openai"
+    assert settings.system.embedding.model == "text-embedding-3-small"
+
+
+def test_embedding_config_defaults_to_768_if_missing(tmp_path):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    user_dir = tmp_path / "user"
+    user_dir.mkdir()
+    _write_configs(config_dir, user_dir)
+
+    from core.config import load_settings
+    settings = load_settings(config_dir)
+
+    assert settings.system.embedding.dims == 768
+    assert settings.system.embedding.provider == "ollama"
+
+
 def test_taxonomy_shortcut(tmp_path):
     config_dir = tmp_path / "config"
     config_dir.mkdir()

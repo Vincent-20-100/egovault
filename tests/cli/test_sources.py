@@ -78,3 +78,65 @@ def test_source_get_verbose_shows_transcript():
         result = runner.invoke(app, ["get", "suid-1", "--verbose"])
     assert result.exit_code == 0
     assert "Transcription" in result.output
+
+
+def test_source_generate_note_success():
+    from core.schemas import Note, NoteResult
+    from datetime import date
+
+    note = Note(
+        uid="note-gen", source_uid="src-gen", slug="gen-note",
+        note_type=None, source_type=None, generation_template="standard",
+        rating=None, sync_status="synced", title="Generated Note",
+        docstring="desc", body="body content here", url=None, status="draft",
+        date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
+        tags=["test-tag"],
+    )
+    note_result = NoteResult(note=note, markdown_path="/vault/gen-note.md")
+
+    with patch("cli.commands.sources._load_settings") as mock_settings, \
+         patch("cli.commands.sources._generate_note_from_source",
+               return_value=note_result) as mock_gen:
+        mock_settings.return_value = MagicMock()
+        result = runner.invoke(app, ["generate-note", "src-gen"])
+
+    assert result.exit_code == 0
+    mock_gen.assert_called_once()
+
+
+def test_source_generate_note_not_found():
+    from core.errors import NotFoundError
+    with patch("cli.commands.sources._load_settings") as mock_settings, \
+         patch("cli.commands.sources._generate_note_from_source",
+               side_effect=NotFoundError("Source", "bad-uid")):
+        mock_settings.return_value = MagicMock()
+        result = runner.invoke(app, ["generate-note", "bad-uid"])
+
+    assert result.exit_code == 1
+    assert "not found" in result.output.lower()
+
+
+def test_source_generate_note_json_mode():
+    from core.schemas import Note, NoteResult
+    from datetime import date
+
+    note = Note(
+        uid="note-gen2", source_uid="src-gen2", slug="gen-note2",
+        note_type=None, source_type=None, generation_template="standard",
+        rating=None, sync_status="synced", title="Generated Note 2",
+        docstring="desc", body="body content here", url=None, status="draft",
+        date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
+        tags=["test-tag"],
+    )
+    note_result = NoteResult(note=note, markdown_path="/vault/gen-note2.md")
+
+    with patch("cli.commands.sources._load_settings") as mock_settings, \
+         patch("cli.commands.sources._generate_note_from_source",
+               return_value=note_result):
+        mock_settings.return_value = MagicMock()
+        result = runner.invoke(app, ["generate-note", "src-gen2", "--json"])
+
+    assert result.exit_code == 0
+    import json as json_lib
+    data = json_lib.loads(result.output)
+    assert "note" in data

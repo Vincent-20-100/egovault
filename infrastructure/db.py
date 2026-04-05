@@ -7,11 +7,14 @@ if this file is replaced by a PostgreSQL implementation.
 Schema defined in docs/architecture/DATABASES.md.
 """
 
+import logging
 import sqlite3
 from datetime import timezone
 from pathlib import Path
 
 import sqlite_vec
+
+_logger = logging.getLogger(__name__)
 
 from core.schemas import (
     Note, Source, ChunkResult, SearchResult, SearchFilters
@@ -73,7 +76,8 @@ CREATE TABLE IF NOT EXISTS notes (
     url                 TEXT,
     date_created        DATE NOT NULL,
     date_modified       DATE NOT NULL,
-    language            TEXT DEFAULT 'fr'
+    language            TEXT DEFAULT 'fr',
+    status              TEXT NOT NULL DEFAULT 'active'
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
@@ -82,16 +86,6 @@ CREATE TABLE IF NOT EXISTS chunks (
     position     INTEGER NOT NULL,
     content      TEXT NOT NULL,
     token_count  INTEGER NOT NULL
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
-    chunk_uid    TEXT,
-    embedding    FLOAT[768]
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS notes_vec USING vec0(
-    note_uid     TEXT,
-    embedding    FLOAT[768]
 );
 
 CREATE TABLE IF NOT EXISTS db_metadata (
@@ -124,11 +118,25 @@ CREATE TABLE IF NOT EXISTS tool_logs (
 );
 """
 
-_METADATA_SQL = """
-INSERT OR IGNORE INTO db_metadata VALUES ('embedding_provider', 'ollama');
-INSERT OR IGNORE INTO db_metadata VALUES ('embedding_model', 'nomic-embed-text');
-INSERT OR IGNORE INTO db_metadata VALUES ('embedding_dim', '768');
-"""
+def _build_vec_schema_sql(dims: int) -> str:
+    return f"""
+    CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
+        chunk_uid    TEXT,
+        embedding    FLOAT[{dims}]
+    );
+    CREATE VIRTUAL TABLE IF NOT EXISTS notes_vec USING vec0(
+        note_uid     TEXT,
+        embedding    FLOAT[{dims}]
+    );
+    """
+
+
+def _build_metadata_sql(dims: int, provider: str, model: str) -> str:
+    return f"""
+    INSERT OR IGNORE INTO db_metadata VALUES ('embedding_provider', '{provider}');
+    INSERT OR IGNORE INTO db_metadata VALUES ('embedding_model', '{model}');
+    INSERT OR IGNORE INTO db_metadata VALUES ('embedding_dim', '{dims}');
+    """
 
 _SYSTEM_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -165,15 +173,36 @@ def init_system_db(db_path: Path) -> None:
     set_restrictive_permissions(db_path)
 
 
-def init_db(db_path: Path) -> None:
+def init_db(
+    db_path: Path,
+    dims: int = 768,
+    provider: str = "ollama",
+    model: str = "nomic-embed-text",
+) -> None:
     """
     Create all tables and virtual tables if they do not exist.
     Inserts initial db_metadata (embedding_provider, embedding_model, embedding_dim).
     Safe to call on an existing DB (idempotent).
+    Warns if the stored embedding_dim differs from the configured dims.
     """
     conn = get_vault_connection(db_path)
     conn.executescript(_SCHEMA_SQL)
-    conn.executescript(_METADATA_SQL)
+    conn.executescript(_build_vec_schema_sql(dims))
+    conn.executescript(_build_metadata_sql(dims, provider, model))
+
+    # Startup validation — warn on dim mismatch (re-embedding is user-initiated)
+    row = conn.execute(
+        "SELECT value FROM db_metadata WHERE key = 'embedding_dim'"
+    ).fetchone()
+    if row is not None:
+        stored_dim = int(row[0])
+        if stored_dim != dims:
+            _logger.warning(
+                "Config embedding.dims (%d) does not match database (%d). "
+                "Run re-embedding to fix silent search failures.",
+                dims, stored_dim,
+            )
+
     conn.commit()
     conn.close()
     from core.security import set_restrictive_permissions
@@ -239,10 +268,10 @@ def insert_note(db_path: Path, note: Note) -> None:
     conn.execute(
         """INSERT INTO notes
            (uid, source_uid, slug, note_type, source_type, generation_template,
-            rating, sync_status, title, docstring, body, url, date_created, date_modified)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            rating, sync_status, status, title, docstring, body, url, date_created, date_modified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (note.uid, note.source_uid, note.slug, note.note_type, note.source_type,
-         note.generation_template, note.rating, note.sync_status,
+         note.generation_template, note.rating, note.sync_status, note.status,
          note.title, note.docstring, note.body, note.url,
          note.date_created, note.date_modified),
     )

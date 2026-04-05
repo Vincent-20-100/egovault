@@ -12,6 +12,7 @@ Status transitions managed here:
   raw → transcribing → text_ready → embedding → rag_ready [→ pre_vaulted → vaulted]
 """
 
+import logging
 import re
 from datetime import date
 
@@ -31,6 +32,9 @@ from infrastructure.db import (
 from tools.media.fetch_subtitles import fetch_subtitles
 from tools.text.chunk import chunk_text
 from tools.text.embed import embed_text
+from tools.vault.generate_note_from_source import generate_note_from_source
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_video_id(url: str) -> str:
@@ -39,7 +43,14 @@ def _extract_video_id(url: str) -> str:
     return match.group(1) if match else "unknown"
 
 
-def ingest_youtube(url: str, settings: Settings) -> Source:
+def _llm_is_configured(settings) -> bool:
+    """Return True only if a supported LLM is configured with credentials."""
+    if settings.user.llm.provider == "claude":
+        return bool(settings.install.providers.anthropic_api_key)
+    return False
+
+
+def ingest_youtube(url: str, settings: Settings, auto_generate_note: bool | None = None) -> Source:
     """
     Run the full YouTube ingestion pipeline.
     Returns the Source record at rag_ready status.
@@ -86,11 +97,24 @@ def ingest_youtube(url: str, settings: Settings) -> Source:
 
     update_source_status(db, source_uid, "rag_ready")
 
+    should_generate = (
+        auto_generate_note if auto_generate_note is not None
+        else settings.user.llm.auto_generate_note
+    )
+
     if token_count > threshold:
+        if should_generate:
+            logger.info("Source exceeds token threshold, skipping note generation")
         raise LargeFormatError(
             source_uid=source_uid,
             token_count=token_count,
             threshold=threshold,
         )
+
+    if should_generate:
+        if not _llm_is_configured(settings):
+            logger.info("LLM not configured, skipping note generation")
+        else:
+            generate_note_from_source(source_uid, settings)
 
     return get_source(db, source_uid)

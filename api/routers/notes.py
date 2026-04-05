@@ -25,6 +25,7 @@ def _to_detail(note) -> NoteDetail:
         source_type=note.source_type, rating=note.rating,
         tags=note.tags, date_created=note.date_created,
         date_modified=note.date_modified,
+        status=note.status,
     )
 
 
@@ -61,9 +62,38 @@ def patch_note(uid: str, patch: NotePatch, request: Request):
         fields["rating"] = patch.rating
     if patch.tags is not None:
         set_note_tags(db, uid, patch.tags)
+    if patch.status is not None:
+        fields["status"] = patch.status
     if fields:
         fields["date_modified"] = date.today().isoformat()
         update_note(db, uid, fields)
+
+    updated = get_note(db, uid)
+    return _to_detail(updated)
+
+
+@router.post("/{uid}/approve", response_model=NoteDetail)
+def approve_note(uid: str, request: Request):
+    """Approve a draft note and finalize its linked source if applicable."""
+    db = request.app.state.settings.vault_db_path
+    settings = request.app.state.settings
+
+    note = get_note(db, uid)
+    if note is None:
+        raise HTTPException(status_code=404, detail=f"Note '{uid}' not found")
+    if note.status != "draft":
+        raise HTTPException(status_code=409,
+                            detail=f"Note '{uid}' is not in draft status")
+
+    from datetime import date
+    update_note(db, uid, {"status": "active", "date_modified": date.today().isoformat()})
+
+    if note.source_uid:
+        from infrastructure.db import get_source
+        source = get_source(db, note.source_uid)
+        if source and source.status == "rag_ready":
+            from tools.vault.finalize_source import finalize_source
+            finalize_source(note.source_uid, settings)
 
     updated = get_note(db, uid)
     return _to_detail(updated)
