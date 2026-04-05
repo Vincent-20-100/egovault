@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(uv:*)",
+      "Bash(git:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(uv run python:*)",
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(sqlite3:*)",
+      "Bash(ollama:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)"
+    ]
+  }
+}

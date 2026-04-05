@@ -1,0 +1,40 @@
+# Brainstorming sessions
+.superpowers/
+
+# Git worktrees
+.worktrees/
+
+# Claude Code — local settings and generated worktrees (settings.json is versioned)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Tests
+.pytest_cache/
+
+# Tools
+config.yaml
+.env*
+
+# Config v2 — gitignored (contain secrets and local paths)
+config/user.yaml
+config/install.yaml
+
+# User data v2 — lives in egovault-user/, never in this repo
+egovault-user/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# User data — everything belongs to the vault, nothing here
+notes/
+sources/
+_status.md
+_index.md
