@@ -191,3 +191,18 @@ Once implemented → `archive/`. Deferred → `specs/future/`.
 | `docs/VISION.md` | Strategic vision, north star |
 | `docs/FUTURE-WORK.md` | Ideas backlog |
 | `docs/mcp-setup.md` | MCP client setup guide |
+
+---
+
+## Advanced Claude Code options (deferred)
+
+These options are documented here for future activation. They are NOT currently enabled.
+
+| Option | Effect | When to enable |
+|--------|--------|----------------|
+| `enabledPlugins: ["obra/superpowers"]` | Force Superpowers plugin load | When plugin is stable enough to auto-load |
+| `autoDreamEnabled: true` | Background memory consolidation | When project is large enough to benefit |
+| `autoMemoryDirectory: ".meta/"` | Redirect Claude memory files to .meta/ | With autoDream |
+| Plan mode (`Shift+Tab`) | Forces Claude to plan before acting | Already enforced via automatisme #2 |
+| `statusLine` | Custom status bar content | When useful metrics are identified |
+| Subagent persistent memory | Share context across spawned agents | When multi-agent workflows are needed |

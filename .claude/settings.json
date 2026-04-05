@@ -1,30 +1,61 @@
 {
+  "attribution": {
+    "commit": ""
+  },
   "permissions": {
     "defaultMode": "acceptEdits",
     "allow": [
-      "Bash(mv:*)",
-      "Bash(cp:*)",
-      "Bash(ls:*)",
-      "Bash(mkdir:*)",
-      "Bash(touch:*)",
-      "Bash(find:*)",
-      "Bash(cat:*)",
-      "Bash(rm:*)",
-      "Bash(uv:*)",
-      "Bash(git:*)",
-      "Bash(python:*)",
-      "Bash(pytest:*)",
-      "Bash(ruff:*)",
-      "Bash(uv run python:*)",
-      "Bash(uv run ruff:*)",
-      "Bash(.venv/Scripts/python:*)",
-      "Bash(.venv/bin/python:*)",
-      "Bash(sqlite3:*)",
-      "Bash(ollama:*)"
+      "Bash(uv *)",
+      "Bash(git *)",
+      "Bash(python *)",
+      "Bash(pytest *)",
+      "Bash(ruff *)",
+      "Bash(mv *)",
+      "Bash(cp *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(sqlite3 *)",
+      "Bash(ollama *)",
+      "Read",
+      "Edit(core/**)",
+      "Edit(tools/**)",
+      "Edit(workflows/**)",
+      "Edit(infrastructure/**)",
+      "Edit(api/**)",
+      "Edit(cli/**)",
+      "Edit(mcp/**)",
+      "Edit(tests/**)",
+      "Edit(config/**)",
+      "Edit(.meta/**)",
+      "Edit(docs/**)"
     ],
     "deny": [
-      "Bash(rm -rf /:*)",
-      "Bash(rm -rf ~:*)"
+      "Bash(rm -rf / *)",
+      "Bash(rm -rf ~ *)",
+      "Bash(sudo *)",
+      "Bash(dd *)",
+      "Edit(.env)",
+      "Edit(.git/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.pypirc)"
+    ],
+    "ask": [
+      "Bash(git push --force *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat PROJECT-STATUS.md SESSION-CONTEXT.md 2>/dev/null | head -80 || echo 'No context files found — check PROJECT-STATUS.md and SESSION-CONTEXT.md'"
+          }
+        ]
+      }
     ]
   }
 }

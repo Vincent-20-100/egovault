@@ -58,7 +58,7 @@ python mcp/server.py             # MCP server (dev)
 These behaviors are hard-wired. Do them without being asked.
 
 1. **Session start** — read `PROJECT-STATUS.md` + `SESSION-CONTEXT.md` before anything.
-2. **Before coding** — propose a plan first, get user approval.
+2. **Before any Edit or Write** — you must have proposed a plan and received user approval. If no plan exists, propose one. Never implement without explicit user go-ahead.
 3. **Every commit** — `feat:` / `fix:` / `docs:` / `chore:` + description in English.
 4. **Milestone done** — update `PROJECT-STATUS.md`.
 5. **Session end** (user signals stop) — update `PROJECT-STATUS.md` + rewrite `SESSION-CONTEXT.md`, commit+push before confirming.
