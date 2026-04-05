@@ -1,14 +1,20 @@
 # Unified Ingest Architecture
 
 **Date:** 2026-03-31
-**Status:** DEFINITIVE — awaiting user validation before implementation
+**Updated:** 2026-04-01 (brainstorm adaptations)
+**Status:** VALIDATED — ready for planning and implementation
 **Priority:** SUPERIOR to all prior ingest/extraction specs
 **Supersedes:** `2026-03-31-extraction-provider-design.md`, `2026-03-31-ingest-text-web-design.md`
+**Brainstorm notes:** `specs/2026-04-01-unified-ingest-notes.md`
 
 > **This spec is the single source of truth for all ingest-related architecture.**
 > Any contradiction between this spec and prior specs, CLAUDE.md, or existing code
 > must be resolved in favor of this document. A full implementation audit is required
 > after execution to verify compliance.
+>
+> **2026-04-01 adaptations:** All code uses `ctx: VaultContext` (not `settings`).
+> §15 (source_assets) and §16 (crash recovery) are **DEFERRED** — not in V1.
+> See brainstorm notes for full decision rationale.
 
 ---
 
@@ -601,7 +607,7 @@ If something goes wrong, the wrapper pattern means we can revert `workflows/inge
 
 ---
 
-## 15. Image handling — 3-tier approach
+## 15. Image handling — 3-tier approach (DEFERRED — not in V1)
 
 Sources like PDFs and web pages may contain images. Image handling is tiered:
 
@@ -665,7 +671,7 @@ CREATE TABLE IF NOT EXISTS source_assets (
 
 ---
 
-## 16. Crash recovery
+## 16. Crash recovery (DEFERRED — not in V1)
 
 ### Problem
 

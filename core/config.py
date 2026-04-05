@@ -41,6 +41,7 @@ class LLMSystemConfig(BaseModel):
 class UploadConfig(BaseModel):
     max_audio_mb: int = 500
     max_pdf_mb: int = 100
+    max_text_chars: int = 500_000
 
 
 class EmbeddingConfig(BaseModel):

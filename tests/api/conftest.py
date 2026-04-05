@@ -21,7 +21,7 @@ def _write_configs(config_dir: Path, user_dir: Path) -> None:
         "llm": {"max_retries": 2, "large_format_threshold_tokens": 50000},
         "taxonomy": {
             "note_types": ["synthese", "reflexion"],
-            "source_types": ["youtube", "audio", "pdf"],
+            "source_types": ["youtube", "audio", "pdf", "texte", "html"],
             "generation_templates": ["standard"],
         },
     }))

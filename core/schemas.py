@@ -230,3 +230,11 @@ class PurgeResult(BaseModel):
     notes_purged: int
     sources_purged: int
     media_files_deleted: int
+
+
+class ParseHtmlResult(BaseModel):
+    text: str
+    title: str | None = None
+    author: str | None = None
+    date_published: str | None = None
+    word_count: int

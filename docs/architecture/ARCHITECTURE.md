@@ -5,8 +5,8 @@ Any change to behavior, schema, or contracts → update this file immediately.
 
 > A doc that lies is worse than no doc.
 
-**Last updated:** 2026-03-31
-**History:** created 2026-03-25, updated 2026-03-26 (frontend, generation_templates, rating, notes_vec, granular statuses), updated 2026-03-28 (API integration, frontend, monitoring, reranking, semantic cache, RAG quality benchmark; vault.db/.system.db split; future work items externalized), updated 2026-03-31 (VaultContext implemented, dependency rules updated, file tree synced with reality, A3 delete/restore/purge, API/CLI implemented)
+**Last updated:** 2026-04-03
+**History:** created 2026-03-25, updated 2026-03-26 (frontend, generation_templates, rating, notes_vec, granular statuses), updated 2026-03-28 (API integration, frontend, monitoring, reranking, semantic cache, RAG quality benchmark; vault.db/.system.db split; future work items externalized), updated 2026-03-31 (VaultContext implemented, dependency rules updated, file tree synced with reality, A3 delete/restore/purge, API/CLI implemented), updated 2026-04-03 (unified ingest workflow: ingest.py with extractor registry, old workflow files are deprecated thin wrappers)
 **Future work items:** `docs/FUTURE-WORK.md`
 
 ---
@@ -141,11 +141,11 @@ egovault/                          ← PUBLIC git repo
 │       ├── typst.py               ← note_uid → .typ file (print-ready document)
 │       └── mermaid.py             ← note_uid or tag → Mermaid diagram .md
 ├── workflows/
-│   ├── ingest_youtube.py          ← fetch_subtitles → chunk → embed → LLM → create_note → embed_note
-│   ├── ingest_audio.py            ← transcribe → chunk → embed → LLM → create_note → embed_note
-│   └── ingest_pdf.py              ← extract_text → chunk → embed → LLM → create_note → embed_note
-│                                    (also handles source_type: livre — same pipeline, different taxonomy value)
-│                                    (source_type: web — future work item, not yet implemented)
+│   ├── ingest.py                  ← unified ingest pipeline — single ingest(source_type, target, ctx) entry point
+│   │                                extractor registry: youtube, audio, video, pdf, livre, texte, html
+│   ├── ingest_youtube.py          ← DEPRECATED thin wrapper → delegates to ingest.py
+│   ├── ingest_audio.py            ← DEPRECATED thin wrapper → delegates to ingest.py
+│   └── ingest_pdf.py              ← DEPRECATED thin wrapper → delegates to ingest.py
 ├── infrastructure/
 │   ├── db.py                      ← SQLite + sqlite-vec — raw SQL functions
 │   ├── vault_db.py                ← VaultDB facade — binds db_path, one-line delegations to db.py

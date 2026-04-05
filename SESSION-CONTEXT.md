@@ -5,52 +5,64 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-04-01
-**Last session:** `claude/brainstorm-ulBda`
+**Last updated:** 2026-04-03
+**Last session:** `claude/brainstorming-pending-ideas-5zR2H`
 
 ---
 
-## VaultContext — IMPLEMENTED & CLEANED UP
+## Current focus: Unified Ingest Workflow — doc sync (step 11)
 
-All 13 steps complete. Post-cleanup done. Key facts:
+**Phase:** IMPLEMENT (Phase 4) — steps 1-10 complete, step 11 (doc sync) in progress
+**Plan:** `docs/superpowers/plans/2026-04-01-unified-ingest-plan.md` (11 steps)
+**Spec:** `docs/superpowers/specs/2026-03-31-unified-ingest-architecture.md`
+**Brainstorm notes:** `docs/superpowers/specs/2026-04-01-unified-ingest-notes.md`
 
-- **core/context.py**: VaultContext dataclass + 3 Protocols (EmbedFn, GenerateFn, WriteNoteFn)
-- **infrastructure/vault_db.py**: VaultDB facade (~25 one-line delegation methods)
-- **infrastructure/context.py**: build_context() factory wiring all providers
-- **All tools/ receive ctx: VaultContext** — zero infrastructure/ imports in tools/
-- **All workflows/ receive ctx** — zero infrastructure/ imports
-- **All surfaces (MCP, API, CLI) build ctx** and pass it to tools
-- **core/logging.py** uses callback injection (no infrastructure/ import)
-- **app.state.settings backward compat removed** — use ctx.settings everywhere
-- **374 tests pass**, 0 failures
+### What is implemented (steps 1-10)
 
-### DB lock root cause (resolved)
+- `IngestError` hierarchy in `core/errors.py` — base class with error_code/user_message/http_status
+- `workflows/ingest.py` — unified pipeline with extractor registry (youtube, audio, video, pdf, livre, texte, html)
+- Single entry point: `ingest(source_type, target, ctx)` dispatches to the correct extractor
+- `tools/text/parse_html.py` — local HTML string → text (no network fetch)
+- Old workflow files (`ingest_youtube.py`, `ingest_audio.py`, `ingest_pdf.py`) are now thin wrappers
+- `ingest_text` exposed on all surfaces: API (`POST /ingest/text`), CLI (`egovault ingest`), MCP
 
-`test_rate_limiting.py` fired 11 POST `/ingest/youtube` without mocking `_run_youtube`.
-This spawned 11 background threads via ThreadPoolExecutor, all hitting vault.db.
-Those threads held write locks when later seed fixtures tried to insert.
-Fix: `@pytest.fixture(autouse=True)` that patches `_run_youtube` in that test file.
+### What's left
 
-### Test stubs for optional dependencies
+- **Step 11:** Doc sync — ARCHITECTURE.md, PROJECT-STATUS.md, SESSION-CONTEXT.md, CLAUDE.md (current step)
+- **Test suite verification** — blocked by sqlite_vec in CI; must run locally to confirm pass count
 
-Tests for `anthropic`, `faster_whisper`, `youtube_transcript_api` use `sys.modules` stubs
-(inject MagicMock before import) so tests pass without those packages installed.
+### Key decisions from brainstorm (2026-04-01)
+
+1. **`ctx: VaultContext` everywhere** — spec was written pre-VaultContext, all code uses ctx now
+2. **Extractors = private functions** in `workflows/ingest.py` (G5, no premature abstraction)
+3. **`parse_html` included in V1** — local only (HTML string → text), no security concern.
+   Web *fetching* (SSRF etc.) is what requires the security brainstorm, not local parsing
+4. **`IngestError` structured hierarchy** — base class with error_code/user_message/http_status,
+   `LargeFormatError` migrated to inherit from it
+5. **Thin wrappers for backward compat** — old workflow files become one-line delegations.
+   Tracked as debt to clean up in a future session
+6. **Crash recovery deferred** — not critical for refactoring, documented in spec §16
+7. **`source_assets` table deferred** — no empty tables for unimplemented features, spec §15
 
 ---
 
-## G13 — Code comments standard
+## VaultContext — IMPLEMENTED & STABLE
 
-Rule in CLAUDE.md §6. Applied to Wave 1 files. Full codebase audit pending.
+All tools/workflows/surfaces use `ctx: VaultContext`. 374 tests pass.
+No need to revisit — this is the foundation for unified ingest.
 
-Key principle: **concise, surgical, no dead weight**. A good name replaces a comment.
+Key facts for reference:
+- `core/context.py`: VaultContext dataclass + 3 Protocols
+- `infrastructure/context.py`: `build_context()` factory
+- Tools receive `ctx`, never import `infrastructure/`
 
 ---
 
 ## Architecture decisions still active
 
 - **VaultDB holds db_path internally** — upgrade to pooling = change internals only
-- **generate is None when no LLM** — simplest approach, upgrade if 3+ tools need LLM
-- **build_context() is the single wiring point** — hooks for cache/metrics/fallback go here
+- **generate is None when no LLM** — simplest approach
+- **build_context() is the single wiring point**
 - **This project is a reusable template** — every structural decision must be portable
 
 ---
@@ -58,15 +70,30 @@ Key principle: **concise, surgical, no dead weight**. A good name replaces a com
 ## Traps to avoid
 
 1. Don't write specs without brainstorming with the user
-2. Use analogies for architecture jargon (restaurant kitchen, receptionist)
+2. Use analogies for architecture jargon
 3. Don't forget the north star: 2-minute demo video
 4. Don't over-engineer VaultDB — one-line delegations only
 5. Don't mix features with refactoring
 6. Rate limit / background thread tests MUST mock workflow functions to avoid DB locks
+7. **Spec was pre-VaultContext** — all code examples in spec use `settings`, actual code uses `ctx`
+8. **Mock `_run_ingest` in API tests** (not type-specific runners) to avoid DB locks
 
 ---
 
-## Open questions for next session
+## Deferred items (must be documented, not forgotten)
+
+| Item | Where documented | When to do |
+|------|-----------------|------------|
+| Crash recovery (`recover_source`) | Spec §16, brainstorm note F | After unified ingest stable |
+| `source_assets` table | Spec §15, brainstorm note G | When image handling implemented |
+| Web ingestion | Spec §2.1 Family C | After security brainstorm |
+| Clean up thin wrappers | PROJECT-STATUS.md pending tasks | After all callers migrated |
+| Post-VaultContext architecture audit | PROJECT-STATUS.md | After unified ingest |
+| G13 comments audit | PROJECT-STATUS.md | After unified ingest |
+
+---
+
+## Open questions (require interactive discussion)
 
 1. **Monitoring spec gap** — run_id and token_count missing from tool_logs table
-2. **Unified ingest** — now unblocked, needs brainstorm before implementation
+2. **Web ingestion security brainstorm** — needed before any network-facing fetch code
