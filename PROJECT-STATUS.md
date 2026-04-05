@@ -11,7 +11,7 @@
 
 ## Next action
 
-**B2 — Security Phase 2** — needs brainstorm. Existing spec: `specs/future/2026-03-29-security-design.md`.
+Next roadmap item — see Roadmap section below.
 
 ---
 
@@ -32,7 +32,7 @@
 | `specs/future/2026-03-28-reranking-design.md` | Search reranking |
 | `specs/future/2026-03-28-frontend-design.md` | Next.js frontend |
 | `specs/future/2026-03-28-monitoring-design.md` | Monitoring (partial — run_id/token_count missing) |
-| `specs/future/2026-03-29-security-design.md` | Security Phase 2 |
+| ~~`specs/future/2026-03-29-security-design.md`~~ | ~~Security Phase 2~~ → **archived** |
 
 ## Last audit
 
@@ -65,6 +65,7 @@
 | **MCP/CLI create_note G11 fix** | **2026-04-03** | **Done — business logic moved to tool** |
 | **Old workflow wrappers cleanup** | **2026-04-03** | **Done — deleted ingest_youtube/audio/pdf + tests** |
 | **metadev-protocol adoption** | **2026-04-04** | **Done — split CLAUDE.md, .meta/ workspace, 3 skills, output paths** |
+| **B2 — Security Phase 1+2** | **2026-04-04** | **Done — all hardening implemented, 30 tests pass, spec archived** |
 
 ---
 
@@ -95,7 +96,7 @@
 - [x] **Doc sync** — ARCHITECTURE.md + DATABASES.md synced with implemented state
 - [x] **Archive completed specs** — VaultContext + unified ingest specs/plans moved to archive
 - [x] **metadev-protocol adoption** — DONE: split CLAUDE.md (law+mentor), renamed .meta/, added skills, output paths configured
-- [ ] **B2 — Security Phase 2** — needs brainstorm
+- [x] **B2 — Security Phase 1+2** — DONE: all pre-launch docs + all hardening items already implemented. 30 security tests pass. Spec archived.
 
 ---
 
@@ -108,7 +109,7 @@
 5. ~~**ingest_text**~~ — **DONE** (part of unified ingest)
 6. ~~**G13 comments audit**~~ — **DONE**
 7. ~~**metadev-protocol adoption**~~ — **DONE**
-8. **B2 — Security Phase 2** — needs brainstorm
+8. ~~**B2 — Security Phase 1+2**~~ — **DONE**
 9. **Web ingestion** — needs dedicated security brainstorm (future)
 10. **Frontend, search quality, monitoring** — see `docs/FUTURE-WORK.md`
 
