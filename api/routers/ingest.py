@@ -2,10 +2,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Query
 
-from api.models import IngestYoutubeRequest, IngestTextRequest, IngestResponse
+from api.models import IngestYoutubeRequest, IngestTextRequest, IngestWebRequest, IngestResponse
 from core.uid import generate_uid
 from core.sanitize import sanitize_error
-from core.security import validate_youtube_url
+from core.security import validate_youtube_url, validate_web_url
 # System DB job functions (not in VaultDB)
 from infrastructure.db import insert_job, update_job_status, update_job_done, update_job_failed
 
@@ -105,6 +105,21 @@ async def ingest_pdf_endpoint(
     insert_job(ctx.system_db_path, job_id, "pdf",
                {"filename": f"media/{job_id}/{safe_name}"})
     _submit_job(executor, _run_ingest, job_id, "pdf", str(dest), ctx, auto_generate_note)
+    return IngestResponse(job_id=job_id)
+
+
+@router.post("/web", status_code=202, response_model=IngestResponse)
+def ingest_web_endpoint(body: IngestWebRequest, request: Request):
+    try:
+        validate_web_url(body.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    ctx = request.app.state.ctx
+    executor = request.app.state.executor
+    job_id = generate_uid()
+    insert_job(ctx.system_db_path, job_id, "web", {"url": body.url})
+    _submit_job(executor, _run_ingest, job_id, "web", body.url, ctx,
+                body.auto_generate_note, body.title)
     return IngestResponse(job_id=job_id)
 
 

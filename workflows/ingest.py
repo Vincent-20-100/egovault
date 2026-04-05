@@ -60,6 +60,19 @@ def _extract_html(target: str, ctx: VaultContext) -> tuple[str, dict]:
     return result.text, metadata
 
 
+def _extract_web(target: str, ctx: VaultContext) -> tuple[str, dict]:
+    from tools.web.fetch_web import fetch_web
+    result = fetch_web(target, ctx)
+    metadata = {"final_url": result.final_url}
+    if result.title:
+        metadata["title"] = result.title
+    if result.author:
+        metadata["author"] = result.author
+    if result.date_published:
+        metadata["date_published"] = result.date_published
+    return result.text, metadata
+
+
 _EXTRACTORS: dict[str, callable] = {
     "youtube": _extract_youtube,
     "audio": _extract_audio,
@@ -68,6 +81,7 @@ _EXTRACTORS: dict[str, callable] = {
     "livre": _extract_pdf,
     "texte": _extract_text,
     "html": _extract_html,
+    "web": _extract_web,
 }
 
 
@@ -114,8 +128,8 @@ def ingest(
     source_uid = generate_uid()
     slug = _make_slug(source_type, target, title, ctx)
 
-    # URL only for youtube sources
-    url = target if source_type == "youtube" else None
+    # URL for youtube and web sources
+    url = target if source_type in ("youtube", "web") else None
 
     source = Source(
         uid=source_uid,

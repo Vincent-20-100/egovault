@@ -113,7 +113,7 @@ def test_init_db_warns_on_dim_mismatch(tmp_path, caplog):
     init_db(db_file, dims=768)
     with caplog.at_level(logging.WARNING, logger="infrastructure.db"):
         init_db(db_file, dims=1536)
-    assert any("does not match" in r.message for r in caplog.records)
+    assert any("do not match" in r.message for r in caplog.records)
 
 
 def test_init_db_no_warning_when_dims_match(tmp_path, caplog):

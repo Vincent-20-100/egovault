@@ -393,6 +393,22 @@ def ingest_text(text: str, title: str, source_type: str = "texte",
 
 
 @mcp.tool()
+def ingest_web(url: str, auto_generate_note: bool | None = None) -> dict:
+    """
+    Ingest a web page into the vault. Fetches the URL, extracts article text,
+    chunks and embeds it for semantic search.
+
+    When to use: When the user wants to save and index a web article or blog post.
+
+    What to call next: get_source(source_uid) to read the ingested source,
+    or search() to verify it's findable.
+    """
+    from workflows.ingest import ingest
+    result = ingest("web", url, ctx, auto_generate_note=auto_generate_note)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
 def get_workflow_guide() -> str:
     """
     Return the recommended MCP workflow for EgoVault.

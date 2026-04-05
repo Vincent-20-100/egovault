@@ -15,11 +15,15 @@ dependencies = [
     "anthropic>=0.40",
     "pypdf>=4.0",
     "beautifulsoup4>=4.12",
+    "httpx>=0.27",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
     "typer>=0.12",
     "rich>=13",
 ]
+
+[project.optional-dependencies]
+tier1 = ["trafilatura>=1.8"]
 
 [dependency-groups]
 dev = [
@@ -31,7 +35,7 @@ dev = [
 egovault = "cli.main:app"
 
 [tool.setuptools]
-packages = ["api", "cli", "core", "infrastructure", "tools", "workflows", "mcp"]
+packages = ["api", "cli", "core", "infrastructure", "tools", "tools.web", "workflows", "mcp"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

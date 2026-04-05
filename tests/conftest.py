@@ -35,7 +35,7 @@ def tmp_settings(tmp_path):
         "llm": {"max_retries": 2, "large_format_threshold_tokens": 50000},
         "taxonomy": {
             "note_types": ["synthese", "concept", "reflexion"],
-            "source_types": ["youtube", "audio", "video", "pdf", "livre", "texte", "html", "personnel"],
+            "source_types": ["youtube", "audio", "video", "pdf", "livre", "texte", "html", "web", "personnel"],
             "generation_templates": ["standard"],
         },
     }))

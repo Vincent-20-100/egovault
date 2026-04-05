@@ -142,7 +142,7 @@ egovault/                          ← PUBLIC git repo
 │       └── mermaid.py             ← note_uid or tag → Mermaid diagram .md
 ├── workflows/
 │   └── ingest.py                  ← unified ingest pipeline — single ingest(source_type, target, ctx) entry point
-│                                    extractor registry: youtube, audio, video, pdf, livre, texte, html
+│                                    extractor registry: youtube, audio, video, pdf, livre, texte, html, web
 ├── infrastructure/
 │   ├── db.py                      ← SQLite + sqlite-vec — raw SQL functions
 │   ├── vault_db.py                ← VaultDB facade — binds db_path, one-line delegations to db.py
@@ -337,7 +337,7 @@ taxonomy:
     - video
     - pdf
     - livre           # same pipeline as pdf, different semantic context
-    - web             # future work item — not yet implemented
+    - web             # web page ingestion (single URL fetch + extract)
     - personnel       # no external source, personal reflection
 
   # ============================================================

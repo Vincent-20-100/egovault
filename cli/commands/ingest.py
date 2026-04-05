@@ -12,7 +12,7 @@ import typer
 
 from cli.output import print_panel, print_error, spinner
 
-app = typer.Typer(help="Ingest a YouTube URL, audio file, PDF, text, or HTML file into the vault.")
+app = typer.Typer(help="Ingest a URL, audio file, PDF, text, or HTML file into the vault.")
 
 _AUDIO_EXTENSIONS = {".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm"}
 _YOUTUBE_PATTERNS = ("youtube.com", "youtu.be")
@@ -27,6 +27,8 @@ def _build_ctx():
 def _detect_type(target: str) -> str:
     if any(p in target for p in _YOUTUBE_PATTERNS):
         return "youtube"
+    if target.startswith(("http://", "https://")):
+        return "web"
     ext = Path(target).suffix.lower()
     if ext == ".pdf":
         return "pdf"
@@ -36,7 +38,7 @@ def _detect_type(target: str) -> str:
         return "texte"
     if ext in {".html", ".htm"}:
         return "html"
-    raise ValueError(f"Unsupported input: '{target}'. Provide a YouTube URL, audio file, PDF, text, or HTML file.")
+    raise ValueError(f"Unsupported input: '{target}'. Provide a URL, audio file, PDF, text, or HTML file.")
 
 
 def _run_ingest(input_type: str, target: str, ctx, auto_generate_note=None, title=None):
@@ -48,7 +50,7 @@ def _run_ingest(input_type: str, target: str, ctx, auto_generate_note=None, titl
 
 @app.command()
 def ingest(
-    target: Annotated[str, typer.Argument(help="YouTube URL or path to audio, PDF, text, or HTML file")],
+    target: Annotated[str, typer.Argument(help="URL or path to audio, PDF, text, or HTML file")],
     generate_note: Annotated[
         bool | None,
         typer.Option("--generate-note/--no-generate-note",
@@ -58,7 +60,7 @@ def ingest(
     json_mode: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="Show step timings and details")] = False,
 ) -> None:
-    """Ingest a YouTube URL, audio file, PDF, text, or HTML file into the vault."""
+    """Ingest a URL, audio file, PDF, text, or HTML file into the vault."""
     from core.errors import IngestError, LargeFormatError
 
     try:
