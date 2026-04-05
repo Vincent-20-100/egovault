@@ -6,7 +6,7 @@ from datetime import date
 
 from tests.conftest import make_embedding
 
-from core.schemas import SubtitleResult, ChunkResult, Source, NoteResult, Note
+from core.schemas import SubtitleResult, ChunkResult, Source, NoteResult, Note, FetchWebResult
 from core.errors import LargeFormatError, EmptyContentError
 
 
@@ -115,9 +115,12 @@ def test_pdf_extractor(tmp_settings, tmp_db, tmp_path):
     mock_reader = MagicMock()
     mock_reader.pages = [mock_page]
 
-    with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
-        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
-            with patch("pypdf.PdfReader", return_value=mock_reader):
+    import sys
+    mock_pypdf = MagicMock()
+    mock_pypdf.PdfReader.return_value = mock_reader
+    with patch.dict(sys.modules, {"pypdf": mock_pypdf}):
+        with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
+            with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
                 source = ingest("pdf", "/fake/doc.pdf", ctx, title="My PDF")
 
     assert source.source_type == "pdf"
@@ -129,7 +132,9 @@ def test_audio_extractor(tmp_settings, tmp_db, tmp_path):
     from core.schemas import CompressResult, TranscriptResult
     ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
 
-    mock_compress = CompressResult(output_path="/tmp/compressed.mp3")
+    mock_compress = CompressResult(output_path="/tmp/compressed.mp3",
+                                    original_size_bytes=1000000,
+                                    compressed_size_bytes=500000)
     mock_transcript = TranscriptResult(text="Audio transcript here", language="fr")
 
     with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
@@ -269,3 +274,110 @@ def test_title_used_for_slug_when_provided(tmp_settings, tmp_db, tmp_path):
             source = ingest("texte", "Content here", ctx, title="Ma Super Note")
 
     assert source.slug == "ma-super-note"
+
+
+# -- Web extractor (end-to-end) --
+
+
+def test_web_extractor_full_pipeline(tmp_settings, tmp_db, tmp_path):
+    """End-to-end: web URL → fetch → parse → chunk → embed → source in DB."""
+    from workflows.ingest import ingest
+
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
+
+    mock_fetch_result = FetchWebResult(
+        text="This is the extracted article content from a web page with enough words to be meaningful.",
+        title="Test Article Title",
+        author="Jane Doe",
+        date_published="2026-04-05",
+        word_count=16,
+        final_url="https://example.com/article",
+        content_type="text/html; charset=utf-8",
+    )
+
+    with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
+        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
+            with patch("tools.web.fetch_web.fetch_web", return_value=mock_fetch_result):
+                source = ingest("web", "https://example.com/article", ctx)
+
+    assert source.source_type == "web"
+    assert source.url == "https://example.com/article"
+    assert source.status == "rag_ready"
+    assert source.transcript == mock_fetch_result.text
+
+
+def test_web_extractor_uses_extracted_title_for_slug(tmp_settings, tmp_db, tmp_path):
+    """When no title is provided, web extractor metadata title is NOT used for slug
+    (title param is separate from metadata). Source stores URL in slug base."""
+    from workflows.ingest import ingest
+
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
+
+    mock_fetch_result = FetchWebResult(
+        text="Article content that is long enough to pass the word count minimum for extraction.",
+        title="HTML Page Title",
+        author=None, date_published=None, word_count=15,
+        final_url="https://example.com/my-article",
+        content_type="text/html",
+    )
+
+    with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
+        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
+            with patch("tools.web.fetch_web.fetch_web", return_value=mock_fetch_result):
+                source = ingest("web", "https://example.com/my-article", ctx)
+
+    # Without explicit title, slug is based on source_type
+    assert source.source_type == "web"
+    assert source.status == "rag_ready"
+
+
+def test_web_extractor_with_explicit_title(tmp_settings, tmp_db, tmp_path):
+    """When title is provided, it's used for the slug."""
+    from workflows.ingest import ingest
+
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
+
+    mock_fetch_result = FetchWebResult(
+        text="Enough content for valid extraction with more than ten words in the text.",
+        title="HTML Title", author=None, date_published=None, word_count=14,
+        final_url="https://example.com/page",
+        content_type="text/html",
+    )
+
+    with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
+        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
+            with patch("tools.web.fetch_web.fetch_web", return_value=mock_fetch_result):
+                source = ingest("web", "https://example.com/page", ctx,
+                                title="Mon Article Favori")
+
+    assert source.slug == "mon-article-favori"
+    assert source.title == "Mon Article Favori"
+
+
+def test_web_extractor_status_transitions(tmp_settings, tmp_db, tmp_path):
+    """Web ingestion follows the same status transitions as other types."""
+    from workflows.ingest import ingest
+
+    ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
+    statuses = []
+    original_update = ctx.db.update_source_status
+
+    def track_status(uid, status):
+        statuses.append(status)
+        return original_update(uid, status)
+
+    ctx.db.update_source_status = track_status
+
+    mock_fetch_result = FetchWebResult(
+        text="Web page content with sufficient words for extraction to pass validation checks.",
+        title="Status Test", author=None, date_published=None, word_count=12,
+        final_url="https://example.com/status",
+        content_type="text/html",
+    )
+
+    with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
+        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
+            with patch("tools.web.fetch_web.fetch_web", return_value=mock_fetch_result):
+                ingest("web", "https://example.com/status", ctx, title="Status")
+
+    assert statuses == ["transcribing", "text_ready", "embedding", "rag_ready"]

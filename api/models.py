@@ -48,6 +48,12 @@ class IngestTextRequest(BaseModel):
     auto_generate_note: bool | None = None
 
 
+class IngestWebRequest(BaseModel):
+    url: str = Field(min_length=1)
+    title: str | None = Field(default=None, max_length=200)
+    auto_generate_note: bool | None = None
+
+
 class IngestResponse(BaseModel):
     job_id: str
 

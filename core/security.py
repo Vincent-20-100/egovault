@@ -3,14 +3,18 @@
 Security utilities for EgoVault.
 
 validate_youtube_url() — strict YouTube URL validation.
-validate_file_path() — path containment check (added in Task 10).
-set_restrictive_permissions() — set 0600 on files (Unix only, added in Task 15).
+validate_file_path() — path containment check.
+validate_web_url() — SSRF-safe web URL validation.
+set_restrictive_permissions() — set 0600 on files (Unix only).
 """
 
+import ipaddress
 import os
 import re
+import socket
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 # YouTube URL must have youtube.com or youtu.be as the actual host
 _YOUTUBE_HOST_RE = re.compile(
@@ -64,6 +68,63 @@ def validate_file_path(file_path: str, allowed_dirs: list[Path]) -> Path | None:
         except ValueError:
             continue
     return None
+
+
+_BLOCKED_HOSTNAMES = {"metadata.google.internal", "metadata.gcp.internal"}
+
+
+def _is_private_ip(ip_str: str) -> bool:
+    """Check if an IP address is private, loopback, link-local, or reserved."""
+    try:
+        addr = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True  # unparseable = reject
+    return (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_reserved
+        or addr.is_multicast
+    )
+
+
+def resolve_and_validate_host(hostname: str) -> None:
+    """Resolve hostname and reject if it points to a private/reserved IP."""
+    try:
+        results = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+    except socket.gaierror:
+        raise ValueError("Could not resolve hostname")
+    if not results:
+        raise ValueError("Could not resolve hostname")
+    for family, _, _, _, sockaddr in results:
+        ip_str = sockaddr[0]
+        if _is_private_ip(ip_str):
+            raise ValueError("URL points to a private or reserved address")
+
+
+def validate_web_url(url: str) -> str:
+    """
+    Validate a URL for safe web fetching (SSRF prevention).
+    Returns the URL if valid, raises ValueError otherwise.
+    """
+    if not url or not isinstance(url, str):
+        raise ValueError("URL must be a non-empty string")
+
+    parsed = urlparse(url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("URL must use http or https scheme")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL must contain a hostname")
+
+    if hostname in _BLOCKED_HOSTNAMES:
+        raise ValueError("URL points to a blocked metadata endpoint")
+
+    resolve_and_validate_host(hostname)
+
+    return url
 
 
 def set_restrictive_permissions(path: Path) -> None:

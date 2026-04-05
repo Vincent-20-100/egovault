@@ -7,7 +7,12 @@ import stat
 
 import pytest
 
-from core.security import validate_youtube_url, validate_file_path, set_restrictive_permissions
+from unittest.mock import patch
+
+from core.security import (
+    validate_youtube_url, validate_file_path, validate_web_url,
+    set_restrictive_permissions, _is_private_ip,
+)
 
 
 class TestValidateYoutubeUrl:
@@ -76,6 +81,95 @@ class TestValidateFilePath:
         target = vault / "note.md"
         target.touch()
         assert validate_file_path(str(target), [media, vault]) == target
+
+
+import socket
+
+
+def _mock_resolve_public(*args, **kwargs):
+    return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))]
+
+
+def _mock_resolve_private(*args, **kwargs):
+    return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", 0))]
+
+
+def _mock_resolve_link_local(*args, **kwargs):
+    return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("169.254.169.254", 0))]
+
+
+class TestValidateWebUrl:
+    @patch("core.security.socket.getaddrinfo", side_effect=_mock_resolve_public)
+    def test_accepts_https_url(self, mock_dns):
+        assert validate_web_url("https://example.com/page") == "https://example.com/page"
+
+    @patch("core.security.socket.getaddrinfo", side_effect=_mock_resolve_public)
+    def test_accepts_http_url(self, mock_dns):
+        assert validate_web_url("http://example.com/page") == "http://example.com/page"
+
+    @patch("core.security.socket.getaddrinfo", side_effect=_mock_resolve_private)
+    def test_rejects_private_ip_127(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://localhost/admin")
+
+    @patch("core.security.socket.getaddrinfo",
+           side_effect=lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("10.0.0.1", 0))])
+    def test_rejects_private_ip_10(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://internal.corp/secret")
+
+    @patch("core.security.socket.getaddrinfo",
+           side_effect=lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("172.16.5.1", 0))])
+    def test_rejects_private_ip_172_16(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://internal.corp/secret")
+
+    @patch("core.security.socket.getaddrinfo",
+           side_effect=lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("192.168.1.1", 0))])
+    def test_rejects_private_ip_192_168(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://router.local/config")
+
+    @patch("core.security.socket.getaddrinfo", side_effect=_mock_resolve_link_local)
+    def test_rejects_link_local_169_254(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://169.254.169.254/latest/meta-data/")
+
+    def test_rejects_cloud_metadata(self):
+        with pytest.raises(ValueError, match="blocked metadata"):
+            validate_web_url("http://metadata.google.internal/computeMetadata/v1/")
+
+    def test_rejects_file_scheme(self):
+        with pytest.raises(ValueError, match="http or https"):
+            validate_web_url("file:///etc/passwd")
+
+    def test_rejects_ftp_scheme(self):
+        with pytest.raises(ValueError, match="http or https"):
+            validate_web_url("ftp://ftp.example.com/file.txt")
+
+    def test_rejects_data_scheme(self):
+        with pytest.raises(ValueError, match="http or https"):
+            validate_web_url("data:text/html,<h1>hello</h1>")
+
+    def test_rejects_no_hostname(self):
+        with pytest.raises(ValueError):
+            validate_web_url("http://")
+
+    def test_rejects_empty_string(self):
+        with pytest.raises(ValueError):
+            validate_web_url("")
+
+    @patch("core.security.socket.getaddrinfo",
+           side_effect=lambda *a, **k: [(socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("::1", 0, 0, 0))])
+    def test_rejects_ipv6_loopback(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://[::1]/admin")
+
+    @patch("core.security.socket.getaddrinfo",
+           side_effect=lambda *a, **k: [(socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("fc00::1", 0, 0, 0))])
+    def test_rejects_ipv6_private(self, mock_dns):
+        with pytest.raises(ValueError, match="private or reserved"):
+            validate_web_url("http://[fc00::1]/admin")
 
 
 class TestSetRestrictivePermissions:

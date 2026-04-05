@@ -23,6 +23,13 @@ upload:
   max_pdf_mb: 100    # max PDF file size for ingest (MB)
   max_text_chars: 500000   # ~125k words
 
+web:
+  extraction_tier: 0             # 0 = builtin (bs4), 1 = trafilatura
+  max_response_mb: 10            # max HTTP response size
+  timeout_seconds: 30            # fetch timeout
+  min_fetch_interval_seconds: 2  # global rate limit between fetches
+  max_redirects: 5               # max redirect chain length
+
 # ============================================================
 # TAXONOMY — user-configurable classification values
 #
@@ -47,7 +54,7 @@ taxonomy:
     - pdf
     - livre           # same pipeline as pdf, different semantic context
     - texte           # raw text ingestion
-    - web             # future work item — not implemented in v1
+    - web             # web page ingestion (single URL fetch + extract)
     - personnel       # no external source, personal reflection
 
   # ============================================================

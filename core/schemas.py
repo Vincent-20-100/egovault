@@ -238,3 +238,13 @@ class ParseHtmlResult(BaseModel):
     author: str | None = None
     date_published: str | None = None
     word_count: int
+
+
+class FetchWebResult(BaseModel):
+    text: str
+    title: str | None = None
+    author: str | None = None
+    date_published: str | None = None
+    word_count: int
+    final_url: str
+    content_type: str

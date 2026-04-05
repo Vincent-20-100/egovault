@@ -45,11 +45,20 @@ class EmbeddingConfig(BaseModel):
     model: str = "nomic-embed-text"
 
 
+class WebConfig(BaseModel):
+    extraction_tier: int = 0
+    max_response_mb: int = 10
+    timeout_seconds: int = 30
+    min_fetch_interval_seconds: int = 2
+    max_redirects: int = 5
+
+
 class SystemConfig(BaseModel):
     chunking: ChunkingConfig
     embedding: EmbeddingConfig = EmbeddingConfig()
     llm: LLMSystemConfig
     upload: UploadConfig = UploadConfig()
+    web: WebConfig = WebConfig()
     taxonomy: TaxonomyConfig
 
 

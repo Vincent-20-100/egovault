@@ -25,7 +25,8 @@ Python 3.x · SQLite + sqlite-vec · Ollama/OpenAI · Pydantic v2 · FastAPI · 
 core/                    ← config, schemas, context, uid, logging, errors
 tools/
 ├── media/               ← transcribe, compress, fetch_subtitles, extract_audio
-├── text/                ← chunk, embed, embed_note, summarize
+├── text/                ← chunk, embed, embed_note, summarize, parse_html
+├── web/                 ← fetch_web (URL fetch + extract with SSRF protection)
 ├── vault/               ← create_note, update_note, search, finalize_source,
 │                          delete_note, delete_source, restore_note, restore_source,
 │                          generate_note_from_source, purge
