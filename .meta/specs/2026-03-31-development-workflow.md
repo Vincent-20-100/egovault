@@ -29,7 +29,7 @@ BRAINSTORM → SPEC → PLAN → IMPLEMENT → TEST → AUDIT → SHIP
 **Trigger:** New feature, architecture change, or complex decision.
 **Who:** User + Claude (interactive dialogue).
 **Skill:** `superpowers:brainstorming`
-**Output:** Discussion notes saved to `docs/superpowers/specs/<date>-<name>-notes.md`
+**Output:** Discussion notes saved to `.meta/specs/<date>-<name>-notes.md`
 
 **Rules:**
 - Claude presents options, trade-offs, open questions
@@ -46,7 +46,7 @@ BRAINSTORM → SPEC → PLAN → IMPLEMENT → TEST → AUDIT → SHIP
 **Trigger:** Brainstorm notes validated by user.
 **Who:** Claude writes, user validates.
 **Skill:** None (direct writing based on brainstorm notes).
-**Output:** Spec file `docs/superpowers/specs/<date>-<name>.md`
+**Output:** Spec file `.meta/specs/<date>-<name>.md`
 
 **Rules:**
 - Spec references brainstorm notes
@@ -67,7 +67,7 @@ BRAINSTORM → SPEC → PLAN → IMPLEMENT → TEST → AUDIT → SHIP
 **Trigger:** Spec validated by user.
 **Who:** Claude writes.
 **Skill:** `superpowers:writing-plans`
-**Output:** Plan file `docs/superpowers/plans/<date>-<name>.md`
+**Output:** Plan file `.meta/plans/<date>-<name>.md`
 
 **Rules:**
 - Plan references the spec (exact filename)
@@ -139,8 +139,8 @@ Step N/M of <plan-name>
 
 **Trigger:** Tests pass.
 **Who:** Claude agents (parallel), using audit spec.
-**Skill:** Agents execute `docs/superpowers/specs/2026-03-31-project-audit-spec.md`
-**Output:** Results file `docs/superpowers/audits/audit-results-<date>.md`
+**Skill:** Agents execute `.meta/specs/2026-03-31-project-audit-spec.md`
+**Output:** Results file `.meta/audits/audit-results-<date>.md`
 
 **Rules:**
 - Run only the audit domains relevant to the changes (not full audit every time)
@@ -192,7 +192,7 @@ Step N/M of <plan-name>
 ```
 You are auditing the EgoVault project. RESEARCH ONLY — do not modify files.
 
-Read the audit spec: docs/superpowers/specs/2026-03-31-project-audit-spec.md
+Read the audit spec: .meta/specs/2026-03-31-project-audit-spec.md
 
 Execute Domain [N] ([name]).
 

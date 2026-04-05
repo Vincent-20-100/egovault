@@ -1804,7 +1804,7 @@ git commit -m "feat: FastMCP server routing layer (all tools exposed)"
 
 ---
 
-**Plan complete and saved to `docs/superpowers/plans/2026-03-26-egovault-v2-workflows-mcp.md`.**
+**Plan complete and saved to `.meta/plans/2026-03-26-egovault-v2-workflows-mcp.md`.**
 
 **Two execution options:**
 

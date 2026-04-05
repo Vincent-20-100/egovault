@@ -3,7 +3,7 @@
 **Date:** 2026-03-31
 **Status:** ACTIVE
 **Supersedes:** Nothing (new feature)
-**Brainstorm notes:** `docs/superpowers/specs/2026-03-31-vaultcontext-refactoring-notes.md`
+**Brainstorm notes:** `.meta/specs/2026-03-31-vaultcontext-refactoring-notes.md`
 **Phase:** 2 — SPEC
 
 ---

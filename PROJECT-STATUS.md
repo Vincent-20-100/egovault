@@ -4,16 +4,14 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-03
+**Last updated:** 2026-04-04
 **Last session branch:** `claude/brainstorming-pending-ideas-5zR2H`
 
 ---
 
 ## Next action
 
-**B2 — Security Phase 2** — needs brainstorm before spec/plan.
-
-All major refactoring complete. Codebase is clean and stable.
+**B2 — Security Phase 2** — needs brainstorm. Existing spec: `specs/future/2026-03-29-security-design.md`.
 
 ---
 
@@ -23,6 +21,7 @@ All major refactoring complete. Codebase is clean and stable.
 |----------|-------|--------|
 | `specs/2026-03-31-development-workflow.md` | Active | The process we follow |
 | `specs/2026-03-31-project-audit-spec.md` | Active | Reusable audit method |
+| `specs/2026-04-03-metadev-protocol-adoption-spec.md` | Implemented | Done |
 
 ## Future specs (validated, not yet implemented)
 
@@ -64,6 +63,8 @@ All major refactoring complete. Codebase is clean and stable.
 | **Post-VaultContext architecture audit** | **2026-04-03** | **Done — broken mocks fixed, ctx.db migration** |
 | **G13 comments audit** | **2026-04-03** | **Done — 20 files cleaned** |
 | **MCP/CLI create_note G11 fix** | **2026-04-03** | **Done — business logic moved to tool** |
+| **Old workflow wrappers cleanup** | **2026-04-03** | **Done — deleted ingest_youtube/audio/pdf + tests** |
+| **metadev-protocol adoption** | **2026-04-04** | **Done — split CLAUDE.md, .meta/ workspace, 3 skills, output paths** |
 
 ---
 
@@ -90,9 +91,11 @@ All major refactoring complete. Codebase is clean and stable.
 - [x] **G13 comments audit** — 20 files cleaned in 2 passes
 - [x] **MCP/CLI create_note G11 fix** — business logic moved to tool
 - [x] **Archive unified ingest specs** — moved to archive/
-- [x] **Clean up thin wrappers** — deleted `ingest_youtube.py`, `ingest_audio.py`, `ingest_pdf.py` + their tests
+- [x] **Clean up thin wrappers** — deleted ingest_youtube/audio/pdf + tests
 - [x] **Doc sync** — ARCHITECTURE.md + DATABASES.md synced with implemented state
 - [x] **Archive completed specs** — VaultContext + unified ingest specs/plans moved to archive
+- [x] **metadev-protocol adoption** — DONE: split CLAUDE.md (law+mentor), renamed .meta/, added skills, output paths configured
+- [ ] **B2 — Security Phase 2** — needs brainstorm
 
 ---
 
@@ -104,9 +107,10 @@ All major refactoring complete. Codebase is clean and stable.
 4. ~~**Unified ingest workflow**~~ — **DONE**
 5. ~~**ingest_text**~~ — **DONE** (part of unified ingest)
 6. ~~**G13 comments audit**~~ — **DONE**
-7. **B2 — Security Phase 2** — needs brainstorm
-8. **Web ingestion** — needs dedicated security brainstorm (future)
-9. **Frontend, search quality, monitoring** — see `docs/FUTURE-WORK.md`
+7. ~~**metadev-protocol adoption**~~ — **DONE**
+8. **B2 — Security Phase 2** — needs brainstorm
+9. **Web ingestion** — needs dedicated security brainstorm (future)
+10. **Frontend, search quality, monitoring** — see `docs/FUTURE-WORK.md`
 
 ---
 
@@ -118,4 +122,5 @@ All major refactoring complete. Codebase is clean and stable.
 | 2026-03-31 | `claude/brainstorm-ulBda` | VaultContext brainstorm → spec → plan → **FULL IMPLEMENTATION (13/13 steps)**. G13 rule added. Strategic vision (VISION.md). docs/superpowers/ reorganized. All tools, workflows, surfaces migrated to ctx. 355 tests pass, zero regressions. |
 | 2026-04-01 | `claude/brainstorm-ulBda` | Post-VaultContext cleanup: fixed 9 DB lock errors (root cause: unmocked background threads in rate limit tests), fixed 10 ModuleNotFoundError tests (sys.modules stubs), removed app.state.settings backward compat. **374 tests pass, 0 failures.** |
 | 2026-04-01 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest brainstorm (7 decisions validated), spec updated, 11-step plan written. Phases 1-3 complete. |
-| 2026-04-03 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest Phase 4 (11 steps implemented). Post-VaultContext audit (broken mocks + ctx.db migration). G13 audit (20 files). MCP/CLI create_note G11 fix. Specs archived. |
+| 2026-04-03 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest Phase 4 (11 steps). All audits. MCP/CLI G11 fix. Specs archived. Old wrappers deleted. **metadev-protocol adoption brainstorm** (5 decisions: Superpowers plugin, split CLAUDE.md, rename .meta/, hooks, /ship skill). |
+| 2026-04-04 | `claude/brainstorming-pending-ideas-5zR2H` | **metadev-protocol adoption executed** — split CLAUDE.md (408→109 lines law + 193 lines mentor), renamed docs/superpowers/ → .meta/, created 3 project skills (save-progress, lint, test), configured Superpowers output paths. Git rebase completed and pushed. |

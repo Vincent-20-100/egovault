@@ -3,7 +3,7 @@
 **Date:** 2026-03-28
 **Status:** Approved — pending implementation plan
 **Scope:** `frontend/` only — prerequisite: `api/` implemented and running
-**Spec API:** `docs/superpowers/specs/2026-03-27-api-design.md`
+**Spec API:** `.meta/specs/future/2026-03-27-api-design.md`
 
 ---
 

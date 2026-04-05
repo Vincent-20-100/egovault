@@ -1,6 +1,6 @@
 # EgoVault — Audit Results 2026-03-31
 
-**Audit spec:** `docs/superpowers/specs/2026-03-31-project-audit-spec.md`
+**Audit spec:** `.meta/specs/2026-03-31-project-audit-spec.md`
 **Executed by:** 4 parallel agents (Explore type)
 **Scope:** Full project — 8 domains, ~50 checks
 
@@ -48,7 +48,7 @@ but never formally documented. Documentation (5) lags behind implementation.
 
 ### 1-4 — OBSOLETE markers inconsistent format
 - **Severity:** MINOR
-- **File:** `docs/superpowers/specs/2026-03-31-extraction-provider-design.md`, `2026-03-31-ingest-text-web-design.md`
+- **File:** `.meta/specs/2026-03-31-extraction-provider-design.md`, `2026-03-31-ingest-text-web-design.md`
 - **Violation:** 1.2 — Superseded specs use strikethrough instead of formal `Status: OBSOLETE`
 - **Fix:** Standardize OBSOLETE marker format
 

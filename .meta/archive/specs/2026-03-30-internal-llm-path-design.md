@@ -274,7 +274,7 @@ tests/scripts/test_003_migration.py
 
 ## 15. A2 CLI Spec — Required Updates
 
-The following items must be added to `docs/superpowers/specs/2026-03-30-cli-design.md` during A4 implementation:
+The following items must be added to `.meta/specs/2026-03-30-cli-design.md` during A4 implementation:
 
 1. `egovault note approve <uid>` command
 2. `egovault source generate-note <uid> [--template standard]` command
