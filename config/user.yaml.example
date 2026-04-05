@@ -1,0 +1,21 @@
+# ============================================================
+# USER PREFERENCES — gitignored, personal to each installation
+# Copy this file to user.yaml and fill in your values
+# ============================================================
+
+# ATTENTION: if provider != "ollama", your data (note text, search queries,
+# RAG context) will be sent to an external service.
+# Check the privacy policy of the chosen provider.
+embedding:
+  provider: ollama           # ollama | openai
+  model: nomic-embed-text    # model name for chosen provider
+
+# ATTENTION: same warning — if provider != "ollama", data is sent externally.
+llm:
+  provider: claude           # claude | openai | ollama
+  model: claude-sonnet-4-6
+
+vault:
+  content_language: fr                    # language for notes, tags, slugs
+  obsidian_sync: true                     # enable vault→DB sync watcher
+  default_generation_template: standard   # template used when none is specified at ingest

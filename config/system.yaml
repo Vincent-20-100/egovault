@@ -1,0 +1,57 @@
+# ============================================================
+# SYSTEM CONFIGURATION — versioned, ships with the app
+# Modify carefully: changes here affect all users
+# ============================================================
+
+chunking:
+  size: 800          # tokens per chunk
+  overlap: 80        # sliding window (10% of size)
+
+llm:
+  max_retries: 2     # Pydantic validation retries before human-in-the-loop
+  large_format_threshold_tokens: 50000
+                     # Sources exceeding this threshold are indexed for RAG
+                     # but note generation is blocked. See large format policy in spec.
+
+upload:
+  max_audio_mb: 500  # max audio/video file size for ingest (MB)
+  max_pdf_mb: 100    # max PDF file size for ingest (MB)
+
+# ============================================================
+# TAXONOMY — user-configurable classification values
+#
+# IMPORTANT: These are opinionated defaults, NOT engine constraints.
+# They reflect one user's workflow. Add, rename, or remove freely.
+# The engine validates against this list — it never hardcodes enums.
+# Challenge these values before adopting them for your own vault.
+# Adding a new type = one line here, zero code change.
+# ============================================================
+
+taxonomy:
+  note_types:
+    - synthese        # distillation of an external source + personal view
+    - concept         # transversal hub note linking multiple sources
+    - reflexion       # personal thought, no external source
+    - idee            # raw capture, undeveloped starting point
+
+  source_types:
+    - youtube
+    - audio
+    - video
+    - pdf
+    - livre           # same pipeline as pdf, different semantic context
+    - web             # future work item — not implemented in v1
+    - personnel       # no external source, personal reflection
+
+  # ============================================================
+  # GENERATION TEMPLATES — names of available prompt templates
+  #
+  # NOTE: note_type answers "what IS this note?" (content classification, editable).
+  #       generation_template answers "how was this note MADE?" (process record).
+  #       They can share similar names but are different things.
+  #
+  # Each name must correspond to a .yaml file in config/templates/generation/
+  # Adding a template = one line here + one .yaml file. Zero code change.
+  # ============================================================
+  generation_templates:
+    - standard        # default: balanced extraction, ships with the repo
