@@ -11,15 +11,9 @@
 
 ## Next action
 
-**Unified ingest workflow — PHASE 4 (IMPLEMENT) steps 1-10 done, step 11 (doc sync) in progress.**
+**B2 — Security Phase 2** — needs brainstorm before spec/plan.
 
-Steps 1-10 complete: `IngestError` hierarchy, extractor registry, `workflows/ingest.py`, thin wrappers,
-`parse_html` tool, `ingest_text` on all surfaces (API/CLI/MCP), tests.
-Plan: `docs/superpowers/plans/2026-04-01-unified-ingest-plan.md` — step 11 = doc sync (current step).
-
-Next priorities:
-1. **Verify full test suite** — blocked by sqlite_vec availability in CI; run locally to confirm
-2. **G13 comments audit** — apply commenting standard across entire codebase
+All major refactoring complete. Codebase is clean and stable.
 
 ---
 
@@ -27,9 +21,6 @@ Next priorities:
 
 | Document | Phase | Status |
 |----------|-------|--------|
-| `specs/2026-03-31-unified-ingest-architecture.md` | VALIDATED | Steps 1-10 implemented |
-| `plans/2026-04-01-unified-ingest-plan.md` | EXECUTING | Steps 1-10 done, step 11 in progress |
-| `specs/2026-04-01-unified-ingest-notes.md` | DONE | Brainstorm decisions |
 | `specs/2026-03-31-development-workflow.md` | Active | The process we follow |
 | `specs/2026-03-31-project-audit-spec.md` | Active | Reusable audit method |
 
@@ -46,10 +37,10 @@ Next priorities:
 
 ## Last audit
 
-**Date:** 2026-03-31
-**Results:** `docs/superpowers/audits/audit-results-2026-03-31.md`
-**Summary:** 4 critical (architecture debt), 30 major, 13 minor.
-**Main debt:** tools/ → infrastructure/ imports (22 violations) — **RESOLVED by VaultContext.**
+**Date:** 2026-04-03
+**Scope:** Post-VaultContext architecture audit + G13 comments audit
+**Summary:** Broken test mocks fixed, 10 test files migrated to ctx.db, 20 files cleaned for G13.
+**Previous:** 2026-03-31 — 4 critical, 30 major, 13 minor (all resolved).
 
 ---
 
@@ -69,7 +60,10 @@ Next priorities:
 | B1 — embedding.dims fix | 2026-03-31 | Done |
 | **Post-VaultContext cleanup** | **2026-04-01** | **Done** |
 | Test suite (374 tests) | 2026-04 | Done |
-| **Unified ingest workflow** | **2026-04-03** | **Done — ingest.py + 7 extractors + thin wrappers** |
+| **Unified ingest workflow** | **2026-04-03** | **Done — 7 extractors, ingest_text on all surfaces** |
+| **Post-VaultContext architecture audit** | **2026-04-03** | **Done — broken mocks fixed, ctx.db migration** |
+| **G13 comments audit** | **2026-04-03** | **Done — 20 files cleaned** |
+| **MCP/CLI create_note G11 fix** | **2026-04-03** | **Done — business logic moved to tool** |
 
 ---
 
@@ -79,25 +73,26 @@ Next priorities:
 |------|----------|----------------|
 | ~~tools/ → infrastructure/ late imports~~ | ~~MAJOR~~ | **RESOLVED** — VaultContext |
 | ~~core/logging.py → infrastructure.db~~ | ~~CRITICAL~~ | **RESOLVED** — callback injection |
-| ~~DB lock in API tests~~ | ~~MAJOR~~ | **RESOLVED** — mock background threads in rate limit test |
+| ~~DB lock in API tests~~ | ~~MAJOR~~ | **RESOLVED** — mock _submit_job in rate limit/integration tests |
 | ~~app.state.settings backward compat~~ | ~~MINOR~~ | **RESOLVED** — removed, use ctx.settings |
 | ~~fetch_subtitles → transcribe (tool→tool)~~ | ~~CRITICAL~~ | **RESOLVED** — handled inside youtube extractor in ingest.py |
-| MCP create_note: business logic in wrapper | MAJOR | Move to tools/ in unified ingest refactor (not yet done) |
-| Old workflow files (ingest_youtube/audio/pdf) | MINOR | Now thin wrappers — remove once all callers migrated |
+| ~~MCP create_note: business logic in wrapper~~ | ~~MAJOR~~ | **RESOLVED** — create_note_from_content() in tools/ |
+| ~~Old workflow files (ingest_youtube/audio/pdf)~~ | ~~MINOR~~ | **RESOLVED** — deleted, all callers use workflows.ingest |
+| API test fixtures: direct infrastructure.db imports | MINOR | Seed fixtures (session-scoped, no `client`) use raw DB — refactor when fixture pattern allows |
+| System DB operations in tests | INFO | Jobs/system DB not in VaultDB — acceptable, consider facade later |
 
 ---
 
 ## Pending tasks
 
-- [x] **Unified ingest workflow** — steps 1-10 done; step 11 (doc sync) in progress
-- [ ] **Post-VaultContext architecture audit** — verify all code (source + tests) uses ctx correctly, consistent fixture patterns, no stale infrastructure.db imports in tests, background threads always mocked
-- [ ] **G13 comments audit** — review all existing code against G13 standard
-- [ ] **Clean up thin wrappers** — remove `ingest_youtube.py`, `ingest_audio.py`, `ingest_pdf.py` once all callers migrated
+- [x] **Unified ingest workflow** — all 11 steps done, specs archived
+- [x] **Post-VaultContext architecture audit** — mocks fixed, ctx.db migration done
+- [x] **G13 comments audit** — 20 files cleaned in 2 passes
+- [x] **MCP/CLI create_note G11 fix** — business logic moved to tool
+- [x] **Archive unified ingest specs** — moved to archive/
+- [x] **Clean up thin wrappers** — deleted `ingest_youtube.py`, `ingest_audio.py`, `ingest_pdf.py` + their tests
 - [x] **Doc sync** — ARCHITECTURE.md + DATABASES.md synced with implemented state
-- [x] **Archive completed specs** — VaultContext spec/plan moved to archive
-- [x] **Fix G1 guardrail violations** — 9 library name leaks fixed
-- [x] **Fix test failures** — 420 tests passing (up from 355)
-- [x] **Remove backward compat** — app.state.settings removed
+- [x] **Archive completed specs** — VaultContext + unified ingest specs/plans moved to archive
 
 ---
 
@@ -105,11 +100,11 @@ Next priorities:
 
 1. ~~**VaultContext refactoring**~~ — **DONE**
 2. ~~**Post-VaultContext cleanup**~~ — **DONE**
-3. **Post-VaultContext architecture audit** — catch stale patterns before they spread
-4. ~~**Unified ingest workflow**~~ — **DONE** (steps 1-10; doc sync step 11 completing)
-5. **ingest_text** — trivial once unified workflow exists
-6. **G13 comments audit** — apply standard across codebase
-7. **B2 — Security Phase 2** — needs spec + brainstorm
+3. ~~**Post-VaultContext architecture audit**~~ — **DONE**
+4. ~~**Unified ingest workflow**~~ — **DONE**
+5. ~~**ingest_text**~~ — **DONE** (part of unified ingest)
+6. ~~**G13 comments audit**~~ — **DONE**
+7. **B2 — Security Phase 2** — needs brainstorm
 8. **Web ingestion** — needs dedicated security brainstorm (future)
 9. **Frontend, search quality, monitoring** — see `docs/FUTURE-WORK.md`
 
@@ -123,3 +118,4 @@ Next priorities:
 | 2026-03-31 | `claude/brainstorm-ulBda` | VaultContext brainstorm → spec → plan → **FULL IMPLEMENTATION (13/13 steps)**. G13 rule added. Strategic vision (VISION.md). docs/superpowers/ reorganized. All tools, workflows, surfaces migrated to ctx. 355 tests pass, zero regressions. |
 | 2026-04-01 | `claude/brainstorm-ulBda` | Post-VaultContext cleanup: fixed 9 DB lock errors (root cause: unmocked background threads in rate limit tests), fixed 10 ModuleNotFoundError tests (sys.modules stubs), removed app.state.settings backward compat. **374 tests pass, 0 failures.** |
 | 2026-04-01 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest brainstorm (7 decisions validated), spec updated, 11-step plan written. Phases 1-3 complete. |
+| 2026-04-03 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest Phase 4 (11 steps implemented). Post-VaultContext audit (broken mocks + ctx.db migration). G13 audit (20 files). MCP/CLI create_note G11 fix. Specs archived. |

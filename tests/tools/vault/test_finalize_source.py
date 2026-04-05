@@ -6,21 +6,20 @@ from core.errors import NotFoundError
 import unittest.mock as mock
 
 
-def _insert_source(tmp_db, media_path=None):
-    from infrastructure.db import insert_source
+def _insert_source(ctx, media_path=None):
     source = Source(
         uid="src-1", slug="test-source", source_type="youtube",
         status="rag_ready", date_added=date.today().isoformat(),
         media_path=media_path,
     )
-    insert_source(tmp_db, source)
+    ctx.db.insert_source(source)
     return "src-1"
 
 
 def test_finalize_source_returns_finalize_result(ctx):
     from tools.vault.finalize_source import finalize_source
 
-    _insert_source(ctx.db._db_path)
+    _insert_source(ctx)
 
     result = finalize_source("src-1", ctx)
 
@@ -32,7 +31,7 @@ def test_finalize_source_returns_finalize_result(ctx):
 def test_finalize_source_updates_db_status(ctx):
     from tools.vault.finalize_source import finalize_source
 
-    _insert_source(ctx.db._db_path)
+    _insert_source(ctx)
 
     finalize_source("src-1", ctx)
     source = ctx.db.get_source("src-1")
@@ -49,7 +48,7 @@ def test_finalize_source_moves_media_file(ctx, tmp_path):
     staging.mkdir()
     media_file = staging / "audio.mp3"
     media_file.write_bytes(b"audio data")
-    _insert_source(ctx.db._db_path, media_path=str(media_file))
+    _insert_source(ctx, media_path=str(media_file))
 
     # Build a context with a distinct media_path to verify file was moved there
     media_dest = tmp_path / "media_dest"

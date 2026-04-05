@@ -67,26 +67,24 @@ def test_create_note_writes_markdown_file(ctx):
 
 def test_create_note_embeds_into_notes_vec(ctx):
     from tools.vault.create_note import create_note
-    from infrastructure.db import search_notes
 
     system = _system_fields()
     create_note(_content(), system, ctx)
 
-    results = search_notes(ctx.db._db_path, make_embedding(0.0), None, 5)
+    results = ctx.db.search_notes(make_embedding(0.0), None, 5)
     assert len(results) == 1
     assert results[0].note_uid == system.uid
 
 
 def test_create_note_source_type_mismatch_raises(ctx):
     from tools.vault.create_note import create_note
-    from infrastructure.db import insert_source
     from core.schemas import Source
 
     source = Source(
         uid="src-1", slug="src", source_type="youtube", status="rag_ready",
         date_added=date.today().isoformat(),
     )
-    insert_source(ctx.db._db_path, source)
+    ctx.db.insert_source(source)
 
     with pytest.raises(ValueError, match="source_type"):
         create_note(

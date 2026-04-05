@@ -322,7 +322,7 @@ egovault/
 │   ├── text/           ← chunk · embed · summarize
 │   ├── vault/          ← create_note · update_note · search · finalize_source
 │   └── export/         ← typst (print PDF) · mermaid (concept graph)
-├── workflows/          ← ingest_youtube · ingest_audio · ingest_pdf
+├── workflows/          ← unified ingest pipeline (extractor registry)
 ├── infrastructure/     ← db · vault_writer · embedding_provider · llm_provider
 ├── mcp/                ← server.py
 ├── api/                ← FastAPI HTTP layer (6 routers, factory pattern)

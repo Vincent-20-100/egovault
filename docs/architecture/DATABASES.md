@@ -237,7 +237,7 @@ ORDER BY nv.distance LIMIT 10;
 CREATE TABLE workflow_runs (
     run_id      TEXT PRIMARY KEY,
     workflow    TEXT NOT NULL,
-    -- values: "ingest_youtube" | "ingest_audio" | "ingest_pdf" | "mcp_session" | "api_request"
+    -- values: "ingest" | "mcp_session" | "api_request"
     status      TEXT NOT NULL,
     -- values: "running" | "success" | "failed"
     started_at  TEXT NOT NULL,

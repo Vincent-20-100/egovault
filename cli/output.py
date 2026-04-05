@@ -1,7 +1,5 @@
 """
-Output layer for the EgoVault CLI.
-
-Centralises all rich usage. Commands never import rich directly.
+Centralized CLI output layer. Commands never import formatting libraries directly.
 """
 
 import json

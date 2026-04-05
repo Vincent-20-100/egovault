@@ -1,9 +1,7 @@
 """
-Embedding provider for EgoVault v2.
+Embedding provider factory. Routes to the configured backend.
 
-Dispatches to Ollama (v1) or OpenAI (future, raises NotImplementedError).
-See spec section 4.2 warning before adding new providers:
-changing the embedding model requires full re-embedding of all chunks + notes.
+Changing the embedding model requires full re-embedding of all chunks and notes.
 """
 
 import requests

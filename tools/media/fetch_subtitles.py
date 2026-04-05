@@ -40,10 +40,8 @@ def _download_audio(youtube_url: str, output_dir: str) -> str:
 @loggable("fetch_subtitles")
 def fetch_subtitles(youtube_url: str, language: str = "fr") -> SubtitleResult:
     """
-    Fetch YouTube subtitles via youtube-transcript-api.
-    If subtitles unavailable: download audio and transcribe via the configured engine.
+    Fetch YouTube subtitles if available, fall back to transcription.
     SubtitleResult.source indicates 'subtitles' or 'transcription'.
-    No DB write.
     """
     from youtube_transcript_api import YouTubeTranscriptApi
 

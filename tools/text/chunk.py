@@ -14,12 +14,7 @@ from core.uid import generate_uid
 
 @loggable("chunk_text")
 def chunk_text(text: str, config: SystemConfig) -> list[ChunkResult]:
-    """
-    Split text into overlapping chunks.
-    Chunk size and overlap read from config.chunking (system.yaml).
-    Token count approximated as word count (1 word ≈ 1 token).
-    Each chunk gets a UUID4. No DB write.
-    """
+    """Split text into overlapping chunks with token counts."""
     words = text.split()
     if not words:
         return []

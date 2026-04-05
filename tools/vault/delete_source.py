@@ -21,12 +21,7 @@ def delete_source(
     ctx: VaultContext,
     force: bool = False,
 ) -> DeleteSourceResult:
-    """
-    Remove a source from the vault.
-    Soft-delete (default): marks as pending_deletion, reversible via restore.
-    Hard-delete (force=True): permanently removes source, all chunks, embeddings, and media file.
-    Linked notes become orphaned — their source_uid is set to NULL.
-    """
+    """Remove a source (soft or hard delete). Soft deletes are reversible. Linked notes become orphaned."""
     from core.errors import NotFoundError, ConflictError
 
     source = ctx.db.get_source(uid)

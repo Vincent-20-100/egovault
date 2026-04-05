@@ -12,6 +12,23 @@ from datetime import date
 from core.context import VaultContext
 from core.schemas import NoteContentInput, NoteSystemFields, NoteResult, Note
 from core.logging import loggable
+from core.uid import generate_uid, make_unique_slug
+
+
+def create_note_from_content(
+    content: NoteContentInput,
+    ctx: VaultContext,
+    source_uid: str | None = None,
+) -> NoteResult:
+    """Build system fields and create a note. Entry point for MCP and API."""
+    existing_slugs = ctx.db.get_existing_slugs("notes")
+    system_fields = NoteSystemFields(
+        uid=generate_uid(),
+        date_created=date.today().isoformat(),
+        source_uid=source_uid if source_uid else None,
+        slug=make_unique_slug(content.title, existing_slugs),
+    )
+    return create_note(content, system_fields, ctx)
 
 
 @loggable("create_note")
@@ -20,14 +37,7 @@ def create_note(
     system_fields: NoteSystemFields,
     ctx: VaultContext,
 ) -> NoteResult:
-    """
-    Validate and persist a note.
-    - Validates content.source_type matches source.source_type when source_uid is set.
-    - Writes note to DB (notes + note_tags tables).
-    - Embeds note into notes_vec automatically (title + docstring + body).
-    - Generates Markdown via write_note().
-    Requires prior human approval of NoteContentInput before calling.
-    """
+    """Persist, embed, and write a note. Requires prior human approval of content."""
     if system_fields.source_uid:
         source = ctx.db.get_source(system_fields.source_uid)
         if (source and content.source_type
@@ -47,9 +57,8 @@ def create_note(
 
     ctx.db.insert_note(note)
 
-    # Embed title + docstring + body concatenated for richest semantic signal
-    text = "\n\n".join(filter(None, [note.title, note.docstring, note.body]))
-    embedding = ctx.embed(text)
+    semantic_text = "\n\n".join(filter(None, [note.title, note.docstring, note.body]))
+    embedding = ctx.embed(semantic_text)
     ctx.db.insert_note_embedding(note.uid, embedding)
 
     ctx.vault_path.mkdir(parents=True, exist_ok=True)

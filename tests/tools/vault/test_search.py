@@ -15,16 +15,15 @@ def _mock_embedding():
 
 def test_search_chunks_returns_results(ctx):
     from tools.vault.search import search
-    from infrastructure.db import insert_source, insert_chunks, insert_chunk_embeddings
     from core.schemas import Source, ChunkResult
     from datetime import date
 
     source = Source(uid="s1", slug="s1", source_type="youtube", status="rag_ready",
                     date_added=date.today().isoformat())
-    insert_source(ctx.db._db_path, source)
+    ctx.db.insert_source(source)
     chunk = ChunkResult(uid="c1", position=0, content="hello world content", token_count=3)
-    insert_chunks(ctx.db._db_path, "s1", [chunk])
-    insert_chunk_embeddings(ctx.db._db_path, "c1", make_embedding())
+    ctx.db.insert_chunks("s1", [chunk])
+    ctx.db.insert_chunk_embeddings("c1", make_embedding())
 
     with patch("requests.post", return_value=_mock_embedding()):
         results = search("hello world", ctx, mode="chunks", limit=5)
@@ -35,7 +34,6 @@ def test_search_chunks_returns_results(ctx):
 
 def test_search_notes_returns_results(ctx):
     from tools.vault.search import search
-    from infrastructure.db import insert_note, insert_note_embedding
     from core.schemas import Note
     from datetime import date
 
@@ -44,8 +42,8 @@ def test_search_notes_returns_results(ctx):
         body="Test body content here.", docstring="Short description.",
         date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
     )
-    insert_note(ctx.db._db_path, note)
-    insert_note_embedding(ctx.db._db_path, "n1", make_embedding())
+    ctx.db.insert_note(note)
+    ctx.db.insert_note_embedding("n1", make_embedding())
 
     with patch("requests.post", return_value=_mock_embedding()):
         results = search("test content", ctx, mode="notes", limit=5)

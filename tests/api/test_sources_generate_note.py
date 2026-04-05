@@ -92,9 +92,8 @@ def test_generate_note_conflict_409(client, tmp_settings):
 
 
 def test_generate_note_template_param(client, tmp_settings):
-    db = tmp_settings.vault_db_path
-    if get_source(db, "gen-src-tpl") is None:
-        insert_source(db, Source(
+    if client.app.state.ctx.db.get_source("gen-src-tpl") is None:
+        client.app.state.ctx.db.insert_source(Source(
             uid="gen-src-tpl", slug="gen-src-tpl", source_type="youtube",
             status="rag_ready", transcript="Transcript.",
             date_added=date.today().isoformat(),

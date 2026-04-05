@@ -34,12 +34,7 @@ def _note_to_typst(note) -> str:
 
 @loggable("export_typst")
 def export_typst(note_uid: str, ctx: VaultContext) -> ExportResult:
-    """
-    Export a note to Typst format (.typ file).
-    Reads note from DB, generates a print-ready document.
-    Output written to media/<slug>/<slug>.typ.
-    No DB write.
-    """
+    """Export a note to a print-ready document."""
     note = ctx.db.get_note(note_uid)
     if note is None:
         raise ValueError(f"Note not found: {note_uid}")

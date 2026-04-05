@@ -17,11 +17,7 @@ from core.errors import NotFoundError
 
 @loggable("finalize_source")
 def finalize_source(source_uid: str, ctx: VaultContext) -> FinalizeResult:
-    """
-    Mark source as vaulted and archive its media file.
-    - Updates sources.status to 'vaulted'
-    - Moves media file from staging to permanent media/ directory
-    """
+    """Mark source as vaulted and move media to permanent storage."""
     source = ctx.db.get_source(source_uid)
     if source is None:
         raise NotFoundError("Source", source_uid)

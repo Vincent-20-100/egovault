@@ -13,7 +13,7 @@ from pathlib import PurePosixPath, PureWindowsPath
 
 # API key patterns — sk-xxx with 20+ alphanumeric chars
 _KEY_PATTERN = re.compile(r"sk-[a-zA-Z0-9_-]{20,}")
-# Covers sk-* family (OpenAI, Anthropic, OpenRouter). Extend here for other providers (e.g. hf_* for HuggingFace).
+# Covers sk-* family. Extend for other provider key prefixes as needed.
 
 # JSON field names whose values should be redacted
 _SENSITIVE_FIELDS = re.compile(
@@ -24,7 +24,7 @@ _SENSITIVE_FIELDS = re.compile(
 
 # Absolute paths — Unix or Windows
 _ABS_PATH_UNIX = re.compile(r"/(?:home|usr|tmp|etc|var|opt|root)/[^\s,;\"')\]]+")
-# Covers common Unix paths. Misses /mnt/, /media/, /Users/ (macOS) — extend if needed.
+# Common Unix paths. Extend if needed.
 _ABS_PATH_WIN = re.compile(r"[A-Z]:\\[^\s,;\"')\]]+", re.IGNORECASE)
 # Covers drive-letter paths (C:\...). Does not cover UNC paths (\\server\share).
 

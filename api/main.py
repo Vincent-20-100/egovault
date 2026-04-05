@@ -20,7 +20,7 @@ from infrastructure.context import build_context
 from infrastructure.db import init_db, init_system_db, mark_orphan_jobs_failed
 
 # ---------------------------------------------------------------------------
-# Rate limiting — in-memory, local-only (sliding 60-second window)
+# In-memory rate limiting state.
 # Module-level so the counter persists across requests within a process.
 # ---------------------------------------------------------------------------
 _ROUTE_LIMITS: dict[str, int] = {
@@ -54,8 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         init_system_db(settings.system_db_path)
         mark_orphan_jobs_failed(settings.system_db_path)
 
-        # Configure tool logging — pass a writer callback so core/ stays
-        # free of infrastructure imports (G4).
+        # Configure tool logging callback.
         import core.logging as log_mod
         from infrastructure.db import get_system_connection
         from core.uid import generate_uid
