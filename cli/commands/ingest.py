@@ -12,7 +12,7 @@ import typer
 
 from cli.output import print_panel, print_error, spinner
 
-app = typer.Typer(help="Ingest a YouTube URL, audio file, or PDF into the vault.")
+app = typer.Typer(help="Ingest a YouTube URL, audio file, PDF, text, or HTML file into the vault.")
 
 _AUDIO_EXTENSIONS = {".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm"}
 _YOUTUBE_PATTERNS = ("youtube.com", "youtu.be")
@@ -32,34 +32,34 @@ def _detect_type(target: str) -> str:
         return "pdf"
     if ext in _AUDIO_EXTENSIONS:
         return "audio"
-    raise ValueError(f"Unsupported input: '{target}'. Provide a YouTube URL, audio file, or PDF.")
+    if ext == ".txt":
+        return "texte"
+    if ext in {".html", ".htm"}:
+        return "html"
+    raise ValueError(f"Unsupported input: '{target}'. Provide a YouTube URL, audio file, PDF, text, or HTML file.")
 
 
-def _run_ingest(input_type: str, target: str, ctx, auto_generate_note=None):
-    if input_type == "youtube":
-        from workflows.ingest_youtube import ingest_youtube
-        return ingest_youtube(target, ctx, auto_generate_note=auto_generate_note)
-    elif input_type == "audio":
-        from workflows.ingest_audio import ingest_audio
-        return ingest_audio(target, ctx, auto_generate_note=auto_generate_note)
-    else:
-        from workflows.ingest_pdf import ingest_pdf
-        return ingest_pdf(target, ctx, auto_generate_note=auto_generate_note)
+def _run_ingest(input_type: str, target: str, ctx, auto_generate_note=None, title=None):
+    from workflows.ingest import ingest
+    if input_type in ("texte", "html") and Path(target).is_file():
+        target = Path(target).read_text(encoding="utf-8")
+    return ingest(input_type, target, ctx, title=title, auto_generate_note=auto_generate_note)
 
 
 @app.command()
 def ingest(
-    target: Annotated[str, typer.Argument(help="YouTube URL or path to audio/PDF file")],
+    target: Annotated[str, typer.Argument(help="YouTube URL or path to audio, PDF, text, or HTML file")],
     generate_note: Annotated[
         bool | None,
         typer.Option("--generate-note/--no-generate-note",
                      help="Generate a draft note after ingestion. Default: reads user.yaml.")
     ] = None,
+    title: Annotated[str | None, typer.Option("--title", help="Title for the source (used for text/HTML input)")] = None,
     json_mode: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="Show step timings and details")] = False,
 ) -> None:
-    """Ingest a YouTube URL, audio file, or PDF into the vault."""
-    from core.errors import LargeFormatError
+    """Ingest a YouTube URL, audio file, PDF, text, or HTML file into the vault."""
+    from core.errors import IngestError, LargeFormatError
 
     try:
         ctx = _build_ctx()
@@ -78,7 +78,7 @@ def ingest(
     try:
         with spinner(f"Ingesting {input_type}..."):
             source = _run_ingest(input_type, target, ctx,
-                                 auto_generate_note=generate_note)
+                                 auto_generate_note=generate_note, title=title)
     except LargeFormatError as e:
         print_error(
             "Source is too large for automatic note generation. "
@@ -87,6 +87,9 @@ def ingest(
             json_mode, verbose,
             f"token_count={e.token_count}, threshold={e.threshold}, source_uid={e.source_uid}",
         )
+        raise typer.Exit(1)
+    except IngestError as e:
+        print_error(e.user_message, e.error_code, json_mode, verbose)
         raise typer.Exit(1)
     except FileNotFoundError as e:
         print_error(f"File not found: {target}", "file_not_found", json_mode, verbose, str(e))

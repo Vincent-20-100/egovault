@@ -12,8 +12,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from core.config import Settings, load_settings
+from core.errors import IngestError
 from infrastructure.context import build_context
 from infrastructure.db import init_db, init_system_db, mark_orphan_jobs_failed
 
@@ -78,6 +80,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         executor.shutdown(wait=False)
 
     app = FastAPI(title="EgoVault API", version="2.0.0", lifespan=lifespan)
+
+    @app.exception_handler(IngestError)
+    async def ingest_error_handler(request, exc: IngestError):
+        return JSONResponse(status_code=exc.http_status, content={"error": exc.error_code, "message": exc.user_message})
 
     app.add_middleware(
         CORSMiddleware,

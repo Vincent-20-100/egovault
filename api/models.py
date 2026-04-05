@@ -40,6 +40,14 @@ class IngestYoutubeRequest(BaseModel):
     auto_generate_note: bool | None = None
 
 
+class IngestTextRequest(BaseModel):
+    text: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=200)
+    url: str | None = None
+    source_type: str | None = None
+    auto_generate_note: bool | None = None
+
+
 class IngestResponse(BaseModel):
     job_id: str
 

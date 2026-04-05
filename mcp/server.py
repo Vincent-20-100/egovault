@@ -391,6 +391,23 @@ def generate_note_from_source(source_uid: str, template: str = "standard") -> di
 
 
 @mcp.tool()
+def ingest_text(text: str, title: str, source_type: str = "texte",
+                auto_generate_note: bool | None = None) -> dict:
+    """
+    Ingest raw text into the vault. Content is chunked, embedded, and made searchable.
+
+    When to use: When you have text content (from any source) that you want to add
+    to the vault without going through file-based ingestion.
+
+    What to call next: get_source(source_uid) to read the ingested source,
+    or search() to verify it's findable.
+    """
+    from workflows.ingest import ingest
+    result = ingest(source_type, text, ctx, title=title, auto_generate_note=auto_generate_note)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
 def get_workflow_guide() -> str:
     """
     Return the recommended MCP workflow for EgoVault.

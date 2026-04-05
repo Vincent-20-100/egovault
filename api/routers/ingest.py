@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Query
 
-from api.models import IngestYoutubeRequest, IngestResponse
+from api.models import IngestYoutubeRequest, IngestTextRequest, IngestResponse
 from core.uid import generate_uid
 from core.sanitize import sanitize_error
 from core.security import validate_youtube_url
@@ -20,35 +20,16 @@ def _submit_job(executor, fn, *args):
     executor.submit(fn, *args)
 
 
-def _run_youtube(job_id: str, url: str, ctx, auto_generate_note=None) -> None:
-    from workflows.ingest_youtube import ingest_youtube
+def _run_ingest(job_id: str, source_type: str, target: str, ctx, auto_generate_note=None, title=None) -> None:
+    from workflows.ingest import ingest
+    from core.errors import IngestError, LargeFormatError
     system_db = ctx.system_db_path
     try:
         update_job_status(system_db, job_id, "running")
-        result = ingest_youtube(url, ctx, auto_generate_note=auto_generate_note)
-        update_job_done(system_db, job_id, {"note_uid": None, "slug": result.slug})
-    except Exception as e:
-        update_job_failed(system_db, job_id, sanitize_error(e))
-
-
-def _run_audio(job_id: str, file_path: Path, ctx, auto_generate_note=None) -> None:
-    from workflows.ingest_audio import ingest_audio
-    system_db = ctx.system_db_path
-    try:
-        update_job_status(system_db, job_id, "running")
-        result = ingest_audio(str(file_path), ctx, auto_generate_note=auto_generate_note)
-        update_job_done(system_db, job_id, {"note_uid": None, "slug": result.slug})
-    except Exception as e:
-        update_job_failed(system_db, job_id, sanitize_error(e))
-
-
-def _run_pdf(job_id: str, file_path: Path, ctx, auto_generate_note=None) -> None:
-    from workflows.ingest_pdf import ingest_pdf
-    system_db = ctx.system_db_path
-    try:
-        update_job_status(system_db, job_id, "running")
-        result = ingest_pdf(str(file_path), ctx, auto_generate_note=auto_generate_note)
-        update_job_done(system_db, job_id, {"note_uid": None, "slug": result.slug})
+        result = ingest(source_type, target, ctx, title=title, auto_generate_note=auto_generate_note)
+        update_job_done(system_db, job_id, {"source_uid": result.uid, "slug": result.slug})
+    except LargeFormatError as e:
+        update_job_done(system_db, job_id, {"source_uid": e.source_uid, "slug": None, "large_format": True})
     except Exception as e:
         update_job_failed(system_db, job_id, sanitize_error(e))
 
@@ -63,7 +44,7 @@ def ingest_youtube_endpoint(body: IngestYoutubeRequest, request: Request):
     executor = request.app.state.executor
     job_id = generate_uid()
     insert_job(ctx.system_db_path, job_id, "youtube", {"url": canonical_url})
-    _submit_job(executor, _run_youtube, job_id, canonical_url, ctx,
+    _submit_job(executor, _run_ingest, job_id, "youtube", canonical_url, ctx,
                 body.auto_generate_note)
     return IngestResponse(job_id=job_id)
 
@@ -94,7 +75,7 @@ async def ingest_audio_endpoint(
 
     insert_job(ctx.system_db_path, job_id, "audio",
                {"filename": f"media/{job_id}/{safe_name}"})
-    _submit_job(executor, _run_audio, job_id, dest, ctx, auto_generate_note)
+    _submit_job(executor, _run_ingest, job_id, "audio", str(dest), ctx, auto_generate_note)
     return IngestResponse(job_id=job_id)
 
 
@@ -123,5 +104,20 @@ async def ingest_pdf_endpoint(
 
     insert_job(ctx.system_db_path, job_id, "pdf",
                {"filename": f"media/{job_id}/{safe_name}"})
-    _submit_job(executor, _run_pdf, job_id, dest, ctx, auto_generate_note)
+    _submit_job(executor, _run_ingest, job_id, "pdf", str(dest), ctx, auto_generate_note)
+    return IngestResponse(job_id=job_id)
+
+
+@router.post("/text", status_code=202, response_model=IngestResponse)
+def ingest_text_endpoint(body: IngestTextRequest, request: Request):
+    ctx = request.app.state.ctx
+    max_chars = ctx.settings.system.upload.max_text_chars
+    if len(body.text) > max_chars:
+        raise HTTPException(status_code=413, detail=f"text too large (max {max_chars} characters)")
+    executor = request.app.state.executor
+    job_id = generate_uid()
+    source_type = body.source_type or "texte"
+    insert_job(ctx.system_db_path, job_id, source_type, {"title": body.title})
+    _submit_job(executor, _run_ingest, job_id, source_type, body.text, ctx,
+                body.auto_generate_note, body.title)
     return IngestResponse(job_id=job_id)
