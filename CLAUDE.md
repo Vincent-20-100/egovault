@@ -1,51 +1,91 @@
 # EgoVault — Claude Code Entry Point
 
-**Architecture reference:** `docs/architecture/ARCHITECTURE.md`
-Any ambiguity about naming, structure, or contracts → this file takes precedence over everything.
-
-**Product audit:** `docs/PRODUCT-AUDIT.md`
-Feature gaps, improvement roadmap, prioritization — validated 2026-03-29. Supersedes any prior spec ordering.
+> **This file is the single source of truth for any LLM working on this codebase.**
+> It defines: where we are, where we're going, what the rules are, and how to work.
+> Read it entirely before doing anything.
 
 ---
 
-## Tech Stack
+## 1. Project identity
 
-- Python 3.x via `.venv/Scripts/python` (Windows)
-- SQLite + **sqlite-vec** (local vector embeddings, dims configurable via `system.yaml:embedding.dims`)
-- **Ollama** (embedding `nomic-embed-text`) — or OpenAI (config-driven)
-- **Pydantic v2** (schemas + config validation)
-- `faster-whisper` (local transcription), `youtube-transcript-api`, `yt-dlp`, `pypdf`
-- Tests: `pytest` in `tests/` (mirror of `tools/`, `workflows/`, `api/`, `benchmark/`)
+EgoVault is a **personal knowledge vault** — ingest sources (YouTube, audio, PDF, text),
+extract and chunk content, embed it for semantic search, and generate structured notes.
+
+**Philosophy:** This project prioritizes **architectural elegance and scalability** over
+shortcuts. It serves as both a functional tool and a portfolio-grade architecture reference.
 
 ---
 
-## Structure
+## 2. Tech stack
+
+- Python 3.x via `.venv/Scripts/python`
+- SQLite + sqlite-vec (local vector embeddings)
+- Ollama or OpenAI (config-driven embedding + LLM)
+- Pydantic v2 (schemas + config validation)
+- FastAPI (HTTP API), Click (CLI), FastMCP (MCP server)
+- pytest (test suite)
+
+---
+
+## 3. Document map — permanent vs provisional
+
+### 3.1 Permanent documents (always current, updated with every code change)
+
+| Document | Role | Authority |
+|----------|------|-----------|
+| **`CLAUDE.md`** (this file) | Entry point: rules, status, workflow | **Supreme** — overrides everything on conflict |
+| `docs/architecture/ARCHITECTURE.md` | Technical architecture, structure, glossary | Overrides code comments on naming/structure |
+| `docs/architecture/DATABASES.md` | DB schema reference | Must match `infrastructure/db.py` exactly |
+| `config/system.yaml` | All tunable parameters | Single source for config values |
+| `core/config.py` | Pydantic models for config | Must match `system.yaml` structure |
+| `docs/superpowers/specs/2026-03-31-development-workflow.md` | The 7-phase development process | Mandatory process for all changes |
+| `docs/superpowers/specs/2026-03-31-project-audit-spec.md` | Reusable audit method (8 domains) | Quality gate at Phase 6 |
+
+### 3.2 Provisional documents (dated, may become obsolete)
+
+| Document | Role | Lifecycle |
+|----------|------|-----------|
+| `docs/superpowers/specs/<date>-<name>.md` | Feature specs | Active until implemented, then archived |
+| `docs/superpowers/specs/<date>-<name>-notes.md` | Brainstorm notes | Reference for spec writing, then archived |
+| `docs/superpowers/plans/<date>-<name>.md` | Step-by-step execution plans | Active during implementation, then archived |
+| `docs/superpowers/audit-results-<date>.md` | Dated audit results | Discarded after fixes applied |
+
+### 3.3 Reference documents (stable, rarely updated)
+
+| Document | Role |
+|----------|------|
+| `docs/PRODUCT-AUDIT.md` | Feature gaps, roadmap priorities |
+| `docs/FUTURE-WORK.md` | Ideas backlog (not yet specced) |
+| `docs/mcp-setup.md` | MCP client setup guide |
+
+**Rule:** When a provisional document contradicts a permanent document, **permanent wins**.
+When CLAUDE.md contradicts ARCHITECTURE.md, **CLAUDE.md wins**.
+
+---
+
+## 4. Project structure
 
 ```
-core/                    ← config, Pydantic schemas, uid, logging, errors
+core/                    ← config, Pydantic schemas, context, uid, logging, errors
 tools/
 ├── media/               ← transcribe, compress, fetch_subtitles, extract_audio
-├── text/                ← chunk, embed, summarize
-├── vault/               ← create_note, update_note, search, finalize_source
+├── text/                ← chunk, embed, embed_note, summarize
+├── vault/               ← create_note, update_note, search, finalize_source,
+│                          delete_note, delete_source, restore_note, restore_source,
+│                          generate_note_from_source, purge
 └── export/              ← typst, mermaid
 workflows/
 ├── ingest_youtube.py
 ├── ingest_audio.py
 └── ingest_pdf.py
 infrastructure/          ← db.py, vault_writer.py, embedding_provider.py, llm_provider.py
-                           reranker_provider.py [SPEC READY], semantic_cache.py [SPEC READY]
-api/                     ← FastAPI HTTP layer [IMPLEMENTED]
+api/                     ← FastAPI HTTP layer
+├── main.py
+└── routers/             ← health, jobs, ingest, notes, sources, search, vault
 cli/
 ├── main.py
 ├── output.py
-└── commands/
-    ├── ingest.py
-    ├── search.py
-    ├── notes.py
-    ├── sources.py
-    └── status.py
-frontend/                ← Next.js 14 [SPEC READY, prerequisite: api/]
-benchmark/               ← RAG quality framework [SPEC READY]
+└── commands/            ← ingest, search, notes, sources, status, purge
 mcp/
 └── server.py            ← exposes tools/ via MCP protocol
 config/
@@ -54,359 +94,316 @@ config/
 └── install.yaml         ← machine paths + secrets (gitignored)
 scripts/
 ├── setup/
-│   └── init_user_dir.py ← generates egovault-user/ + default Obsidian config
+│   └── init_user_dir.py
 └── temp/                ← one-shot scripts (migrations, punctual fixes)
-tests/                   ← mirror of tools/, workflows/, api/, benchmark/
-docs/
-├── architecture/        ← ARCHITECTURE.md, DATABASES.md, CONTRACTS.md
-├── product-audit/       ← split audit sections (01–13), LLM-friendly
-├── PRODUCT-AUDIT.md     ← index pointing to product-audit/
-├── FUTURE-WORK.md       ← ideas backlog (not yet specced)
-└── references/          ← visual inspiration, diagrams
+tests/                   ← mirrors tools/, workflows/, api/, mcp/, core/, infrastructure/
+docs/                    ← see §3 document map
 ```
 
-**User storage (outside repo):**
+**User storage (outside repo, never in git):**
 ```
-egovault-user/           ← LOCAL, never in git
+egovault-user/
 ├── data/
 │   ├── vault.db         ← SQLite source of truth (user data)
-│   ├── .system.db       ← operational data (logs, jobs, cache, benchmark)
+│   ├── .system.db       ← operational data (logs, jobs, cache)
 │   └── media/           ← binary files (audio, video, PDF)
 └── vault/               ← PRIVATE git repo (Obsidian notes)
-    ├── .obsidian/
-    └── notes/
 ```
 
 ---
 
-## Temporary scripts / migration
-
-All one-shot scripts (DB migrations, one-time fixes, provisional scripts) go in:
-
-```
-scripts/temp/
-```
-
-Convention established in `docs/architecture/ARCHITECTURE.md` section 5.3 (e.g. `scripts/temp/001_move_tool_logs_to_system_db.py`).
-Never put these scripts in `scripts/setup/` (reserved for initialization) nor at the root.
-
----
-
-## Commands
+## 5. Commands
 
 ```bash
-# Initial setup (first installation)
-.venv/Scripts/python scripts/setup/init_user_dir.py
-
-# Tests
-.venv/Scripts/python -m pytest tests/
-
-# MCP server (dev)
-.venv/Scripts/python mcp/server.py
+.venv/Scripts/python scripts/setup/init_user_dir.py   # first install
+.venv/Scripts/python -m pytest tests/                  # tests
+.venv/Scripts/python mcp/server.py                     # MCP server (dev)
 ```
 
 ---
 
-## Python Conventions
-
-- `core/` = abstract interfaces + shared Pydantic models — never called directly by a client
-- `tools/` = atomic functions: one typed input → one typed output, zero implicit side-effects
-- `workflows/` = ordered sequences of tool calls — no own business logic
-- `infrastructure/` = concrete implementations of `core/` interfaces — never imported by `tools/`
-- A tool **never imports** another tool — if needed, the boundary is poorly drawn
-- Source code, SQL, comments, config keys: **English**
-- Vault content (notes, tags, slugs): **French** (configurable)
-
-## Vault Conventions
-
-- Note slugs: `kebab-case` without accents, lowercase (e.g. `elasticite-prix.md`)
-- Tags: French, lowercase, without accents, hyphens (e.g. `biais-cognitifs`)
-- Commits: `feat:` / `fix:` / `docs:` / `chore:` + description **in English**
-
----
-
-## LLM Guardrails — mandatory rules for any model working on this codebase
+## 6. Architecture rules (G1–G12)
 
 These rules exist because LLMs consistently make the same categories of mistakes.
-**Every rule here was triggered by a real incident.** Treat them as hard constraints, not suggestions.
+**Every rule was triggered by a real incident.** Hard constraints, not suggestions.
 
 ---
 
 ### G1 — No implementation details in public-facing strings
 
-**Public-facing** = MCP tool docstrings, API endpoint descriptions, error messages shown to users, CLI help text, README, docs.
+**Public-facing** = MCP docstrings, API descriptions, error messages, CLI help, README, docs.
 
-| Violation | Correct |
-|-----------|---------|
+**Rule:** Describe **capabilities** (what), never **tools/libraries** (how).
+Library names belong only in `requirements.txt`, `pyproject.toml`, imports, and internal comments.
+
+| Wrong | Right |
+|-------|-------|
 | `"Transcribe using faster-whisper"` | `"Transcribe using the configured engine"` |
 | `"Embed with nomic-embed-text via Ollama"` | `"Embed using the configured provider"` |
 | `"Stored in sqlite-vec"` | `"Stored in the vector index"` |
-| `"Compress to Opus mono"` | `"Compress to a low-bitrate format"` |
-| `"Uses yt-dlp to download"` | `"Downloads the video"` |
-| `Error: pypdf failed to parse` | `Error: PDF parsing failed` |
-
-**Why:** Tools, providers, and libraries are swappable. Leaking their names creates coupling between documentation and implementation. When we swap a library for another, every leaked mention becomes a lie.
-
-**Rule:** Describe **capabilities** (what), never **tools** (how). The only place library names belong is `requirements.txt`, `pyproject.toml`, import statements, and internal code comments.
+| `Error: pypdf failed` | `Error: PDF parsing failed` |
 
 ---
 
 ### G2 — Describe WHAT, not HOW
 
-Docstrings and descriptions must state the **purpose and behavior** — not the mechanism.
+Docstrings state **purpose and behavior**, not mechanism or parameter values.
 
-| Violation | Correct |
-|-----------|---------|
-| `"Splits text using a sliding window of 800 tokens with 200 overlap"` | `"Splits text into overlapping chunks per system.yaml config"` |
+| Wrong | Right |
+|-------|-------|
+| `"Splits text using a sliding window of 800 tokens"` | `"Splits text into overlapping chunks"` |
 | `"Queries sqlite-vec with cosine similarity"` | `"Semantic search over the vault"` |
-| `"Writes a .md file to the vault/ directory"` | `"Persists the note to the vault"` |
-
-Parameters like chunk size, overlap, similarity metric — these live in `system.yaml`. Docstrings must not duplicate or contradict config values.
 
 ---
 
 ### G3 — Config-driven, not code-driven
 
-Every tunable value **must** come from config (`system.yaml`, `user.yaml`, `install.yaml`). Never hardcode:
+Every tunable value comes from config (`system.yaml`, `user.yaml`, `install.yaml`). Never hardcode
+algorithm parameters, provider names, model IDs, file paths, taxonomy values, or locale settings.
 
-- Algorithm parameters (chunk size, overlap, similarity threshold, bitrate, dimensions)
-- Provider names or model IDs
-- File paths or directory names
-- Taxonomy values (note_type, source_type lists)
-- Language/locale settings
-
-If a function needs a parameter that doesn't exist in config yet, add it to `system.yaml` with a sensible default and document it in `ARCHITECTURE.md`. Do not invent a local default.
+If a parameter doesn't exist in config yet, add it to `system.yaml` with a sensible default.
 
 ---
 
-### G4 — Respect the hexagonal architecture
+### G4 — Context-based dependency injection
+
+**Target architecture (Direction 2 — VaultContext pattern):**
 
 ```
-core/           <- schemas, interfaces, pure logic — imports NOTHING from project
-tools/          <- atomic functions — imports core/ only (+ infrastructure/ via late import if needed)
-workflows/      <- orchestrates tools/ — imports tools/ and core/
-infrastructure/ <- concrete implementations — imports core/ only
-mcp/            <- thin routing — imports tools/ and infrastructure/ (read-only DB queries)
-api/            <- thin routing — imports tools/, workflows/, infrastructure/
+core/           ← schemas, interfaces, VaultContext — imports NOTHING from project
+tools/          ← atomic functions — receive VaultContext, import core/ only
+workflows/      ← orchestrate tools/ — build VaultContext, import tools/ + core/
+infrastructure/ ← concrete implementations — import core/ only, provide VaultContext factories
+mcp/            ← thin routing — build VaultContext via infrastructure/, call tools/
+api/            ← thin routing — build VaultContext via infrastructure/, call tools/ + workflows/
 ```
+
+**The VaultContext pattern:**
+- `core/context.py` defines `VaultContext` — a dataclass holding all infrastructure dependencies
+  (DB path, settings, embedding function, LLM function, vault writer)
+- `infrastructure/` provides `build_context(settings) -> VaultContext`
+- Tools receive `ctx: VaultContext` as parameter — they NEVER import infrastructure/ directly
+- Surfaces (API, CLI, MCP) and workflows call `build_context()` then pass `ctx` to tools
+
+**Why:** Inspired by LangGraph state passing and FastAPI dependency injection. Tools become
+truly decoupled: easy to test (mock the context), easy to swap providers (change the factory),
+zero import cycles.
 
 **Hard rules:**
-- A tool **never imports another tool** — if you feel the need, the tool boundary is wrong
-- `mcp/server.py` and `api/` routers contain **zero business logic** — they are routing layers only
-- New Pydantic models go in `core/schemas.py`, not scattered in tool files
+- A tool **never imports** `infrastructure/` — it receives what it needs via `VaultContext`
+- A tool **never imports another tool** — if needed, the tool boundary is wrong
 - `core/` has **zero imports** from any other project package
+- `mcp/server.py` and `api/` routers contain **zero business logic** — routing only
+- New Pydantic models go in `core/schemas.py`
 
-**Known technical debt:** Some tools currently import `infrastructure/` directly (via late imports). This is tracked and accepted for now. Do not add new ones without explicit approval.
+**Current state:** Tools currently use late imports from infrastructure/ (technical debt).
+This will be resolved by the VaultContext refactoring (spec pending).
+See `docs/superpowers/specs/2026-03-31-unified-ingest-architecture.md` §2.
 
 ---
 
 ### G5 — No over-engineering
 
-- Do not add abstractions, helpers, or utilities for single-use operations
-- Do not add error handling for scenarios that cannot happen
-- Do not add feature flags, backwards-compat shims, or re-exports
-- Do not add docstrings, comments, or type annotations to code you did not change
-- Do not create new files when editing an existing one would suffice
-- 3 similar lines of code is better than 1 premature abstraction
+- No abstractions, helpers, or utilities for single-use operations
+- No error handling for impossible scenarios
+- No feature flags, backwards-compat shims, or re-exports
+- No docstrings/comments/type annotations added to unchanged code
+- No new files when editing existing ones would suffice
+- 3 similar lines > 1 premature abstraction
 
 ---
 
 ### G6 — Error handling discipline
 
-- **Never swallow exceptions silently** — no bare `except:`, no `except Exception: pass`
-- **Never expose internal details in user-facing errors** — no stack traces, no file paths, no SQL, no library names
-- **Use project error types** from `core/errors.py` — do not invent new exception classes without justification
-- **Log at the right level:** `logger.error` for failures that need attention, `logger.warning` for recoverable issues, `logger.debug` for tracing. Never `print()`.
+- **Every `except` block must log or re-raise.** No silent swallowing.
+  - `except SpecificError as e: logger.debug("...: %s", e)` — acceptable for fallbacks
+  - `except Exception: pass` — **forbidden** unless in logging/health-check code with a comment explaining why
+- **Catch specific exceptions** — `except ValueError`, not `except Exception` when the failure mode is known
+- **Never expose internals in user-facing errors** — no stack traces, file paths, SQL, library names
+- **Use project error types** from `core/errors.py`
+- **Log levels:** `error` = needs attention, `warning` = recoverable, `debug` = tracing. Never `print()`.
 
 ---
 
 ### G7 — Language and naming discipline
 
-- **Code, SQL, comments, config keys:** English. Always. No exceptions.
+- **Code, SQL, comments, config keys:** English. Always.
 - **Vault content** (notes, tags, slugs): French by default (configurable).
-- Use the **exact glossary terms** from `ARCHITECTURE.md` section 1.3 — do not invent synonyms (`document` is not `note`, `file` is not `source`, `vector` is not `embedding`).
-- Casing: `snake_case` for Python, `kebab-case` for vault slugs/tags. See section 1.2.
+- Use **exact glossary terms** from `ARCHITECTURE.md` §1.3 — `note` not `document`, `source` not `file`, `embedding` not `vector`.
+- Casing: `snake_case` Python, `kebab-case` vault slugs/tags.
 
 ---
 
 ### G8 — Test discipline
 
-- Test files **mirror source structure**: `tools/vault/create_note.py` maps to `tests/tools/vault/test_create_note.py`
-- Test **behavior**, not implementation — do not assert on internal calls or mock internals
+- Test files **mirror source structure**: `tools/vault/search.py` → `tests/tools/vault/test_search.py`
+- Test **behavior**, not implementation
 - Every new tool or workflow **must** have a corresponding test file
-- Do not add tests for code you did not change (unless explicitly asked)
-- Use `pytest` fixtures and the existing test patterns — read a neighboring test file before writing a new one
+- Do not add tests for unchanged code (unless explicitly asked)
+- Use existing `pytest` fixtures and patterns — read a neighboring test file first
 
 ---
 
 ### G9 — Pydantic everywhere at boundaries
 
-- Every tool input/output that crosses a boundary (MCP, API, config) **must** be a Pydantic model
-- No raw dicts as function signatures for public interfaces — use typed models
-- Validation happens at the **boundary** (MCP server, API router), not deep inside tools
-- New models go in `core/schemas.py`, follow existing naming conventions (`*Input`, `*Result`, `*Filters`)
+- Tool input/output crossing a boundary (MCP, API, config) **must** be a Pydantic model
+- No raw dicts as public function signatures
+- Validation at the **boundary** (MCP/API), not deep inside tools
+- New models in `core/schemas.py`, naming: `*Input`, `*Result`, `*Filters`
 
 ---
 
 ### G10 — Security by default
 
-- **Never log** user content, API keys, file paths, or query strings at INFO level or above
-- **Always validate file paths** against allowed directories before any I/O operation
-- **No string formatting in SQL** — use parameterized queries exclusively
-- **No `eval()`, `exec()`, or dynamic import tricks** unless there is an existing pattern for it
-- See `ARCHITECTURE.md` section 10 for the full security model
+- **Never log** user content, API keys, or file paths at INFO or above
+- **Always validate file paths** against allowed directories before I/O
+- **Parameterized SQL exclusively** — `?` placeholders for all values.
+  Column names from allowlists may use f-strings with an explicit safety comment.
+- **No `eval()`, `exec()`, or dynamic import tricks**
+- See `ARCHITECTURE.md` §10 for the full security model
 
 ---
 
-### G11 — MCP server is a routing layer
+### G11 — MCP/API are routing layers only
 
-`mcp/server.py` must remain a thin wrapper:
-- **No business logic** — delegate everything to `tools/`
-- **Docstrings describe user-facing behavior** — never mention libraries, algorithms, or internal details (see G1, G2)
-- **Return `model.model_dump(mode="json")`** — never construct dicts manually
-- **Do not add new imports from infrastructure/** unless it is a read-only DB query with no alternative
-
----
-
-### G12 — Do not duplicate documentation
-
-- A fact should exist in **one place only**. Config values are documented in `system.yaml`. Architecture in `ARCHITECTURE.md`. Workflow in `get_workflow_guide()`.
-- Docstrings must not repeat what config or architecture docs already say
-- If you find contradictions between docstrings and config/arch docs, **config/arch wins** — fix the docstring
+- **Zero business logic** — delegate everything to `tools/` or `workflows/`
+- **Docstrings** follow G1 and G2 (capabilities only)
+- **Return** `model.model_dump(mode="json")` — never construct dicts manually
+- **Function bodies** should be <15 lines (build context, call tool, return result)
 
 ---
 
-### Checklist before submitting any change
+### G12 — No duplicated documentation
 
-Before considering any implementation complete, verify:
-
-- [ ] No library/tool names leaked in docstrings, error messages, or user-facing strings (G1)
-- [ ] Docstrings describe what, not how (G2)
-- [ ] No hardcoded values that should be in config (G3)
-- [ ] Architecture boundaries respected (G4)
-- [ ] No unnecessary abstractions or files added (G5)
-- [ ] Error handling uses project patterns (G6)
-- [ ] English in code, French in vault content only (G7)
-- [ ] Tests exist and mirror source structure (G8)
-- [ ] Pydantic models at all boundaries (G9)
-- [ ] No security anti-patterns (G10)
-- [ ] MCP/API layers are thin routing only (G11)
-- [ ] No duplicated documentation (G12)
+- A fact exists in **one place only**. Config values → `system.yaml`. Architecture → `ARCHITECTURE.md`.
+- Docstrings must not repeat config/architecture docs
+- On contradiction: **config/arch wins** — fix the docstring
 
 ---
 
-## Skills to use (superpowers — always these skills, no others)
+### Pre-commit checklist
 
-| Task | Skill to invoke |
-|---|---|
-| Architecture brainstorming / decisions | `superpowers:brainstorming` |
-| Write an implementation plan | `superpowers:writing-plans` |
-| Execute an existing plan | `superpowers:executing-plans` |
-| Code review after implementation | `superpowers:requesting-code-review` |
-| Debug a complex problem | `superpowers:systematic-debugging` |
+Before any change is considered complete:
 
-> Do not use `bmad`, `everything-claude-code`, or other skill families on this project.
-> The spec was produced with `superpowers:brainstorming` — stay within the same ecosystem.
-
----
-
-## ⚠️ Rule: unimplemented specs
-
-Before invoking `superpowers:writing-plans` or `superpowers:executing-plans` on a spec, **always ask**:
-
-> "Have you re-read the spec `docs/superpowers/specs/<name>.md`? I can start the plan as soon as you confirm."
-
-Do not start implementation without explicit confirmation from the user.
+- [ ] G1: No library names in public strings
+- [ ] G2: Docstrings describe what, not how
+- [ ] G3: No hardcoded values
+- [ ] G4: Architecture boundaries respected (or debt documented)
+- [ ] G5: No unnecessary abstractions
+- [ ] G6: Every except logs or re-raises
+- [ ] G7: English code, French vault content
+- [ ] G8: Tests mirror source structure
+- [ ] G9: Pydantic at boundaries
+- [ ] G10: No security anti-patterns
+- [ ] G11: Routing layers are thin
+- [ ] G12: No duplicated docs
 
 ---
 
-## Progress status
+## 7. Development workflow
 
-**Architecture reference:** `docs/architecture/ARCHITECTURE.md` (consolidated on 2026-03-28)
+**Mandatory process:** `docs/superpowers/specs/2026-03-31-development-workflow.md`
 
-**Implemented:**
-- Complete hexagonal architecture (`core/`, `tools/`, `workflows/`, `infrastructure/`, `mcp/`)
-- Workflows: `ingest_youtube`, `ingest_audio`, `ingest_pdf`
-- MCP server: `mcp/server.py`
-- Setup script: `scripts/setup/init_user_dir.py`
-- **FastAPI API** (`api/`) — 6 routers (health, jobs, ingest, notes, sources, search), factory pattern, ThreadPoolExecutor, `.system.db` for jobs
-- Full test suite: `tests/core/`, `tests/infrastructure/`, `tests/tools/`, `tests/workflows/`, `tests/mcp/`, `tests/api/` (367 tests)
-- **A1 — MCP flow fix** *(2026-03-30)* — `embed_note`, auto-embed on create/update, `get_source` / `list_notes` / `list_sources` / `update_note` MCP tools, enriched docstrings, `docs/mcp-setup.md`
-- **A2 — CLI** *(2026-03-30)* — `egovault ingest`, `search`, `status`, `note`, `source`, `purge` command groups
-- **A3 — Delete operations** *(2026-03-31)* — `delete_note`, `delete_source`, `restore_note`, `restore_source`, `purge`; `pending_deletion` soft-delete; `allow_destructive_ops` MCP gate
-- **A4 — Internal LLM path** *(2026-03-31)* — `generate_note_from_source` tool, `auto_generate_note` config flag, `draft|active` note status, approve endpoint, MCP tool
-- **B1 — `embedding.dims` fix** *(2026-03-31)* — `EmbeddingConfig` in `system.yaml`, dynamic vec schema in `init_db`, startup dim-mismatch validation, `make_embedding()` test helper
+```
+BRAINSTORM → SPEC → PLAN → IMPLEMENT → TEST → AUDIT → SHIP
+```
 
-**Roadmap (revised 2026-03-30 — see `docs/PRODUCT-AUDIT.md` §6.3)**
+**Key rules:**
+- No implementation without a validated spec
+- No spec without a brainstorm (for complex features)
+- Doc updates in the **same commit** as code changes
+- Audit is the quality gate (zero critical/major before shipping)
+- Each phase produces a committed deliverable
 
----
+**Skills:**
 
-### Block A — Core value loop *(complete before optimizing anything)*
+| Task | Skill |
+|------|-------|
+| Architecture brainstorming | `superpowers:brainstorming` |
+| Write implementation plan | `superpowers:writing-plans` |
+| Execute plan | `superpowers:executing-plans` |
+| Code review | `superpowers:requesting-code-review` |
+| Debug | `superpowers:systematic-debugging` |
 
-**A0 — Security Phase 1** *(pre-launch, blocks going public)* ✓ DONE
-- Spec: `docs/superpowers/specs/2026-03-29-security-design.md`
-- Community docs, SECURITY.md, CONTRIBUTING.md, issue templates, .gitignore audit, dependency audit
-
-**A2 — CLI** ✓ DONE *(2026-03-30)*
-- Spec: `docs/superpowers/specs/2026-03-30-cli-design.md`
-
-**A3 — Delete operations** ✓ DONE *(2026-03-31)*
-- Spec: `docs/superpowers/specs/2026-03-30-delete-operations-design.md`
-
-**A4 — Internal LLM path** ✓ DONE *(2026-03-31)*
-- Spec: `docs/superpowers/specs/2026-03-30-internal-llm-path-design.md`
+**Before starting any spec or plan, ask:**
+> "Have you re-read the spec? I can start as soon as you confirm."
 
 ---
 
-### Block B — Infrastructure *(after Block A — now users and data exist)*
+## 8. Conventions
 
-**B1 — `embedding.dims` fix** ✓ DONE *(2026-03-31)*
-- Spec: `docs/superpowers/specs/2026-03-30-embedding-dims-fix.md`
-- Plan: `docs/superpowers/plans/2026-03-30-b1-embedding-dims.md`
+### Python
+- `core/` = interfaces + shared models — never called directly by a client
+- `tools/` = atomic functions: typed input → typed output, no side-effects beyond ctx
+- `workflows/` = ordered sequences of tool calls — no own business logic
+- `infrastructure/` = concrete implementations of `core/` interfaces
 
-**B2 — Security Phase 2** *(application-level hardening)*
-- Spec ready: `docs/superpowers/specs/2026-03-29-security-design.md`
-- Input validation, log redaction, file permissions, rate limiting, external API guardrails
-- → `superpowers:writing-plans` then `superpowers:executing-plans`
+### Vault
+- Note slugs: `kebab-case`, no accents, lowercase (e.g. `elasticite-prix.md`)
+- Tags: French, lowercase, no accents, hyphens (e.g. `biais-cognitifs`)
+- Commits: `feat:` / `fix:` / `docs:` / `chore:` + description **in English**
 
-**B3 — Monitoring** *(observability now that users exist)*
-- Spec ready: `docs/superpowers/specs/2026-03-28-monitoring-design.md`
-- → `superpowers:writing-plans` then `superpowers:executing-plans`
-
----
-
-### Block C — User surface
-
-**C1 — Frontend** *(prerequisite: api/ ✓, Block A)*
-- Spec ready: `docs/superpowers/specs/2026-03-28-frontend-design.md`
-- → `superpowers:brainstorming` (UX/UI) first, then `superpowers:writing-plans`
+### Scripts
+- One-shot scripts go in `scripts/temp/` (e.g. `001_move_tool_logs_to_system_db.py`)
+- Never in `scripts/setup/` (reserved for init) nor at project root
 
 ---
 
-### Block D — Search quality *(after `notes_vec` is populated — requires A1)*
+## 9. Current status
 
-**D1 — Reranking**
-- Spec ready: `docs/superpowers/specs/2026-03-28-reranking-design.md`
+**Last audit:** 2026-03-31 — see `docs/superpowers/audit-results-2026-03-31.md`
+**Audit summary:** 4 critical (architecture debt), 30 major, 13 minor. Implementation, config, security clean.
 
-**D2 — Semantic cache**
-- Spec ready: `docs/superpowers/specs/2026-03-28-semantic-cache-design.md`
+### Implemented (verified by audit)
 
-**D3 — Benchmark / RAG evaluation**
-- Spec ready: `docs/superpowers/specs/2026-03-28-evaluation-design.md` *(renamed eval→benchmark)*
+| Feature | Date | Key files |
+|---------|------|-----------|
+| Hexagonal architecture | 2026-03 | `core/`, `tools/`, `workflows/`, `infrastructure/`, `mcp/` |
+| Ingest workflows | 2026-03 | `workflows/ingest_{youtube,audio,pdf}.py` |
+| MCP server | 2026-03 | `mcp/server.py` (22+ tools) |
+| FastAPI API | 2026-03 | `api/` (7 routers, 19 endpoints) |
+| A1 — MCP flow fix | 2026-03-30 | `embed_note`, auto-embed, enriched MCP tools |
+| A2 — CLI | 2026-03-30 | `cli/commands/` (ingest, search, notes, sources, status, purge) |
+| A3 — Delete operations | 2026-03-31 | Soft-delete, restore, purge, `allow_destructive_ops` gate |
+| A4 — Internal LLM path | 2026-03-31 | `generate_note_from_source`, draft/active status, approve |
+| B1 — embedding.dims fix | 2026-03-31 | `EmbeddingConfig`, dynamic vec schema, dim-mismatch validation |
+| Test suite | 2026-03 | 367 tests across all layers |
 
-→ For each: `superpowers:writing-plans` then `superpowers:executing-plans`
+### Known technical debt
 
----
+| Debt | Severity | Resolution |
+|------|----------|------------|
+| tools/ → infrastructure/ late imports (12 tools) | MAJOR | VaultContext refactoring (spec pending) |
+| core/logging.py → infrastructure.db | CRITICAL | Callback pattern during VaultContext refactor |
+| fetch_subtitles → transcribe (tool→tool import) | CRITICAL | Workflow orchestration during unified ingest |
+| MCP create_note has 45 lines of business logic | CRITICAL | Move to tools/ during VaultContext refactor |
+| API ingest router has file handling logic | MAJOR | Move to infrastructure/ during unified ingest |
 
-### Backlog — future brainstorming sessions
+### Active work — current priorities
 
-- **Provider Management** — CLI to configure/swap LLM, embedder, transcriber, reranker. Security guardrails G6.1–G6.9 apply. → `superpowers:brainstorming`
-- **Backend E2E tests** — pytest + temp DBs, Ollama/LLM mocks, job lifecycle. → `superpowers:writing-plans`
-- **Extraction provider** — tiered architecture (builtin → markitdown → chandra). Unlocks `ingest_web`, `ingest_docx`, `ingest_epub`, `ingest_pptx`. See audit §11. → `superpowers:brainstorming`
-- **Re-ingestion path** — re-process a source if transcription settings change. See audit §3.2.
-- **Structural chunker** — paragraph/heading-aware, replaces fixed-window split. See audit §4.4.
-- **`import_notes`** — Notion export, Obsidian, Bear → parse frontmatter → `create_note` + `embed_note`.
-- **`ingest_image`** — OCR-based, requires Tier 2 extraction provider.
-- **`ingest_playlist`** — batch YouTube with partial failure handling.
-- **`merge_notes` / `link_notes`** — vault maintenance tools.
-- **Guardrails retroactive audit** — Scan all existing code (tools/, workflows/, mcp/, api/, infrastructure/) against the G1–G12 guardrails. Fix all violations in docstrings, error messages, hardcoded values, architecture boundary crossings, and naming inconsistencies introduced before these rules existed. → `superpowers:writing-plans`
+> **Next action:** BRAINSTORM (Phase 1) for VaultContext refactoring.
+> Direction decided (Direction 2 — context object), but interactive brainstorm with user NOT done yet.
+> See `docs/superpowers/specs/2026-03-31-unified-ingest-notes.md` for prior discussion context.
+
+1. **VaultContext refactoring** — resolve G4 debt.
+   - Direction chosen: context object pattern (see G4 in §6).
+   - Status: **needs Phase 1 BRAINSTORM with user** → then spec → then plan → then implement.
+   - Key open questions: exact VaultContext fields, where `build_context()` lives, refactor scope.
+2. **Unified ingest architecture** — spec written, needs VaultContext first.
+   - Spec: `docs/superpowers/specs/2026-03-31-unified-ingest-architecture.md`
+   - Blocked by: VaultContext (tools need ctx param before unified workflow can use them).
+3. **ingest_text** — new pipeline, trivial once unified workflow exists.
+
+### Roadmap (future, not yet specced)
+
+See `docs/FUTURE-WORK.md` for full backlog. Key items:
+
+- **B2 — Security Phase 2** (application-level hardening)
+- **B3 — Monitoring** (observability)
+- **Web ingestion** (requires dedicated security brainstorm)
+- **Frontend** (Next.js, prerequisite: API stable)
+- **Search quality** (reranking, semantic cache, benchmark)
+- **Provider management** (CLI to swap LLM/embedder/transcriber)
+- **Extraction tiers** (builtin → markitdown → chandra)
+
+Each item follows the 7-phase workflow: brainstorm → spec → plan → implement → test → audit → ship.
