@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Query
 
 from api.models import IngestYoutubeRequest, IngestResponse
 from core.uid import generate_uid
@@ -19,34 +19,34 @@ def _submit_job(executor, fn, *args):
     executor.submit(fn, *args)
 
 
-def _run_youtube(job_id: str, url: str, settings) -> None:
+def _run_youtube(job_id: str, url: str, settings, auto_generate_note=None) -> None:
     from workflows.ingest_youtube import ingest_youtube
     system_db = settings.system_db_path
     try:
         update_job_status(system_db, job_id, "running")
-        result = ingest_youtube(url, settings)
+        result = ingest_youtube(url, settings, auto_generate_note=auto_generate_note)
         update_job_done(system_db, job_id, {"note_uid": None, "slug": result.slug})
     except Exception as e:
         update_job_failed(system_db, job_id, sanitize_error(e))
 
 
-def _run_audio(job_id: str, file_path: Path, settings) -> None:
+def _run_audio(job_id: str, file_path: Path, settings, auto_generate_note=None) -> None:
     from workflows.ingest_audio import ingest_audio
     system_db = settings.system_db_path
     try:
         update_job_status(system_db, job_id, "running")
-        result = ingest_audio(str(file_path), settings)
+        result = ingest_audio(str(file_path), settings, auto_generate_note=auto_generate_note)
         update_job_done(system_db, job_id, {"note_uid": None, "slug": result.slug})
     except Exception as e:
         update_job_failed(system_db, job_id, sanitize_error(e))
 
 
-def _run_pdf(job_id: str, file_path: Path, settings) -> None:
+def _run_pdf(job_id: str, file_path: Path, settings, auto_generate_note=None) -> None:
     from workflows.ingest_pdf import ingest_pdf
     system_db = settings.system_db_path
     try:
         update_job_status(system_db, job_id, "running")
-        result = ingest_pdf(str(file_path), settings)
+        result = ingest_pdf(str(file_path), settings, auto_generate_note=auto_generate_note)
         update_job_done(system_db, job_id, {"note_uid": None, "slug": result.slug})
     except Exception as e:
         update_job_failed(system_db, job_id, sanitize_error(e))
@@ -62,12 +62,17 @@ def ingest_youtube_endpoint(body: IngestYoutubeRequest, request: Request):
     executor = request.app.state.executor
     job_id = generate_uid()
     insert_job(settings.system_db_path, job_id, "youtube", {"url": canonical_url})
-    _submit_job(executor, _run_youtube, job_id, canonical_url, settings)
+    _submit_job(executor, _run_youtube, job_id, canonical_url, settings,
+                body.auto_generate_note)
     return IngestResponse(job_id=job_id)
 
 
 @router.post("/audio", status_code=202, response_model=IngestResponse)
-async def ingest_audio_endpoint(request: Request, file: UploadFile = File(...)):
+async def ingest_audio_endpoint(
+    request: Request,
+    file: UploadFile = File(...),
+    auto_generate_note: bool | None = Query(None),
+):
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in _AUDIO_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"unsupported file type: {suffix}")
@@ -88,12 +93,16 @@ async def ingest_audio_endpoint(request: Request, file: UploadFile = File(...)):
 
     insert_job(settings.system_db_path, job_id, "audio",
                {"filename": f"media/{job_id}/{safe_name}"})
-    _submit_job(executor, _run_audio, job_id, dest, settings)
+    _submit_job(executor, _run_audio, job_id, dest, settings, auto_generate_note)
     return IngestResponse(job_id=job_id)
 
 
 @router.post("/pdf", status_code=202, response_model=IngestResponse)
-async def ingest_pdf_endpoint(request: Request, file: UploadFile = File(...)):
+async def ingest_pdf_endpoint(
+    request: Request,
+    file: UploadFile = File(...),
+    auto_generate_note: bool | None = Query(None),
+):
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in _PDF_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"unsupported file type: {suffix}")
@@ -113,5 +122,5 @@ async def ingest_pdf_endpoint(request: Request, file: UploadFile = File(...)):
 
     insert_job(settings.system_db_path, job_id, "pdf",
                {"filename": f"media/{job_id}/{safe_name}"})
-    _submit_job(executor, _run_pdf, job_id, dest, settings)
+    _submit_job(executor, _run_pdf, job_id, dest, settings, auto_generate_note)
     return IngestResponse(job_id=job_id)

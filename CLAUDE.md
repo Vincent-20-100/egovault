@@ -330,8 +330,12 @@ Do not start implementation without explicit confirmation from the user.
 - MCP server: `mcp/server.py`
 - Setup script: `scripts/setup/init_user_dir.py`
 - **FastAPI API** (`api/`) — 6 routers (health, jobs, ingest, notes, sources, search), factory pattern, ThreadPoolExecutor, `.system.db` for jobs
-- Full test suite: `tests/core/`, `tests/infrastructure/`, `tests/tools/`, `tests/workflows/`, `tests/mcp/`, `tests/api/` (248 tests)
-- **A1 — MCP flow fix** *(2026-03-30)* — `embed_note`, auto-embed on create/update, `get_source` / `list_notes` / `list_sources` / `update_note` MCP tools, enriched docstrings, `docs/mcp-setup.md` (259 tests)
+- Full test suite: `tests/core/`, `tests/infrastructure/`, `tests/tools/`, `tests/workflows/`, `tests/mcp/`, `tests/api/` (367 tests)
+- **A1 — MCP flow fix** *(2026-03-30)* — `embed_note`, auto-embed on create/update, `get_source` / `list_notes` / `list_sources` / `update_note` MCP tools, enriched docstrings, `docs/mcp-setup.md`
+- **A2 — CLI** *(2026-03-30)* — `egovault ingest`, `search`, `status`, `note`, `source`, `purge` command groups
+- **A3 — Delete operations** *(2026-03-31)* — `delete_note`, `delete_source`, `restore_note`, `restore_source`, `purge`; `pending_deletion` soft-delete; `allow_destructive_ops` MCP gate
+- **A4 — Internal LLM path** *(2026-03-31)* — `generate_note_from_source` tool, `auto_generate_note` config flag, `draft|active` note status, approve endpoint, MCP tool
+- **B1 — `embedding.dims` fix** *(2026-03-31)* — `EmbeddingConfig` in `system.yaml`, dynamic vec schema in `init_db`, startup dim-mismatch validation, `make_embedding()` test helper
 
 **Roadmap (revised 2026-03-30 — see `docs/PRODUCT-AUDIT.md` §6.3)**
 
@@ -343,33 +347,22 @@ Do not start implementation without explicit confirmation from the user.
 - Spec: `docs/superpowers/specs/2026-03-29-security-design.md`
 - Community docs, SECURITY.md, CONTRIBUTING.md, issue templates, .gitignore audit, dependency audit
 
-**A2 — CLI** *(first human-facing surface — next up)*
-- `egovault ingest <url/file>`, `egovault search "query"`, `egovault status`
+**A2 — CLI** ✓ DONE *(2026-03-30)*
 - Spec: `docs/superpowers/specs/2026-03-30-cli-design.md`
-- Plan: `docs/superpowers/plans/2026-03-30-a2-cli-completion.md`
-- → `superpowers:executing-plans`
 
-**A3 — Delete operations** *(basic CRUD completeness)*
-- `delete_source`, `delete_note`, purge chunks, implement `pending_deletion` status
+**A3 — Delete operations** ✓ DONE *(2026-03-31)*
 - Spec: `docs/superpowers/specs/2026-03-30-delete-operations-design.md`
-- Plan: `docs/superpowers/plans/2026-03-30-a3-delete-operations.md`
-- → `superpowers:executing-plans`
 
-**A4 — Internal LLM path** *(low marginal cost after A1)*
-- `generate_note_from_source` tool, `auto_generate_note` config flag, `draft | active` note status
-- Depends on: A1 complete
+**A4 — Internal LLM path** ✓ DONE *(2026-03-31)*
 - Spec: `docs/superpowers/specs/2026-03-30-internal-llm-path-design.md`
-- Plan: `docs/superpowers/plans/2026-03-30-a4-internal-llm-path.md`
-- → `superpowers:executing-plans`
 
 ---
 
 ### Block B — Infrastructure *(after Block A — now users and data exist)*
 
-**B1 — `embedding.dims` fix** *(cross-cutting, extracted from semantic cache spec)*
+**B1 — `embedding.dims` fix** ✓ DONE *(2026-03-31)*
 - Spec: `docs/superpowers/specs/2026-03-30-embedding-dims-fix.md`
 - Plan: `docs/superpowers/plans/2026-03-30-b1-embedding-dims.md`
-- → `superpowers:executing-plans`
 
 **B2 — Security Phase 2** *(application-level hardening)*
 - Spec ready: `docs/superpowers/specs/2026-03-29-security-design.md`

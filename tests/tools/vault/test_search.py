@@ -1,11 +1,14 @@
 import pytest
 from unittest.mock import patch, MagicMock
+
+from tests.conftest import make_embedding
+
 from core.schemas import SearchResult
 
 
 def _mock_embedding():
     mock_resp = MagicMock()
-    mock_resp.json.return_value = {"embedding": [0.1] * 768}
+    mock_resp.json.return_value = {"embedding": make_embedding()}
     mock_resp.raise_for_status = MagicMock()
     return mock_resp
 
@@ -22,7 +25,7 @@ def test_search_chunks_returns_results(tmp_settings, tmp_db, tmp_path):
     insert_source(tmp_db, source)
     chunk = ChunkResult(uid="c1", position=0, content="hello world content", token_count=3)
     insert_chunks(tmp_db, "s1", [chunk])
-    insert_chunk_embeddings(tmp_db, "c1", [0.1] * 768)
+    insert_chunk_embeddings(tmp_db, "c1", make_embedding())
 
     with mock.patch.object(type(tmp_settings), "vault_db_path",
                            new_callable=lambda: property(lambda self: tmp_db)), \
@@ -46,7 +49,7 @@ def test_search_notes_returns_results(tmp_settings, tmp_db, tmp_path):
         date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
     )
     insert_note(tmp_db, note)
-    insert_note_embedding(tmp_db, "n1", [0.1] * 768)
+    insert_note_embedding(tmp_db, "n1", make_embedding())
 
     with mock.patch.object(type(tmp_settings), "vault_db_path",
                            new_callable=lambda: property(lambda self: tmp_db)), \

@@ -54,3 +54,27 @@ def restore_source_endpoint(uid: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
     except ConflictError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.post("/{uid}/generate-note")
+def generate_note_from_source_endpoint(
+    uid: str,
+    request: Request,
+    template: str = "standard",
+):
+    """Generate a draft note from an ingested source at rag_ready status."""
+    from tools.vault.generate_note_from_source import generate_note_from_source
+    from core.errors import NotFoundError, ConflictError
+
+    settings = request.app.state.settings
+    try:
+        result = generate_note_from_source(uid, settings, template=template)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail=f"Source '{uid}' not found")
+    except ValueError:
+        raise HTTPException(status_code=422,
+                            detail=f"Source '{uid}' is not at rag_ready status")
+    except ConflictError:
+        raise HTTPException(status_code=409,
+                            detail=f"A note already exists for source '{uid}'")
+    return result.model_dump(mode="json")

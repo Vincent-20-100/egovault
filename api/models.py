@@ -37,6 +37,7 @@ class JobListItem(BaseModel):
 
 class IngestYoutubeRequest(BaseModel):
     url: str
+    auto_generate_note: bool | None = None
 
 
 class IngestResponse(BaseModel):
@@ -68,11 +69,13 @@ class NoteDetail(BaseModel):
     tags: list[str]
     date_created: str
     date_modified: str
+    status: str = "active"
 
 
 class NotePatch(BaseModel):
     rating: int | None = Field(None, ge=1, le=5)
     tags: list[str] | None = None
+    status: str | None = None
 
 
 # ============================================================

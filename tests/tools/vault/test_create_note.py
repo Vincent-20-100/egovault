@@ -1,6 +1,9 @@
 import pytest
 from datetime import date
 from unittest.mock import patch
+
+from tests.conftest import make_embedding
+
 from core.schemas import NoteContentInput, NoteSystemFields, NoteResult
 from core.uid import generate_uid
 import unittest.mock as mock
@@ -38,7 +41,7 @@ def test_create_note_returns_note_result(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         result = create_note(_content(), _system_fields(), tmp_settings)
 
     assert isinstance(result, NoteResult)
@@ -54,7 +57,7 @@ def test_create_note_writes_to_db(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         system = _system_fields()
         create_note(_content(), system, tmp_settings)
         note = get_note(tmp_db, system.uid)
@@ -71,7 +74,7 @@ def test_create_note_writes_markdown_file(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         system = _system_fields()
         result = create_note(_content(), system, tmp_settings)
 
@@ -88,11 +91,11 @@ def test_create_note_embeds_into_notes_vec(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         system = _system_fields()
         create_note(_content(), system, tmp_settings)
 
-    results = search_notes(tmp_db, [0.1] * 768, None, 5)
+    results = search_notes(tmp_db, make_embedding(), None, 5)
     assert len(results) == 1
     assert results[0].note_uid == system.uid
 

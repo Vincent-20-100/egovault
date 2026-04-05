@@ -1,6 +1,9 @@
 import pytest
 from datetime import date
 from unittest.mock import patch
+
+from tests.conftest import make_embedding
+
 from core.schemas import NoteContentInput, NoteSystemFields
 from core.uid import generate_uid
 from core.errors import NotFoundError
@@ -25,7 +28,7 @@ def _insert_test_note(tmp_db, tmp_path, tmp_settings):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         result = create_note(content, system, tmp_settings)
     return result.note.uid
 
@@ -40,7 +43,7 @@ def test_update_note_returns_note_result(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         result = update_note(uid, {"rating": 5}, tmp_settings)
 
     assert isinstance(result, NoteResult)
@@ -58,11 +61,11 @@ def test_update_note_re_embeds_note(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.2] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding(0.2)):
         result = update_note(uid, {"body": "Updated body content here."}, tmp_settings)
 
     assert result.note.sync_status == "synced"
-    results = search_notes(tmp_db, [0.2] * 768, None, 5)
+    results = search_notes(tmp_db, make_embedding(0.2), None, 5)
     assert any(r.note_uid == uid for r in results)
 
 
@@ -77,7 +80,7 @@ def test_update_note_ignores_system_fields(tmp_settings, tmp_db, tmp_path):
                            new_callable=lambda: property(lambda self: tmp_db)), \
          mock.patch.object(type(tmp_settings), "vault_path",
                            new_callable=lambda: property(lambda self: tmp_path)), \
-         patch("infrastructure.embedding_provider.embed", return_value=[0.1] * 768):
+         patch("infrastructure.embedding_provider.embed", return_value=make_embedding()):
         update_note(uid, {"uid": "new-uid", "date_created": "2000-01-01"}, tmp_settings)
         note = get_note(tmp_db, original_uid)
 
