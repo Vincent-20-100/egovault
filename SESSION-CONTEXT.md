@@ -5,20 +5,24 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-04-05
-**Last session:** `claude/brainstorming-pending-ideas-5zR2H`
+**Last updated:** 2026-04-06
+**Last session:** `main`
 
 ---
 
-## Current state: Web ingestion + Monitoring shipped
+## Current state: Clean repo, ready for public + real testing
 
-Codebase is stable with two major features added this session:
-1. **Web ingestion V1** — full pipeline from URL to RAG-ready source
-2. **Monitoring** — workflow run tracking with observability
+Git history cleaned (115 → 12 commits, all Vincent). ADR-008 metadev changes applied.
+Large source synthesis spec written. Vault-usage rules added for MCP guidance.
 
-**331 tests pass, 0 failures.**
+**What was done this session:**
+- Git history squash (115 → 12 commits, author cleanup)
+- ADR-008: attribution.commit="", permissions, rules/, pre-commit, SessionStart hook
+- Large source synthesis brainstorm + spec (cascade, presets, template reuse)
+- Vault-usage rules (.claude/rules/vault-usage.md)
 
-**Next priority:** **Search quality (reranking)** — needs brainstorm
+**Next priority:** **Real-world testing** — ingest actual sources, test RAG quality, then iterate.
+User couldn't test this session (no local env ready).
 
 ---
 
@@ -31,20 +35,25 @@ Codebase is stable with two major features added this session:
 - **Unified ingest with extractor registry** — add a source type = add an extractor function + register it
 - **create_note_from_content()** builds system fields inside the tool — MCP/CLI/API are routing-only
 
-### Web ingestion architecture (new)
+### Large source synthesis (spec written, not yet implemented)
 
-- **SSRF protection** in `core/security.py` — private IP rejection, DNS rebinding defense, cloud metadata blocking
-- **2-tier extraction** — Tier 0 (parse_html/bs4, always available), Tier 1 (trafilatura, optional dep)
-- **tools/web/ package** — separate from tools/text/ because web content is mixed (text+structure), not pure text
-- **httpx streaming** with size limits and post-redirect DNS re-validation
+- **Cascade:** web search (opt) → TOC+chapitres → map-reduce → synthèse finale
+- **Template reuse:** même template à chaque sous-génération → merge/dédup final
+- **Seuil:** auto-detect context window (~60% ratio), configurable
+- **Cache intermédiaire:** mémoire par défaut, debug persisté en option
+- **Presets:** 2 axes indépendants — `provider_mode` (local/api) × `quality_preset` (quick/balanced/quality)
 
-### Monitoring architecture (new)
+### Monitoring (implemented)
 
-- **run_id via contextvars** — zero changes to tool signatures, transparent to all @loggable-decorated tools
-- **Token count auto-extraction** — checks result for `token_count`/`tokens_used`/`total_tokens` attributes
-- **Provider captured from @loggable decorator** — `@loggable("embed_tool", provider="ollama")`
-- **workflow_runs table** — tracks pipeline runs with status, timing, source_uid linkage
-- **tool_logs.run_id is plain TEXT** (no FK) — allows standalone tool calls without a workflow run
+- **run_id via contextvars** — zero changes to tool signatures
+- **Token count auto-extraction** from @loggable results
+- **workflow_runs table** — pipeline tracking with status/timing
+
+### Web ingestion (implemented)
+
+- **SSRF protection** in core/security.py
+- **2-tier extraction** — Tier 0 (parse_html), Tier 1 (trafilatura)
+- **httpx streaming** with size limits + post-redirect DNS re-validation
 
 ---
 
@@ -56,13 +65,12 @@ Codebase is stable with two major features added this session:
 4. Don't over-engineer VaultDB — one-line delegations only
 5. Don't mix features with refactoring
 6. Rate limit / background thread tests MUST mock `_submit_job` to avoid DB locks
-7. Mock `_run_ingest` (not old `_run_youtube`) in integration tests
+7. Mock `_run_ingest` in integration tests
 8. `create_note` (low-level) takes NoteSystemFields; `create_note_from_content` (high-level) builds them
 9. When editing CLAUDE.md, keep it ≤110 lines — detailed rules go in GUIDELINES.md
-10. Superpowers output paths override is in CLAUDE.md §7, NOT in skill wrappers
-11. PostToolUse ruff hook was deferred — `$FILE` variable doesn't exist in hook context
-12. pypdf tests need `patch.dict(sys.modules, {"pypdf": mock})` — env has broken cryptography module
-13. tool_logs.run_id must NOT have FK to workflow_runs — standalone tool calls have no run
+10. pypdf tests need `patch.dict(sys.modules, {"pypdf": mock})` — env has broken cryptography module
+11. tool_logs.run_id must NOT have FK to workflow_runs — standalone tool calls have no run
+12. attribution.commit="" in settings.json — prevents Claude co-author trailer on commits
 
 ---
 
@@ -70,17 +78,21 @@ Codebase is stable with two major features added this session:
 
 | Item | Where documented | When to do |
 |------|-----------------|------------|
-| Crash recovery (`recover_source`) | Archive spec §16, brainstorm note F | After web ingest or monitoring |
-| `source_assets` table | Archive spec §15, brainstorm note G | When image handling implemented |
-| Web ingestion V2 (batch, JS rendering) | `.meta/specs/2026-04-05-web-ingestion-spec.md` §Future | When single-page is validated |
+| Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
+| `source_assets` table | Archive spec §15 | When image handling implemented |
+| Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | Next impl priority |
+| Onboarding / DX (`egovault setup`) | SESSION-CONTEXT.md | Important — before public launch |
+| Search quality (reranking) | `.meta/specs/future/2026-03-28-reranking-design.md` | After real-world testing |
 | API test seed fixtures | PROJECT-STATUS.md debt | When fixture pattern refactored |
 | System DB facade | PROJECT-STATUS.md debt | If 3+ callers need system DB via ctx |
-| PostToolUse ruff hook | `.meta/specs/2026-04-03-metadev-protocol-adoption-notes.md` | When Claude Code exposes `$FILE` in hooks |
+| PostToolUse ruff hook | `.meta/specs/2026-04-03-metadev-protocol-adoption-notes.md` | When Claude Code exposes `$FILE` |
+| Ollama/OpenAI LLM providers | `infrastructure/llm_provider.py` | Before local testing (only Claude implemented) |
 
 ---
 
 ## Open questions (require interactive discussion)
 
-1. **Search quality (reranking)** — what approach? The spec (`specs/future/2026-03-28-reranking-design.md`) needs brainstorm
-2. **Evaluation framework** — priority vs search quality? User said "monitoring then search quality, we'll decide next later"
-3. **ARCHITECTURE.md location** — move from `docs/architecture/` to `.meta/`? Or keep separate since it's a permanent doc?
+1. **Real-world testing plan** — which sources to ingest first? User's existing cards, YouTube, PDFs?
+2. **Onboarding DX** — `egovault setup` CLI command? Auto-write to user's Claude config? How intrusive?
+3. **Token counting** — tiktoken (precise) or heuristic `words ÷ 0.75` (zero-dep)?
+4. **Large source synthesis template** — separate sub_note.yaml or dynamic system_prompt enrichment?
