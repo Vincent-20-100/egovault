@@ -36,7 +36,7 @@ workflows/
 infrastructure/          ← db.py, vault_writer.py, embedding_provider.py, llm_provider.py
 api/                     ← FastAPI — routers: health, jobs, ingest, notes, sources, search, vault, monitoring
 cli/                     ← Click CLI — commands: ingest, search, notes, sources, status, purge
-mcp/server.py            ← exposes tools/ via MCP protocol
+mcp/server.py            ← exposes tools/ via MCP protocol (see .claude/rules/vault-usage.md)
 config/                  ← system.yaml (versioned), user.yaml + install.yaml (gitignored)
 tests/                   ← mirrors source structure
 .meta/                   ← process workspace (specs, plans, audits, scratch, archive)
