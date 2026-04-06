@@ -376,6 +376,69 @@ def generate_note_from_source(source_uid: str, template: str = "standard") -> di
 
 
 @mcp.tool()
+def ingest_youtube(url: str, auto_generate_note: bool | None = None) -> dict:
+    """
+    Ingest a YouTube video into the vault. Downloads, transcribes, chunks,
+    and embeds the content for semantic search.
+
+    When to use: When the user wants to ingest a YouTube video.
+
+    What to call next: get_source(source_uid) to read the ingested source,
+    or generate_note_from_source(source_uid) to create a draft note.
+    """
+    from core.security import validate_youtube_url
+    video_id = validate_youtube_url(url)
+    if video_id is None:
+        raise ValueError("Invalid YouTube URL")
+    canonical_url = f"https://www.youtube.com/watch?v={video_id}"
+    from workflows.ingest import ingest
+    result = ingest("youtube", canonical_url, ctx, auto_generate_note=auto_generate_note)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
+def ingest_audio(file_path: str, auto_generate_note: bool | None = None) -> dict:
+    """
+    Ingest a local audio or video file into the vault. Transcribes, chunks,
+    and embeds the content for semantic search.
+
+    When to use: When the user has a local audio/video file to add to the vault.
+    The file must be under the configured media directory.
+
+    What to call next: get_source(source_uid) to read the ingested source,
+    or generate_note_from_source(source_uid) to create a draft note.
+    """
+    from core.security import validate_file_path
+    validated = validate_file_path(file_path, [settings.media_path])
+    if validated is None:
+        raise ValueError("File path not allowed — must be under media directory")
+    from workflows.ingest import ingest
+    result = ingest("audio", str(validated), ctx, auto_generate_note=auto_generate_note)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
+def ingest_pdf(file_path: str, auto_generate_note: bool | None = None) -> dict:
+    """
+    Ingest a PDF file into the vault. Extracts text, chunks, and embeds
+    the content for semantic search.
+
+    When to use: When the user has a local PDF to add to the vault.
+    The file must be under the configured media directory.
+
+    What to call next: get_source(source_uid) to read the ingested source,
+    or generate_note_from_source(source_uid) to create a draft note.
+    """
+    from core.security import validate_file_path
+    validated = validate_file_path(file_path, [settings.media_path])
+    if validated is None:
+        raise ValueError("File path not allowed — must be under media directory")
+    from workflows.ingest import ingest
+    result = ingest("pdf", str(validated), ctx, auto_generate_note=auto_generate_note)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
 def ingest_text(text: str, title: str, source_type: str = "texte",
                 auto_generate_note: bool | None = None) -> dict:
     """

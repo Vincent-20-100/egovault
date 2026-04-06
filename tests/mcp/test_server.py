@@ -289,6 +289,186 @@ def test_mcp_get_workflow_guide_returns_string(tmp_settings):
     assert "finalize_source" in result
 
 
+# ---------------------------------------------------------------------------
+# ingest_youtube
+# ---------------------------------------------------------------------------
+
+def test_mcp_ingest_youtube_calls_workflow(tmp_settings):
+    import mcp.server as srv
+    from core.schemas import Source
+    from datetime import date
+
+    source = Source(
+        uid="src-yt", slug="src-yt", source_type="youtube",
+        status="rag_ready", date_added=date.today().isoformat(),
+        title="My Video",
+    )
+
+    mock_ctx = MagicMock()
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
+         patch("core.security.validate_youtube_url", return_value="abc123"), \
+         patch("workflows.ingest.ingest", return_value=source) as mock_ingest:
+        result = srv.ingest_youtube("https://youtube.com/watch?v=abc123")
+
+    mock_ingest.assert_called_once_with(
+        "youtube", "https://www.youtube.com/watch?v=abc123", mock_ctx,
+        auto_generate_note=None,
+    )
+    assert result["uid"] == "src-yt"
+
+
+def test_mcp_ingest_youtube_invalid_url_raises(tmp_settings):
+    import mcp.server as srv
+
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("core.security.validate_youtube_url", return_value=None):
+        with pytest.raises(ValueError, match="Invalid YouTube URL"):
+            srv.ingest_youtube("not-a-url")
+
+
+# ---------------------------------------------------------------------------
+# ingest_audio
+# ---------------------------------------------------------------------------
+
+def test_mcp_ingest_audio_calls_workflow(tmp_settings, tmp_path):
+    import mcp.server as srv
+    from core.schemas import Source
+    from datetime import date
+    from pathlib import Path
+
+    source = Source(
+        uid="src-audio", slug="src-audio", source_type="audio",
+        status="rag_ready", date_added=date.today().isoformat(),
+    )
+
+    audio_file = tmp_path / "media" / "test.mp3"
+    audio_file.parent.mkdir(parents=True)
+    audio_file.touch()
+
+    mock_ctx = MagicMock()
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
+         patch("core.security.validate_file_path", return_value=Path(str(audio_file))), \
+         patch("workflows.ingest.ingest", return_value=source) as mock_ingest:
+        result = srv.ingest_audio(str(audio_file))
+
+    mock_ingest.assert_called_once_with(
+        "audio", str(audio_file), mock_ctx, auto_generate_note=None,
+    )
+    assert result["uid"] == "src-audio"
+
+
+def test_mcp_ingest_audio_invalid_path_raises(tmp_settings):
+    import mcp.server as srv
+
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("core.security.validate_file_path", return_value=None):
+        with pytest.raises(ValueError, match="not allowed"):
+            srv.ingest_audio("/etc/passwd")
+
+
+# ---------------------------------------------------------------------------
+# ingest_pdf
+# ---------------------------------------------------------------------------
+
+def test_mcp_ingest_pdf_calls_workflow(tmp_settings, tmp_path):
+    import mcp.server as srv
+    from core.schemas import Source
+    from datetime import date
+    from pathlib import Path
+
+    source = Source(
+        uid="src-pdf", slug="src-pdf", source_type="pdf",
+        status="rag_ready", date_added=date.today().isoformat(),
+    )
+
+    pdf_file = tmp_path / "media" / "test.pdf"
+    pdf_file.parent.mkdir(parents=True)
+    pdf_file.touch()
+
+    mock_ctx = MagicMock()
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
+         patch("core.security.validate_file_path", return_value=Path(str(pdf_file))), \
+         patch("workflows.ingest.ingest", return_value=source) as mock_ingest:
+        result = srv.ingest_pdf(str(pdf_file))
+
+    mock_ingest.assert_called_once_with(
+        "pdf", str(pdf_file), mock_ctx, auto_generate_note=None,
+    )
+    assert result["uid"] == "src-pdf"
+
+
+def test_mcp_ingest_pdf_invalid_path_raises(tmp_settings):
+    import mcp.server as srv
+
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("core.security.validate_file_path", return_value=None):
+        with pytest.raises(ValueError, match="not allowed"):
+            srv.ingest_pdf("/etc/passwd")
+
+
+# ---------------------------------------------------------------------------
+# ingest_text
+# ---------------------------------------------------------------------------
+
+def test_mcp_ingest_text_calls_workflow(tmp_settings):
+    import mcp.server as srv
+    from core.schemas import Source
+    from datetime import date
+
+    source = Source(
+        uid="src-txt", slug="src-txt", source_type="texte",
+        status="rag_ready", date_added=date.today().isoformat(),
+        title="My Text",
+    )
+
+    mock_ctx = MagicMock()
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
+         patch("workflows.ingest.ingest", return_value=source) as mock_ingest:
+        result = srv.ingest_text("Hello world", "My Text")
+
+    mock_ingest.assert_called_once_with(
+        "texte", "Hello world", mock_ctx, title="My Text",
+        auto_generate_note=None,
+    )
+    assert result["uid"] == "src-txt"
+
+
+# ---------------------------------------------------------------------------
+# ingest_web
+# ---------------------------------------------------------------------------
+
+def test_mcp_ingest_web_calls_workflow(tmp_settings):
+    import mcp.server as srv
+    from core.schemas import Source
+    from datetime import date
+
+    source = Source(
+        uid="src-web", slug="src-web", source_type="web",
+        status="rag_ready", date_added=date.today().isoformat(),
+        title="Article",
+    )
+
+    mock_ctx = MagicMock()
+    with patch("mcp.server.settings", tmp_settings), \
+         patch("mcp.server.ctx", mock_ctx), \
+         patch("workflows.ingest.ingest", return_value=source) as mock_ingest:
+        result = srv.ingest_web("https://example.com/article")
+
+    mock_ingest.assert_called_once_with(
+        "web", "https://example.com/article", mock_ctx,
+        auto_generate_note=None,
+    )
+    assert result["uid"] == "src-web"
+
+
+# ---------------------------------------------------------------------------
+# generate_note_from_source
+# ---------------------------------------------------------------------------
+
 def test_mcp_generate_note_from_source_calls_tool(tmp_settings):
     import mcp.server as srv
     from unittest.mock import patch
