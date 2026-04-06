@@ -69,11 +69,29 @@ Ces deux problèmes sont **indépendants** et doivent rester séparés.
 
 ---
 
+## Audio/token estimates (reference)
+
+- ~150 mots/min parlées → ~200 tokens/min
+- **50k tokens** (seuil `large_format_threshold_tokens`) ≈ **4h d'audio**
+- Claude 200k context × 0.6 ratio ≈ ~120k tokens ≈ ~10h théorique
+- Ollama local 8-32k context ≈ **20 min à 2h30**
+- Vidéos YouTube **10 min à 2h** = zone confortable pour tests
+
+### Fallback simple pour long format (à trancher)
+
+Aujourd'hui les sources > seuil sont bloquées (`LargeFormatError`). Idée : un fallback
+minimal **split en 2 parties + 1 merge = 3 LLM calls** couvrirait ~80% des cas sans
+implémenter toute la cascade de la spec. À décider : l'intégrer comme step intermédiaire
+avant la spec complète, ou attendre et tout faire d'un coup.
+
+---
+
 ## Deferred items (must be documented, not forgotten)
 
 | Item | Where documented | When to do |
 |------|-----------------|------------|
 | Real-world testing | SESSION-CONTEXT.md | **NEXT** — ingest real sources, evaluate RAG |
+| Long format fallback (split-2 + merge) | SESSION-CONTEXT.md §audio estimates | À trancher — avant ou avec la spec cascade |
 | Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | After real testing validates fundamentals |
 | Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority — brainstorm needed |
 | Onboarding / DX (`egovault setup`) | SESSION-CONTEXT.md | Important — before public launch |
