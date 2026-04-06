@@ -4,14 +4,14 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-05
+**Last updated:** 2026-04-06
 **Last session branch:** `claude/brainstorming-pending-ideas-5zR2H`
 
 ---
 
 ## Next action
 
-**Search quality (reranking)** — brainstorm session needed.
+**Real-world testing** — ingest actual sources, test RAG + note generation quality. Then iterate on search quality and large source synthesis.
 
 ---
 

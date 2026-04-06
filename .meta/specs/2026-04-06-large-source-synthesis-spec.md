@@ -212,7 +212,21 @@ Le coût est proportionnel à la taille source dans tous les cas sauf web-search
 
 ---
 
-## 9. Questions ouvertes
+## 9. Model routing (idée future)
+
+Inspiré par l'optimisation du KV cache et du coût d'attention quadratique :
+- **Modèle léger** pour les sous-tâches (extraction TOC, détection structure, extraction entités)
+- **Modèle lourd** uniquement pour la synthèse finale (merge des sous-notes → note de qualité)
+
+Le mode `balanced` pourrait router automatiquement : petit modèle pour les passes
+d'extraction, gros modèle pour le merge final. Réduit les coûts API et la latence
+sur les grosses sources sans sacrifier la qualité de la note finale.
+
+À intégrer dans le système de presets (`quality_preset` × `provider_mode`).
+
+---
+
+## 10. Questions ouvertes
 
 1. **Token counting** — tiktoken (précis, dépendance) ou heuristique `len(text.split()) / 0.75` (approximatif, zéro dépendance) ?
 2. **Limite de sous-notes** — `max_sub_notes: 30` est-il suffisant pour les très gros livres ?

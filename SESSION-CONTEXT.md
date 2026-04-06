@@ -10,19 +10,17 @@
 
 ---
 
-## Current state: Clean repo, ready for public + real testing
+## Current state: Repo public-ready, awaiting real-world testing
 
 Git history cleaned (115 → 12 commits, all Vincent). ADR-008 metadev changes applied.
-Large source synthesis spec written. Vault-usage rules added for MCP guidance.
+Two new specs written (large source synthesis + NotebookLM/Synapthema ideas).
+Vault-usage rules added for MCP guidance.
 
-**What was done this session:**
-- Git history squash (115 → 12 commits, author cleanup)
-- ADR-008: attribution.commit="", permissions, rules/, pre-commit, SessionStart hook
-- Large source synthesis brainstorm + spec (cascade, presets, template reuse)
-- Vault-usage rules (.claude/rules/vault-usage.md)
+**The system has never been tested with real data.** All tests are mocked.
+The next priority is ingesting actual sources and evaluating RAG quality before
+optimizing anything.
 
-**Next priority:** **Real-world testing** — ingest actual sources, test RAG quality, then iterate.
-User couldn't test this session (no local env ready).
+**Next priority:** Real-world testing → then iterate on search quality + large source synthesis.
 
 ---
 
@@ -42,18 +40,14 @@ User couldn't test this session (no local env ready).
 - **Seuil:** auto-detect context window (~60% ratio), configurable
 - **Cache intermédiaire:** mémoire par défaut, debug persisté en option
 - **Presets:** 2 axes indépendants — `provider_mode` (local/api) × `quality_preset` (quick/balanced/quality)
+- **Model routing (future):** modèle léger pour extraction/structure, modèle lourd pour synthèse finale
 
-### Monitoring (implemented)
+### Two distinct problems for large sources
 
-- **run_id via contextvars** — zero changes to tool signatures
-- **Token count auto-extraction** from @loggable results
-- **workflow_runs table** — pipeline tracking with status/timing
+1. **Chunking & embedding** — problème d'indexation/search. Bénéficie déjà du markdown structuré.
+2. **Note synthesis** — problème de summarization quand input > context window. Spec écrite.
 
-### Web ingestion (implemented)
-
-- **SSRF protection** in core/security.py
-- **2-tier extraction** — Tier 0 (parse_html), Tier 1 (trafilatura)
-- **httpx streaming** with size limits + post-redirect DNS re-validation
+Ces deux problèmes sont **indépendants** et doivent rester séparés.
 
 ---
 
@@ -71,6 +65,7 @@ User couldn't test this session (no local env ready).
 10. pypdf tests need `patch.dict(sys.modules, {"pypdf": mock})` — env has broken cryptography module
 11. tool_logs.run_id must NOT have FK to workflow_runs — standalone tool calls have no run
 12. attribution.commit="" in settings.json — prevents Claude co-author trailer on commits
+13. Don't optimize search/synthesis without real data first — test with actual sources
 
 ---
 
@@ -78,15 +73,18 @@ User couldn't test this session (no local env ready).
 
 | Item | Where documented | When to do |
 |------|-----------------|------------|
-| Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
-| `source_assets` table | Archive spec §15 | When image handling implemented |
-| Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | Next impl priority |
+| Real-world testing | SESSION-CONTEXT.md | **NEXT** — ingest real sources, evaluate RAG |
+| Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | After real testing validates fundamentals |
+| Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority — brainstorm needed |
 | Onboarding / DX (`egovault setup`) | SESSION-CONTEXT.md | Important — before public launch |
+| Cross-document entity resolution | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §2 | Medium — reinforces multi-source |
+| Source citations in notes | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §4 | Medium — template improvement |
+| Model routing (light/heavy) | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` §9 | Future — preset enhancement |
 | Search quality (reranking) | `.meta/specs/future/2026-03-28-reranking-design.md` | After real-world testing |
-| API test seed fixtures | PROJECT-STATUS.md debt | When fixture pattern refactored |
-| System DB facade | PROJECT-STATUS.md debt | If 3+ callers need system DB via ctx |
-| PostToolUse ruff hook | `.meta/specs/2026-04-03-metadev-protocol-adoption-notes.md` | When Claude Code exposes `$FILE` |
 | Ollama/OpenAI LLM providers | `infrastructure/llm_provider.py` | Before local testing (only Claude implemented) |
+| Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
+| API test seed fixtures | PROJECT-STATUS.md debt | When fixture pattern refactored |
+| PostToolUse ruff hook | `.meta/specs/2026-04-03-metadev-protocol-adoption-notes.md` | When Claude Code exposes `$FILE` |
 
 ---
 
@@ -96,3 +94,4 @@ User couldn't test this session (no local env ready).
 2. **Onboarding DX** — `egovault setup` CLI command? Auto-write to user's Claude config? How intrusive?
 3. **Token counting** — tiktoken (precise) or heuristic `words ÷ 0.75` (zero-dep)?
 4. **Large source synthesis template** — separate sub_note.yaml or dynamic system_prompt enrichment?
+5. **Multi-source workflow** — what UX? MCP tool? CLI command? How does the user initiate the brainstorm?
