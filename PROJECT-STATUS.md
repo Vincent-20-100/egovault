@@ -5,7 +5,7 @@
 > Referenced from CLAUDE.md §9.
 
 **Last updated:** 2026-04-06
-**Last session branch:** `claude/brainstorming-pending-ideas-5zR2H`
+**Last session branch:** `main`
 
 ---
 
@@ -119,7 +119,7 @@
 10. ~~**Monitoring (run tracking)**~~ — **DONE**
 11. **Large source synthesis** — spec written, needs plan + impl
 12. **Search quality (reranking)** — needs brainstorm
-13. **Onboarding / DX (egovault setup, MCP auto-config)** — important, needs brainstorm
+13. ~~**Onboarding / DX (Getting Started guide)**~~ — **DONE** (docs/GETTING-STARTED.md)
 14. **Evaluation framework** — needs brainstorm
 15. **Frontend** — see `docs/FUTURE-WORK.md`
 
@@ -136,4 +136,4 @@
 | 2026-04-03 | `claude/brainstorming-pending-ideas-5zR2H` | Unified ingest Phase 4 (11 steps). All audits. MCP/CLI G11 fix. Specs archived. Old wrappers deleted. **metadev-protocol adoption brainstorm** (5 decisions: Superpowers plugin, split CLAUDE.md, rename .meta/, hooks, /ship skill). |
 | 2026-04-04 | `claude/brainstorming-pending-ideas-5zR2H` | **metadev-protocol adoption executed** — split CLAUDE.md (408→109 lines law + 193 lines mentor), renamed docs/superpowers/ → .meta/, created 3 project skills (save-progress, lint, test), configured Superpowers output paths. Git rebase completed and pushed. |
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
-| 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. |
+| 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |

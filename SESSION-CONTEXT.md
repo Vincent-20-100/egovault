@@ -10,17 +10,17 @@
 
 ---
 
-## Current state: Repo public-ready, awaiting real-world testing
+## Current state: Ready for real-world testing
 
-Git history cleaned (115 → 12 commits, all Vincent). ADR-008 metadev changes applied.
-Two new specs written (large source synthesis + NotebookLM/Synapthema ideas).
-Vault-usage rules added for MCP guidance.
+MCP surface now at full parity with API and CLI (ingest_youtube/audio/pdf added).
+Getting Started guide written (`docs/GETTING-STARTED.md`).
+Audio/token estimates and long-format fallback idea documented below.
 
 **The system has never been tested with real data.** All tests are mocked.
-The next priority is ingesting actual sources and evaluating RAG quality before
-optimizing anything.
+Next session: install Ollama, configure Claude Desktop MCP, ingest the 3Blue1Brown
+GPT video (https://www.youtube.com/watch?v=wjZofJX0v4M) as first real test.
 
-**Next priority:** Real-world testing → then iterate on search quality + large source synthesis.
+**Next priority:** Follow GETTING-STARTED.md → ingest real sources → evaluate RAG quality.
 
 ---
 
