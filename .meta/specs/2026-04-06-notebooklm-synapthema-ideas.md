@@ -81,3 +81,19 @@ améliorer la qualité de la synthèse finale.
 - Flashcards / quiz / spaced repetition (e-learning, pas knowledge vault)
 - Cours interactif HTML (notre output = markdown Obsidian)
 - Audio overview podcast-style (NotebookLM feature, fun mais hors scope)
+
+---
+
+## Veille techno : optimisation inférence
+
+### TurboQuant (Google, ICLR 2026)
+
+Compression du KV cache LLM à 3 bits (keys) + 2 bits (values) sans perte de qualité.
+Jusqu'à 8x de performance sur H100, 2x d'extension de contexte.
+
+**Impact EgoVault :** aucun changement de code — c'est une optimisation d'infra d'inférence
+(vLLM, Ollama). Mais les utilisateurs locaux qui l'activent auront une context window
+effective plus grande → notre seuil multi-pass auto-detect s'adapte automatiquement.
+
+**Intéressant pour :** power users self-hosted avec grosses sources.
+**Refs :** [Google blog](https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/), [vLLM integration](https://github.com/0xSero/turboquant)
