@@ -193,15 +193,18 @@ def fetch_subtitles(youtube_url: str, language: str = "fr") -> dict:
 
 
 @mcp.tool()
-def export_typst(note_uid: str) -> dict:
+def export_typst(note_uid: str, lang: str = "fr", font: str = "Times New Roman") -> dict:
     """
-    Export a note to a print-ready document format.
+    Export a note to a print-ready Typst document.
 
     When to use: When the user wants a formatted PDF version of a note.
+    lang: ISO language code (default "fr") — governs hyphenation and PDF tags.
+    font: primary text font (default "Times New Roman"); a safe fallback chain
+    is appended automatically.
 
     What to call next: Nothing — this is a terminal export action.
     """
-    result = _export_typst_tool(note_uid, ctx)
+    result = _export_typst_tool(note_uid, ctx, lang=lang, font=font)
     return result.model_dump(mode="json")
 
 

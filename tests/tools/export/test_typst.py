@@ -43,3 +43,43 @@ def test_export_typst_not_found_raises(ctx):
 
     with pytest.raises(ValueError, match="not found"):
         export_typst("nonexistent", ctx)
+
+
+def test_export_typst_has_font_fallback_chain(ctx):
+    from tools.export.typst import export_typst
+
+    ctx.db.insert_note(_make_note())
+    result = export_typst("n1", ctx)
+
+    content = Path(result.output_path).read_text(encoding="utf-8")
+    assert 'lang: "fr"' in content
+    assert 'fallback: true' in content
+    assert '"Times New Roman"' in content
+    assert '"DejaVu Serif"' in content
+    assert '"Segoe UI Symbol"' in content
+    assert 'breakable: true' in content
+
+
+def test_export_typst_escapes_at_in_title(ctx):
+    from tools.export.typst import export_typst
+
+    note = _make_note()
+    note.title = "Contact user@example.com"
+    ctx.db.insert_note(note)
+
+    result = export_typst("n1", ctx)
+    content = Path(result.output_path).read_text(encoding="utf-8")
+    # Heading line must have the @ escaped, otherwise Typst parses it as a ref.
+    assert "= Contact user\\@example.com" in content
+
+
+def test_export_typst_accepts_lang_and_font(ctx):
+    from tools.export.typst import export_typst
+
+    ctx.db.insert_note(_make_note())
+    result = export_typst("n1", ctx, lang="en", font="EB Garamond")
+
+    content = Path(result.output_path).read_text(encoding="utf-8")
+    assert 'lang: "en"' in content
+    assert 'region: "EN"' in content
+    assert '"EB Garamond"' in content

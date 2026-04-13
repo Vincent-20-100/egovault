@@ -138,7 +138,7 @@ def test_mcp_export_typst_calls_tool(tmp_settings):
         result = srv.export_typst("note-uid-1")
 
     # export_typst passes ctx (G4)
-    mock_tool.assert_called_once_with("note-uid-1", mock_ctx)
+    mock_tool.assert_called_once_with("note-uid-1", mock_ctx, lang="fr", font="Times New Roman")
     assert result["output_path"] == "/tmp/note.typ"
 
 
