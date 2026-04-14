@@ -52,3 +52,29 @@ def _split_by_toc(markdown: str) -> list[Section]:
             ))
         return sections
     return []
+
+
+def _split_by_tokens(text: str, chunk_size: int) -> list[Section]:
+    """Split text into roughly chunk_size-token sections by word count.
+
+    Pure word-window split, no overlap (overlap belongs to RAG chunking, not
+    synthesis where each sub-note must stand alone).
+    """
+    from core.tokens import WORDS_PER_TOKEN
+
+    words = text.split()
+    if not words:
+        return [Section(title="Section 1 / 1", content=text, index=0, total=1)]
+
+    words_per_chunk = max(1, int(chunk_size * WORDS_PER_TOKEN))
+    chunks = [words[i:i + words_per_chunk] for i in range(0, len(words), words_per_chunk)]
+    total = len(chunks)
+    return [
+        Section(
+            title=f"Section {i + 1} / {total}",
+            content=" ".join(chunk),
+            index=i,
+            total=total,
+        )
+        for i, chunk in enumerate(chunks)
+    ]

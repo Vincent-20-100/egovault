@@ -32,3 +32,29 @@ def test_split_by_toc_skips_preface_before_first_heading():
     sections = _split_by_toc(md)
     assert len(sections) == 1
     assert sections[0].title == "Chapter 1"
+
+
+from tools.text.synthesize import _split_by_tokens
+
+
+def test_split_by_tokens_returns_single_section_when_under_budget():
+    text = "short text"
+    sections = _split_by_tokens(text, chunk_size=1000)
+    assert len(sections) == 1
+    assert sections[0].content == text
+
+
+def test_split_by_tokens_creates_multiple_sections_above_budget():
+    # 120 words, budget ~30 tokens -> words_per_chunk = 30*0.75 = 22 -> ~6 sections
+    text = " ".join(["word"] * 120)
+    sections = _split_by_tokens(text, chunk_size=30)
+    assert len(sections) >= 3
+    assert all(s.total == len(sections) for s in sections)
+    assert [s.index for s in sections] == list(range(len(sections)))
+
+
+def test_split_by_tokens_section_titles_are_indexed():
+    text = " ".join(["word"] * 200)
+    sections = _split_by_tokens(text, chunk_size=50)
+    assert sections[0].title.startswith("Section 1")
+    assert sections[-1].title.startswith(f"Section {len(sections)}")
