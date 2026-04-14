@@ -5,22 +5,26 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-04-06
-**Last session:** `main`
+**Last updated:** 2026-04-14
+**Last session:** `feat/large-source-synthesis`
 
 ---
 
-## Current state: Ready for real-world testing
+## Current state: Large source synthesis shipped — needs real-world validation
 
-MCP surface now at full parity with API and CLI (ingest_youtube/audio/pdf added).
-Getting Started guide written (`docs/GETTING-STARTED.md`).
-Audio/token estimates and long-format fallback idea documented below.
+The synthesis cascade is implemented end-to-end: `estimate_tokens` → `get_context_window`
+(Ollama auto-detect + hardcoded map + override) → `synthesize_large_source` (auto-detects
+direct / TOC / map-reduce based on transcript size vs `context_window * direct_threshold_ratio`)
+→ per-section sub-generation with chapter context injected via `system_prompt_extra` →
+final pass through the new `merge.yaml` template. 14 new tests, zero regressions on the
+pre-existing suite. Spec archived.
 
-**The system has never been tested with real data.** All tests are mocked.
-Next session: install Ollama, configure Claude Desktop MCP, ingest the 3Blue1Brown
-GPT video (https://www.youtube.com/watch?v=wjZofJX0v4M) as first real test.
+**Still never tested with real data.** Next session: ingest a long-form source (book,
+3h interview, long PDF) and observe branching. Tune `merge_chunk_size` and
+`direct_threshold_ratio` to taste. The 3Blue1Brown GPT video remains the suggested first
+real test for the small-source direct path.
 
-**Next priority:** Follow GETTING-STARTED.md → ingest real sources → evaluate RAG quality.
+**Next priority:** Real-world testing → observe TOC vs map-reduce branching → tune.
 
 ---
 
@@ -33,14 +37,15 @@ GPT video (https://www.youtube.com/watch?v=wjZofJX0v4M) as first real test.
 - **Unified ingest with extractor registry** — add a source type = add an extractor function + register it
 - **create_note_from_content()** builds system fields inside the tool — MCP/CLI/API are routing-only
 
-### Large source synthesis (spec written, not yet implemented)
+### Large source synthesis (implemented 2026-04-14)
 
-- **Cascade:** web search (opt) → TOC+chapitres → map-reduce → synthèse finale
-- **Template reuse:** même template à chaque sous-génération → merge/dédup final
-- **Seuil:** auto-detect context window (~60% ratio), configurable
-- **Cache intermédiaire:** mémoire par défaut, debug persisté en option
-- **Presets:** 2 axes indépendants — `provider_mode` (local/api) × `quality_preset` (quick/balanced/quality)
-- **Model routing (future):** modèle léger pour extraction/structure, modèle lourd pour synthèse finale
+- **Cascade shipped:** TOC (H1 then H2 fallback) → map-reduce (token-window split) → merge template
+- **Template reuse:** same user template for each sub-note, dedicated `merge.yaml` for final synthesis
+- **Chapter context:** injected per sub-note via `system_prompt_extra` on `GenerateFn` Protocol
+- **Threshold:** `estimate_tokens(transcript) > context_window * direct_threshold_ratio` (default 0.6)
+- **Context window:** explicit override → Ollama `/api/show` → hardcoded map (Claude 4.x, GPT-4o) → 8192
+- **Cap:** `max_sub_notes` (default 40) raises ValueError before firing N LLM calls
+- **Deferred:** web-search tier, persisted intermediate cache, model routing (light/heavy) — all documented
 
 ### Two distinct problems for large sources
 
@@ -77,12 +82,12 @@ Ces deux problèmes sont **indépendants** et doivent rester séparés.
 - Ollama local 8-32k context ≈ **20 min à 2h30**
 - Vidéos YouTube **10 min à 2h** = zone confortable pour tests
 
-### Fallback simple pour long format (à trancher)
+### Long format status
 
-Aujourd'hui les sources > seuil sont bloquées (`LargeFormatError`). Idée : un fallback
-minimal **split en 2 parties + 1 merge = 3 LLM calls** couvrirait ~80% des cas sans
-implémenter toute la cascade de la spec. À décider : l'intégrer comme step intermédiaire
-avant la spec complète, ou attendre et tout faire d'un coup.
+Sources exceeding `large_format_threshold_tokens` (50k) remain blocked by `LargeFormatError`
+at ingest time. Below that, the synthesis cascade handles anything that fits in ~2× the LLM
+context window comfortably via map-reduce. The "split-2 + merge" quick fallback is now
+superseded by the full cascade.
 
 ---
 
@@ -91,13 +96,13 @@ avant la spec complète, ou attendre et tout faire d'un coup.
 | Item | Where documented | When to do |
 |------|-----------------|------------|
 | Real-world testing | SESSION-CONTEXT.md | **NEXT** — ingest real sources, evaluate RAG |
-| Long format fallback (split-2 + merge) | SESSION-CONTEXT.md §audio estimates | À trancher — avant ou avec la spec cascade |
-| Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | After real testing validates fundamentals |
+| ~~Long format fallback (split-2 + merge)~~ | ~~SESSION-CONTEXT.md~~ | **Superseded by cascade** |
+| ~~Large source synthesis~~ | ~~`.meta/archive/specs/2026-04-06-large-source-synthesis-spec.md`~~ | **DONE 2026-04-14** |
 | Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority — brainstorm needed |
 | Onboarding / DX (`egovault setup`) | SESSION-CONTEXT.md | Important — before public launch |
 | Cross-document entity resolution | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §2 | Medium — reinforces multi-source |
 | Source citations in notes | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §4 | Medium — template improvement |
-| Model routing (light/heavy) | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` §9 | Future — preset enhancement |
+| Model routing (light/heavy) | `.meta/archive/specs/2026-04-06-large-source-synthesis-spec.md` §9 | Future — preset enhancement |
 | Search quality (reranking) | `.meta/specs/future/2026-03-28-reranking-design.md` | After real-world testing |
 | Ollama/OpenAI LLM providers | `infrastructure/llm_provider.py` | Before local testing (only Claude implemented) |
 | Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
@@ -110,6 +115,6 @@ avant la spec complète, ou attendre et tout faire d'un coup.
 
 1. **Real-world testing plan** — which sources to ingest first? User's existing cards, YouTube, PDFs?
 2. **Onboarding DX** — `egovault setup` CLI command? Auto-write to user's Claude config? How intrusive?
-3. **Token counting** — tiktoken (precise) or heuristic `words ÷ 0.75` (zero-dep)?
-4. **Large source synthesis template** — separate sub_note.yaml or dynamic system_prompt enrichment?
+3. ~~Token counting~~ — **RESOLVED:** heuristic `words ÷ 0.75` shipped in `core/tokens.py`.
+4. ~~Large source synthesis template~~ — **RESOLVED:** dynamic `system_prompt_extra` for chapter context + dedicated `merge.yaml` for final synthesis.
 5. **Multi-source workflow** — what UX? MCP tool? CLI command? How does the user initiate the brainstorm?

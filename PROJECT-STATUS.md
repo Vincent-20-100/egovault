@@ -4,14 +4,14 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-06
-**Last session branch:** `main`
+**Last updated:** 2026-04-14
+**Last session branch:** `feat/large-source-synthesis`
 
 ---
 
 ## Next action
 
-**Real-world testing** — ingest actual sources, test RAG + note generation quality. Then iterate on search quality and large source synthesis.
+**Real-world testing on long-form sources** — the synthesis cascade is implemented and green in tests. Next: ingest a real book/3h interview, observe the TOC vs map-reduce branching, tune `merge_chunk_size` and `direct_threshold_ratio` to taste.
 
 ---
 
@@ -31,7 +31,7 @@
 | `specs/future/2026-03-28-semantic-cache-design.md` | Query caching |
 | `specs/future/2026-03-28-reranking-design.md` | Search reranking |
 | `specs/future/2026-03-28-frontend-design.md` | Next.js frontend |
-| `specs/2026-04-06-large-source-synthesis-spec.md` | Large source note generation (cascade, presets) |
+| ~~`specs/2026-04-06-large-source-synthesis-spec.md`~~ | ~~Large source note generation~~ → **implemented & archived** |
 | ~~`specs/future/2026-03-28-monitoring-design.md`~~ | ~~Monitoring~~ → **implemented & archived** |
 | ~~`specs/future/2026-03-29-security-design.md`~~ | ~~Security Phase 2~~ → **archived** |
 
@@ -69,6 +69,7 @@
 | **B2 — Security Phase 1+2** | **2026-04-04** | **Done — all hardening implemented, 30 tests pass, spec archived** |
 | **Web ingestion V1** | **2026-04-05** | **Done — single URL fetch, SSRF protection, 2-tier extraction, 4 e2e tests** |
 | **Monitoring (run tracking + observability)** | **2026-04-05** | **Done — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints, 6 new tests** |
+| **Large source synthesis** | **2026-04-14** | **Done — TOC + map-reduce cascade, merge template, `system_prompt_extra` chapter context, 14 new tests** |
 
 ---
 
@@ -117,7 +118,7 @@
 8. ~~**B2 — Security Phase 1+2**~~ — **DONE**
 9. ~~**Web ingestion V1**~~ — **DONE**
 10. ~~**Monitoring (run tracking)**~~ — **DONE**
-11. **Large source synthesis** — spec written, needs plan + impl
+11. ~~**Large source synthesis**~~ — **DONE** (TOC + map-reduce cascade, merge template)
 12. **Search quality (reranking)** — needs brainstorm
 13. ~~**Onboarding / DX (Getting Started guide)**~~ — **DONE** (docs/GETTING-STARTED.md)
 14. **Evaluation framework** — needs brainstorm
