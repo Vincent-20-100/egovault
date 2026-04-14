@@ -58,3 +58,33 @@ def test_split_by_tokens_section_titles_are_indexed():
     sections = _split_by_tokens(text, chunk_size=50)
     assert sections[0].title.startswith("Section 1")
     assert sections[-1].title.startswith(f"Section {len(sections)}")
+
+
+from core.config import NoteGenerationConfig
+
+
+def test_detect_strategy_returns_direct_below_threshold():
+    from tools.text.synthesize import _detect_strategy
+    cfg = NoteGenerationConfig(strategy="auto")
+    assert _detect_strategy("short text", context_window=100_000, threshold_ratio=0.6, cfg=cfg) == "direct"
+
+
+def test_detect_strategy_returns_toc_when_headings_present():
+    from tools.text.synthesize import _detect_strategy
+    cfg = NoteGenerationConfig(strategy="auto")
+    big = "# H1\n" + " ".join(["w"] * 200_000)
+    assert _detect_strategy(big, context_window=10_000, threshold_ratio=0.6, cfg=cfg) == "toc"
+
+
+def test_detect_strategy_returns_map_reduce_when_no_headings():
+    from tools.text.synthesize import _detect_strategy
+    cfg = NoteGenerationConfig(strategy="auto")
+    big = " ".join(["w"] * 200_000)
+    assert _detect_strategy(big, context_window=10_000, threshold_ratio=0.6, cfg=cfg) == "map-reduce"
+
+
+def test_detect_strategy_honors_explicit_override():
+    from tools.text.synthesize import _detect_strategy
+    cfg = NoteGenerationConfig(strategy="map-reduce")
+    big = "# H1\n" + " ".join(["w"] * 200_000)
+    assert _detect_strategy(big, context_window=10_000, threshold_ratio=0.6, cfg=cfg) == "map-reduce"

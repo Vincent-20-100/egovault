@@ -78,3 +78,24 @@ def _split_by_tokens(text: str, chunk_size: int) -> list[Section]:
         )
         for i, chunk in enumerate(chunks)
     ]
+
+
+def _detect_strategy(
+    text: str,
+    context_window: int,
+    threshold_ratio: float,
+    cfg: NoteGenerationConfig,
+) -> Strategy:
+    """Decide which synthesis path to take."""
+    if cfg.strategy != "auto":
+        # Explicit override wins, except web-search which is not handled here
+        if cfg.strategy in ("direct", "toc", "map-reduce"):
+            return cfg.strategy
+        return "map-reduce"
+
+    if estimate_tokens(text) <= context_window * threshold_ratio:
+        return "direct"
+
+    if _split_by_toc(text):
+        return "toc"
+    return "map-reduce"
