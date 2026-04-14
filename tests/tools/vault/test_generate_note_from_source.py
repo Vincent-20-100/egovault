@@ -141,3 +141,36 @@ def test_generate_note_custom_template(ctx):
     # Verify generate was called with the template argument
     call_args = mock_generate.call_args
     assert call_args[0][2] == "standard"  # third positional arg is template
+
+
+def test_generate_note_uses_synthesize_for_large_source(ctx):
+    from tools.vault.generate_note_from_source import generate_note_from_source
+
+    # Build a source whose transcript exceeds the threshold
+    big_transcript = " ".join(["word"] * 200_000)  # ~266k tokens estimated
+    ctx.db.insert_source(_make_source(transcript=big_transcript))
+
+    fake_content = _make_content()
+    test_ctx = _ctx_with_generate(ctx)
+
+    with patch("tools.vault.generate_note_from_source.synthesize_large_source") as mock_synth, \
+         patch("tools.vault.generate_note_from_source.get_context_window", return_value=10_000):
+        mock_synth.return_value = fake_content
+        result = generate_note_from_source("src-1", test_ctx)
+
+    mock_synth.assert_called_once()
+    assert result.note.title == fake_content.title
+
+
+def test_generate_note_uses_direct_path_for_small_source(ctx):
+    from tools.vault.generate_note_from_source import generate_note_from_source
+
+    ctx.db.insert_source(_make_source(uid="src-small", slug="src-small", transcript="short transcript content"))
+    test_ctx = _ctx_with_generate(ctx)
+
+    with patch("tools.vault.generate_note_from_source.synthesize_large_source") as mock_synth, \
+         patch("tools.vault.generate_note_from_source.get_context_window", return_value=200_000):
+        result = generate_note_from_source("src-small", test_ctx)
+
+    mock_synth.assert_not_called()
+    assert result.note.status == "draft"

@@ -4,6 +4,10 @@ Generate a draft note from an ingested source via the configured LLM.
 Input  : source_uid (str) + VaultContext + optional template name
 Output : NoteResult with note.status == 'draft'
 
+Branches on source size:
+- Small source (fits in context window × direct_threshold_ratio) → direct LLM call.
+- Large source → multi-pass synthesis cascade via synthesize_large_source.
+
 The note is immediately embedded and searchable. It must be approved
 (status set to 'active') before the source is finalized as vaulted.
 """
@@ -13,7 +17,10 @@ from datetime import date
 
 from core.context import VaultContext
 from core.schemas import Note, NoteResult, NoteSystemFields
+from core.tokens import estimate_tokens
 from core.uid import generate_uid, make_unique_slug
+from infrastructure.llm_provider import get_context_window
+from tools.text.synthesize import synthesize_large_source
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +53,29 @@ def generate_note_from_source(
         "source_type": source.source_type,
     }
 
-    # ctx.generate holds the LLM callable; None means no LLM configured
     if ctx.generate is None:
         raise ValueError("No LLM provider configured. Cannot generate note content.")
 
-    content_input = ctx.generate(source.transcript or "", metadata, template)
+    # Branch: direct vs multi-pass synthesis based on source size vs context window
+    transcript = source.transcript or ""
+    context_window = get_context_window(ctx.settings)
+    threshold_ratio = ctx.settings.system.llm.direct_threshold_ratio
+    needs_multipass = estimate_tokens(transcript) > context_window * threshold_ratio
 
-    # Fetch existing slugs to guarantee uniqueness
+    if needs_multipass:
+        logger.info(
+            "source %s exceeds threshold (%d tokens > %d * %.2f) — using synthesis cascade",
+            source_uid, estimate_tokens(transcript), context_window, threshold_ratio,
+        )
+        content_input = synthesize_large_source(
+            source=source,
+            ctx=ctx,
+            template=template,
+            context_window=context_window,
+        )
+    else:
+        content_input = ctx.generate(transcript, metadata, template)
+
     existing_slugs = ctx.db.get_existing_slugs("notes")
 
     today = date.today().isoformat()
