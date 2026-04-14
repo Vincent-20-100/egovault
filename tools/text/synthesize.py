@@ -99,3 +99,17 @@ def _detect_strategy(
     if _split_by_toc(text):
         return "toc"
     return "map-reduce"
+
+
+def _format_sub_notes_for_merge(sub_notes: list[NoteContentInput]) -> str:
+    """Render sub-notes as a single text block for the merge LLM call."""
+    parts = []
+    for i, note in enumerate(sub_notes, start=1):
+        parts.append(
+            f"=== SUB-NOTE {i} / {len(sub_notes)} ===\n"
+            f"Title: {note.title}\n"
+            f"Docstring: {note.docstring}\n"
+            f"Tags: {', '.join(note.tags)}\n\n"
+            f"{note.body}"
+        )
+    return "\n\n---\n\n".join(parts)

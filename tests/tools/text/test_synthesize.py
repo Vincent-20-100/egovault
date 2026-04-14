@@ -88,3 +88,28 @@ def test_detect_strategy_honors_explicit_override():
     cfg = NoteGenerationConfig(strategy="map-reduce")
     big = "# H1\n" + " ".join(["w"] * 200_000)
     assert _detect_strategy(big, context_window=10_000, threshold_ratio=0.6, cfg=cfg) == "map-reduce"
+
+
+def test_format_sub_notes_for_merge_produces_concatenated_text():
+    from tools.text.synthesize import _format_sub_notes_for_merge
+    from core.schemas import NoteContentInput
+    notes = [
+        NoteContentInput(
+            title="Chapter 1: Origins",
+            docstring="Short summary.",
+            body="Body of chapter 1 with enough length.",
+            tags=["origins"],
+        ),
+        NoteContentInput(
+            title="Chapter 2: Growth",
+            docstring="Another summary.",
+            body="Body of chapter 2 with enough length.",
+            tags=["growth", "expansion"],
+        ),
+    ]
+    result = _format_sub_notes_for_merge(notes)
+    assert "Chapter 1: Origins" in result
+    assert "Chapter 2: Growth" in result
+    assert "origins" in result
+    assert "growth" in result
+    assert "Body of chapter 1" in result
