@@ -14,6 +14,7 @@ embedding:
 llm:
   provider: claude           # claude | openai | ollama
   model: claude-sonnet-4-6
+  quality_preset: balanced   # quick | balanced | quality
 
 vault:
   content_language: fr                    # language for notes, tags, slugs

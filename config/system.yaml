@@ -17,6 +17,15 @@ llm:
   large_format_threshold_tokens: 50000
                      # Sources exceeding this threshold are indexed for RAG
                      # but note generation is blocked. See large format policy in spec.
+  context_window: null              # auto-detect if null
+  direct_threshold_ratio: 0.6       # source > window * ratio → multi-pass
+
+note_generation:
+  strategy: auto                    # auto | direct | toc | map-reduce | web-search
+  merge_chunk_size: 5000
+  max_sub_notes: 40
+  web_search_summary: false
+  cache_intermediate: false
 
 upload:
   max_audio_mb: 500  # max audio/video file size for ingest (MB)

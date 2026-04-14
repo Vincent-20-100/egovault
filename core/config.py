@@ -5,6 +5,7 @@ Loads and merges system, user, and install configurations.
 Validated via Pydantic at startup — missing fields fail fast.
 """
 
+from typing import Literal
 from pydantic import BaseModel
 from pathlib import Path
 
@@ -55,10 +56,19 @@ class WebConfig(BaseModel):
     max_redirects: int = 5
 
 
+class NoteGenerationConfig(BaseModel):
+    strategy: Literal["auto", "direct", "toc", "map-reduce", "web-search"] = "auto"
+    merge_chunk_size: int = 5000
+    max_sub_notes: int = 40
+    web_search_summary: bool = False
+    cache_intermediate: bool = False
+
+
 class SystemConfig(BaseModel):
     chunking: ChunkingConfig
     embedding: EmbeddingConfig = EmbeddingConfig()
     llm: LLMSystemConfig
+    note_generation: NoteGenerationConfig = NoteGenerationConfig()
     upload: UploadConfig = UploadConfig()
     web: WebConfig = WebConfig()
     taxonomy: TaxonomyConfig
@@ -77,6 +87,7 @@ class LLMUserConfig(BaseModel):
     provider: str = "ollama"
     model: str = "llama3"
     auto_generate_note: bool = False
+    quality_preset: Literal["quick", "balanced", "quality"] = "balanced"
 
 
 class VaultUserConfig(BaseModel):
