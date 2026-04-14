@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="EgoVault — Long-term memory for you and your LLM." width="900">
+</p>
+
 # EgoVault
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -41,51 +45,71 @@ You or your LLM searches your vault. It finds your note *and* the exact passage 
 ## How It Works
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif','fontSize':'15px','primaryColor':'#0B4527','primaryTextColor':'#F5F9F4','primaryBorderColor':'#0B4527','lineColor':'#0B4527','secondaryColor':'#3C8A5F','tertiaryColor':'#8FE0A0'}}}%%
 flowchart TD
+    classDef source fill:#3C8A5F,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef engine fill:#0B4527,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef human fill:#3C8A5F,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef store fill:#E8B830,stroke:#0B4527,stroke-width:3px,color:#0B4527
+    classDef access fill:#0B4527,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+
     subgraph SOURCES["One source at a time"]
-        Y["YouTube URL"]
-        A["Audio / Video file"]
-        P["PDF / Book"]
-        I["Your idea · LLM output\nno external source needed"]
+        Y["YouTube URL"]:::source
+        A["Audio / Video file"]:::source
+        P["PDF / Book"]:::source
+        I["Your idea · LLM output no external source needed"]:::source
     end
 
     subgraph ENGINE["EgoVault Engine — fully local"]
-        T["Transcription\nfaster-whisper · yt-dlp · pypdf"]
-        C["Chunking + Embedding\nsqlite-vec · Ollama · local vectors"]
-        L["Note draft  (optional LLM)\nPydantic-validated output"]
-        H(["You review & validate"])
-        DB[("vault.db\nSQLite + sqlite-vec\nsingle source of truth")]
-        VLT["vault/notes/\nMarkdown for Obsidian"]
+        T["Transcription faster-whisper · yt-dlp · pypdf"]:::engine
+        C["Chunking + Embedding sqlite-vec · Ollama · local vectors"]:::engine
+        L["Note draft  (optional LLM) Pydantic-validated output"]:::engine
+        H(["You review & validate"]):::human
+        DB[("vault.db SQLite + sqlite-vec single source of truth")]:::store
+        VLT["vault/notes/ Markdown for Obsidian"]:::engine
     end
 
     subgraph ACCESS["Two ways in"]
-        OB["Obsidian\nvisual · tags · graph · links"]
-        MCP["MCP Server\nany LLM · targeted RAG"]
+        OB["Obsidian visual · tags · graph · links"]:::access
+        MCP["MCP Server any LLM · targeted RAG"]:::access
     end
 
     Y & A & P --> T --> C --> L --> H --> DB
     I --> H
     DB --> VLT --> OB
     DB --> MCP
+
+    style SOURCES fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+    style ENGINE fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+    style ACCESS fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+
+    linkStyle default stroke:#0B4527,stroke-width:2.5px
 ```
 
 The pipeline is split by design. Transcription is saved before any LLM step — close the laptop mid-way, nothing is lost.
 
 ---
 
-## What Makes It Different
+## What Makes It Different 
 
 ### The vault scales — quality never degrades
 
 Most tools send your full vault to the LLM. At 200 notes it works. At 500 notes it starts breaking. At 1,000 notes, quality collapses. EgoVault never sends the full vault. Three search modes, each precise:
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif','fontSize':'15px','primaryColor':'#0B4527','primaryTextColor':'#F5F9F4','primaryBorderColor':'#0B4527','lineColor':'#0B4527','secondaryColor':'#3C8A5F','tertiaryColor':'#8FE0A0'}}}%%
 flowchart LR
-    Q["Your question"] --> M1["By tags\nyour intentional structure\n→ thematic navigation"]
-    Q --> M2["RAG on notes\nsemantic search across\nyour syntheses"]
-    Q --> M3["RAG on transcripts\nverbatim search across\nfull source content"]
+    classDef question fill:#3C8A5F,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef mode fill:#0B4527,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef result fill:#E8B830,stroke:#0B4527,stroke-width:3px,color:#0B4527
 
-    M1 & M2 & M3 --> LLM["LLM receives\n3–5 targeted results\nnever the full vault"]
+    Q["Your question"]:::question --> M1["By tags · your intentional structure · thematic navigation"]:::mode
+    Q --> M2["RAG on notes · semantic search across your syntheses"]:::mode
+    Q --> M3["RAG on transcripts · verbatim search across full source content"]:::mode
+
+    M1 & M2 & M3 --> LLM["LLM receives 3–5 targeted results · never the full vault"]:::result
+
+    linkStyle default stroke:#0B4527,stroke-width:2.5px
 ```
 
 **By tags** — you navigate by the thematic structure *you* built. A query in `[risk, epistemology]` skips everything else instantly.
@@ -127,23 +151,33 @@ Two levels of depth. One query. Zero information lost.
 ### Human + Machine — one vault, two ways in
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif','fontSize':'15px','primaryColor':'#0B4527','primaryTextColor':'#F5F9F4','primaryBorderColor':'#0B4527','lineColor':'#0B4527','secondaryColor':'#3C8A5F','tertiaryColor':'#8FE0A0'}}}%%
 flowchart LR
+    classDef human fill:#3C8A5F,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef machine fill:#0B4527,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
+    classDef store fill:#E8B830,stroke:#0B4527,stroke-width:3px,color:#0B4527
+
     subgraph YOU["You — Obsidian"]
-        NAV["Browse tags & graph\nvisual, intuitive"]
-        READ["Read notes & sources\nfollow links to originals"]
-        ANNO["Annotate & connect\nyour thinking layer"]
+        NAV["Browse tags & graph · visual, intuitive"]:::human
+        READ["Read notes & sources · follow links to originals"]:::human
+        ANNO["Annotate & connect · your thinking layer"]:::human
     end
 
     subgraph LLM["Your LLM — via MCP"]
-        ASK["Ask in natural language"]
-        GET["Receives targeted context\n3–5 relevant notes only"]
-        ANS["Answers from your knowledge\nnot the internet"]
+        ASK["Ask in natural language"]:::machine
+        GET["Receives targeted context · 3–5 relevant notes only"]:::machine
+        ANS["Answers from your knowledge · not the internet"]:::machine
     end
 
-    DB[("vault.db\nnotes · sources · embeddings · tags")]
+    DB[("vault.db · notes · sources · embeddings · tags")]:::store
 
     YOU <-->|"Markdown sync"| DB
     LLM <-->|"tag filter + semantic search"| DB
+
+    style YOU fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+    style LLM fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+
+    linkStyle default stroke:#0B4527,stroke-width:2.5px
 ```
 
 A note you write in Obsidian is immediately searchable via MCP. A source ingested via the pipeline is immediately navigable in the graph. **One vault. Two ways in.**
