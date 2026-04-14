@@ -113,3 +113,90 @@ def test_format_sub_notes_for_merge_produces_concatenated_text():
     assert "origins" in result
     assert "growth" in result
     assert "Body of chapter 1" in result
+
+
+def test_synthesize_large_source_runs_toc_strategy_and_merges():
+    from unittest.mock import MagicMock
+    from tools.text.synthesize import synthesize_large_source
+    from core.config import NoteGenerationConfig
+    from core.schemas import NoteContentInput
+
+    transcript = (
+        "# Chapter 1\n" + " ".join(["w"] * 5000) + "\n"
+        "# Chapter 2\n" + " ".join(["w"] * 5000) + "\n"
+        "# Chapter 3\n" + " ".join(["w"] * 5000) + "\n"
+    )
+    source = MagicMock()
+    source.transcript = transcript
+    source.title = "Big Book"
+    source.url = None
+    source.author = "Anon"
+    source.date_source = None
+    source.source_type = "book"
+
+    sub_call_count = {"n": 0}
+
+    def fake_generate(content, metadata, template_name, system_prompt_extra=None):
+        if template_name == "merge":
+            return NoteContentInput(
+                title="Big Book — synthesis",
+                docstring="Final thesis here.",
+                body="## Merged body\n\ncontent here long enough.",
+                tags=["merged"],
+            )
+        sub_call_count["n"] += 1
+        return NoteContentInput(
+            title=f"Sub note {sub_call_count['n']}",
+            docstring="sub doc text.",
+            body="sub body content long enough.",
+            tags=[f"sub-{sub_call_count['n']}"],
+        )
+
+    ctx = MagicMock()
+    ctx.generate = fake_generate
+    ctx.settings.system.note_generation = NoteGenerationConfig()
+    ctx.settings.system.llm.direct_threshold_ratio = 0.6
+
+    result = synthesize_large_source(
+        source=source,
+        ctx=ctx,
+        template="standard",
+        context_window=1000,  # forces multi-pass
+    )
+
+    assert result.title == "Big Book — synthesis"
+    assert "merged" in result.tags
+    assert sub_call_count["n"] == 3   # one per chapter
+
+
+def test_synthesize_large_source_respects_max_sub_notes_cap():
+    from unittest.mock import MagicMock
+    from tools.text.synthesize import synthesize_large_source
+    from core.config import NoteGenerationConfig
+    from core.schemas import NoteContentInput
+
+    # 100 chapters
+    transcript = "".join(f"# Chapter {i}\n" + " ".join(["w"] * 100) + "\n" for i in range(100))
+    source = MagicMock()
+    source.transcript = transcript
+    source.title = "Huge Book"
+    source.url = None
+    source.author = None
+    source.date_source = None
+    source.source_type = "book"
+
+    def fake_generate(content, metadata, template_name, system_prompt_extra=None):
+        return NoteContentInput(
+            title="sub title ok",
+            docstring="docstring ok.",
+            body="body content long enough here.",
+            tags=["t"],
+        )
+
+    ctx = MagicMock()
+    ctx.generate = fake_generate
+    ctx.settings.system.note_generation = NoteGenerationConfig(max_sub_notes=5)
+    ctx.settings.system.llm.direct_threshold_ratio = 0.6
+
+    with pytest.raises(ValueError, match="exceeds max_sub_notes"):
+        synthesize_large_source(source=source, ctx=ctx, template="standard", context_window=1000)

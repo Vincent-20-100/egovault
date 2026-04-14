@@ -113,3 +113,76 @@ def _format_sub_notes_for_merge(sub_notes: list[NoteContentInput]) -> str:
             f"{note.body}"
         )
     return "\n\n---\n\n".join(parts)
+
+
+def _source_metadata(source: Source) -> dict:
+    return {
+        "title": source.title,
+        "url": source.url,
+        "author": source.author,
+        "date_source": source.date_source,
+        "source_type": source.source_type,
+    }
+
+
+def synthesize_large_source(
+    source: Source,
+    ctx: VaultContext,
+    template: str,
+    context_window: int,
+) -> NoteContentInput:
+    """Generate a NoteContentInput from a source that exceeds the context window.
+
+    Caller is responsible for the threshold check. This function ALWAYS performs
+    the multi-pass cascade — call it only when direct generation is not viable.
+    """
+    if ctx.generate is None:
+        raise ValueError("No LLM provider configured. Cannot synthesize note content.")
+
+    transcript = source.transcript or ""
+    cfg = ctx.settings.system.note_generation
+    threshold_ratio = ctx.settings.system.llm.direct_threshold_ratio
+
+    strategy = _detect_strategy(transcript, context_window, threshold_ratio, cfg)
+
+    if strategy == "direct":
+        # Caller should have routed direct itself; defensive fall-through.
+        return ctx.generate(
+            transcript,
+            _source_metadata(source),
+            template,
+        )
+
+    if strategy == "toc":
+        sections = _split_by_toc(transcript)
+    else:
+        sections = _split_by_tokens(transcript, cfg.merge_chunk_size)
+
+    if len(sections) > cfg.max_sub_notes:
+        raise ValueError(
+            f"Source split into {len(sections)} sections, exceeds max_sub_notes={cfg.max_sub_notes}. "
+            "Raise max_sub_notes in system.yaml or increase merge_chunk_size."
+        )
+
+    sub_notes: list[NoteContentInput] = []
+    for section in sections:
+        chapter_context = (
+            f"You are synthesizing section {section.index + 1} of {section.total} "
+            f"from the source titled '{source.title}'.\n"
+            f"Section title: {section.title}\n"
+            f"Focus only on this section. The final note will fuse all sections."
+        )
+        sub_note = ctx.generate(
+            section.content,
+            _source_metadata(source),
+            template,
+            system_prompt_extra=chapter_context,
+        )
+        sub_notes.append(sub_note)
+
+    merge_input = _format_sub_notes_for_merge(sub_notes)
+    return ctx.generate(
+        merge_input,
+        _source_metadata(source),
+        "merge",
+    )
