@@ -31,6 +31,8 @@ class ChunkingConfig(BaseModel):
 class LLMSystemConfig(BaseModel):
     max_retries: int = 2
     large_format_threshold_tokens: int = 50000
+    context_window: int | None = None     # auto-detect if None
+    direct_threshold_ratio: float = 0.6   # source > window * ratio → multi-pass
 
 
 class UploadConfig(BaseModel):

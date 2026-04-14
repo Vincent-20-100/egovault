@@ -3,6 +3,7 @@ LLM provider with structured output and validation retry.
 """
 
 import json
+import urllib.request
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -105,3 +106,57 @@ def _generate_anthropic(
         f"LLM failed to produce valid NoteContentInput after {max_retries + 1} attempts. "
         f"Last error: {last_error}"
     )
+
+
+# Hardcoded mapping for known API providers (max input window).
+_KNOWN_CONTEXT_WINDOWS: dict[tuple[str, str], int] = {
+    ("claude", "claude-opus-4-6"): 200_000,
+    ("claude", "claude-sonnet-4-6"): 200_000,
+    ("claude", "claude-haiku-4-5-20251001"): 200_000,
+    ("openai", "gpt-4"): 128_000,
+    ("openai", "gpt-4o"): 128_000,
+}
+
+_FALLBACK_CONTEXT_WINDOW = 8192
+
+
+def get_context_window(settings: Settings) -> int:
+    """Resolve the LLM context window in tokens.
+
+    Resolution order:
+    1. settings.system.llm.context_window if set
+    2. Provider-specific lookup (Ollama API call or hardcoded map)
+    3. Conservative fallback (8192)
+    """
+    explicit = settings.system.llm.context_window
+    if explicit is not None:
+        return explicit
+
+    provider = settings.user.llm.provider
+    model = settings.user.llm.model
+
+    if provider == "ollama":
+        try:
+            return _fetch_ollama_context_length(settings, model)
+        except Exception:
+            return _FALLBACK_CONTEXT_WINDOW
+
+    return _KNOWN_CONTEXT_WINDOWS.get((provider, model), _FALLBACK_CONTEXT_WINDOW)
+
+
+def _fetch_ollama_context_length(settings: Settings, model: str) -> int:
+    """Call Ollama /api/show to read model_info.context_length."""
+    base = settings.install.providers.ollama_base_url.rstrip("/")
+    req = urllib.request.Request(
+        f"{base}/api/show",
+        data=json.dumps({"name": model}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    info = data.get("model_info", {})
+    for key, value in info.items():
+        if key.endswith(".context_length") and isinstance(value, int):
+            return value
+    raise ValueError("context_length not found in /api/show response")

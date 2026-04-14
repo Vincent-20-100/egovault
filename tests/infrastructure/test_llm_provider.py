@@ -144,3 +144,28 @@ def test_generate_note_content_unknown_provider_raises(tmp_settings):
             template_name="standard",
             settings=bad_settings,
         )
+
+
+def test_get_context_window_returns_explicit_override():
+    from infrastructure.llm_provider import get_context_window
+    settings = MagicMock()
+    settings.system.llm.context_window = 32000
+    assert get_context_window(settings) == 32000
+
+
+def test_get_context_window_returns_claude_default_when_unset():
+    from infrastructure.llm_provider import get_context_window
+    settings = MagicMock()
+    settings.system.llm.context_window = None
+    settings.user.llm.provider = "claude"
+    settings.user.llm.model = "claude-opus-4-6"
+    assert get_context_window(settings) == 200_000
+
+
+def test_get_context_window_returns_conservative_fallback_for_unknown_provider():
+    from infrastructure.llm_provider import get_context_window
+    settings = MagicMock()
+    settings.system.llm.context_window = None
+    settings.user.llm.provider = "unknown"
+    settings.user.llm.model = "??"
+    assert get_context_window(settings) == 8192
