@@ -223,6 +223,12 @@ Your audio never leaves your machine. The transcript is saved before any LLM ste
 
 ---
 
+### Large source synthesis
+
+Sources that exceed the LLM context window (books, 3-hour interviews, long PDFs) are split automatically — by chapter when the markdown has H1/H2 headings, by token budget otherwise. Each section becomes a sub-note via your chosen template, then a final pass merges them into a single coherent note. Configurable via `note_generation.strategy` in `system.yaml`.
+
+---
+
 ### Custom generation templates *(coming soon)*
 
 The LLM will generate notes from a `.yaml` template you control. The default `standard` template will ship with the repo. Add your own with zero code changes:
