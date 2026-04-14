@@ -9,9 +9,6 @@
 [![100% Local](https://img.shields.io/badge/runs-100%25%20local-green.svg)](#quick-start)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io)
 
-Long-term memory for you and your LLM.
-*Capture, tag, search, recall.*
-
 EgoVault is a local knowledge pipeline — ingest YouTube videos, audio, PDFs, and ideas into a structured vault.   
 Browse it in Obsidian. Query it with any LLM via MCP with targeted RAG.
 
