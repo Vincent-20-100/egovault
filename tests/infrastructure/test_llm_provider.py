@@ -169,3 +169,37 @@ def test_get_context_window_returns_conservative_fallback_for_unknown_provider()
     settings.user.llm.provider = "unknown"
     settings.user.llm.model = "??"
     assert get_context_window(settings) == 8192
+
+
+def test_generate_note_content_appends_system_prompt_extra(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+
+    captured = {}
+    mock_message = MagicMock()
+    mock_message.content = [MagicMock(text='''{
+        "title": "Some valid title",
+        "docstring": "A valid docstring here.",
+        "body": "## body\\n\\nbody content here.",
+        "note_type": "synthese",
+        "source_type": "book",
+        "tags": ["t"],
+        "url": null
+    }''')]
+
+    def fake_create(**kwargs):
+        captured["system"] = kwargs["system"]
+        return mock_message
+
+    with patch("anthropic.Anthropic") as MockAnthropic:
+        mock_client = MockAnthropic.return_value
+        mock_client.messages.create.side_effect = fake_create
+
+        generate_note_content(
+            source_content="raw source text",
+            source_metadata={"title": "Book", "source_type": "book"},
+            template_name="standard",
+            settings=tmp_settings,
+            system_prompt_extra="Chapter 3 of 12 — context: foo bar",
+        )
+
+    assert "Chapter 3 of 12" in captured["system"]

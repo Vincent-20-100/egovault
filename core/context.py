@@ -29,13 +29,19 @@ class EmbedFn(Protocol):
 
 
 class GenerateFn(Protocol):
-    """Source content + metadata → structured note content via LLM."""
+    """Source content + metadata → structured note content via LLM.
+
+    `system_prompt_extra` is appended to the template's system_prompt at call
+    time, used by the synthesizer to inject per-chapter context without
+    creating a separate template file.
+    """
 
     def __call__(
         self,
         source_content: str,
         source_metadata: dict,
         template_name: str,
+        system_prompt_extra: str | None = None,
     ) -> NoteContentInput: ...
 
 

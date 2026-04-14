@@ -27,8 +27,10 @@ def build_context(settings: Settings) -> VaultContext:
     # LLM generation is optional — None when no provider is configured
     generate_fn = None
     if _llm_is_configured(settings):
-        generate_fn = lambda content, metadata, template: (  # noqa: E731
-            llm_provider.generate_note_content(content, metadata, template, settings)
+        generate_fn = lambda content, metadata, template, system_prompt_extra=None: (  # noqa: E731
+            llm_provider.generate_note_content(
+                content, metadata, template, settings, system_prompt_extra=system_prompt_extra
+            )
         )
 
     write_fn = lambda note, vault_path: vault_writer.write_note(note, vault_path)  # noqa: E731

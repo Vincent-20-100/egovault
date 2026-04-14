@@ -17,6 +17,7 @@ def generate_note_content(
     source_metadata: dict,
     template_name: str,
     settings: Settings,
+    system_prompt_extra: str | None = None,
 ) -> NoteContentInput:
     """
     Call the configured LLM to generate NoteContentInput from source content.
@@ -25,7 +26,9 @@ def generate_note_content(
     """
     provider = settings.user.llm.provider
     if provider == "claude":
-        return _generate_anthropic(source_content, source_metadata, template_name, settings)
+        return _generate_anthropic(
+            source_content, source_metadata, template_name, settings, system_prompt_extra
+        )
     elif provider == "openai":
         raise NotImplementedError(
             "LLM provider 'openai' is not implemented in v1. "
@@ -69,6 +72,7 @@ def _generate_anthropic(
     source_metadata: dict,
     template_name: str,
     settings: Settings,
+    system_prompt_extra: str | None = None,
 ) -> NoteContentInput:
     import anthropic
 
@@ -77,6 +81,9 @@ def _generate_anthropic(
     client = anthropic.Anthropic(api_key=api_key)
     max_retries = settings.system.llm.max_retries
     user_message = _build_user_message(source_content, source_metadata, template)
+    base_system = template["system_prompt"]
+    if system_prompt_extra:
+        base_system = f"{base_system}\n\n---\n\n{system_prompt_extra}"
     last_error: Exception | None = None
 
     for attempt in range(max_retries + 1):
@@ -89,7 +96,7 @@ def _generate_anthropic(
             message = client.messages.create(
                 model=settings.user.llm.model,
                 max_tokens=4096,
-                system=template["system_prompt"] + error_context,
+                system=base_system + error_context,
                 messages=[{"role": "user", "content": user_message}],
             )
         except Exception as e:
