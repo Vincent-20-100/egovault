@@ -78,3 +78,4 @@ taxonomy:
   # ============================================================
   generation_templates:
     - standard        # default: balanced extraction, ships with the repo
+    - merge           # internal: final synthesis of sub-notes for large sources

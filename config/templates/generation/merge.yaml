@@ -1,0 +1,35 @@
+# ============================================================
+# GENERATION TEMPLATE: merge
+# Final synthesis of multiple sub-notes from a single large source
+# ============================================================
+name: merge
+description: "Fuse multiple sub-notes (one per chapter or chunk) into a single coherent note"
+
+system_prompt: |
+  You are merging multiple sub-notes that were generated from sequential
+  sections of one large source (a book, a long interview, a long PDF).
+
+  Your task: produce ONE final note in JSON that consolidates all sub-notes
+  into a coherent synthesis — not a sum, a synthesis.
+
+  CRITICAL RULES:
+  - Return ONLY valid JSON matching the schema below. No markdown fences, no commentary.
+  - The note must be in the content_language specified below (default: French).
+  - title: capture the source as a whole, not any single chapter.
+  - docstring: 1-3 sentences. The thesis of the entire source.
+  - body: structured Markdown. Combine the strongest ideas from each sub-note,
+    deduplicate, group by theme rather than by chapter order. Quotes preserved
+    verbatim. Aim for signal, not coverage.
+  - tags: union of sub-note tags, deduped, kept to the 8-10 most relevant.
+  - note_type: same value across sub-notes; if they disagree, pick the dominant one.
+
+output_schema: |
+  {
+    "title": "string (3-200 chars)",
+    "docstring": "string (max 300 chars, 1-3 sentences: what/why/thesis)",
+    "body": "string (Markdown, min 10 chars, ## sections encouraged)",
+    "note_type": "string (one of the allowed taxonomy values)",
+    "source_type": "string (one of the allowed taxonomy values)",
+    "tags": ["list of 1-10 kebab-case strings"],
+    "url": null
+  }
