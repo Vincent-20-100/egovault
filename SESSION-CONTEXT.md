@@ -60,14 +60,21 @@ own LLM becomes the librarian via prompt. Zero extra infrastructure.
 
 ---
 
-## Priority: Timestamp intellectual property
+## OpenTimestamps — setup complete, awaiting user action
 
-**OpenTimestamps** — timestamp SHA256 hashes of key commits in the Bitcoin blockchain.
-Proves the vision/architecture existed at a given date. Free, open source, no trusted third party.
+**OpenTimestamps** is set up: script (`scripts/timestamp-release.sh`), docs (`docs/TIMESTAMPS.md`),
+and tags (v0.1.0, v0.2.0, v0.3.0) are all created. OTS calendar servers were unreachable from
+sandbox. **User must run from their machine:**
 
-**Next action:** Write a proper spec/vision document for the knowledge compiler + librarian
-pattern, then timestamp it. The ideas documented in FUTURE-WORK.md today are novel and
-should have provable antériority.
+```bash
+git push origin --tags
+bash scripts/timestamp-release.sh v0.1.0
+bash scripts/timestamp-release.sh v0.2.0
+bash scripts/timestamp-release.sh v0.3.0
+git add .timestamps/ && git commit -m "chore: add OTS proofs for v0.1.0, v0.2.0, v0.3.0"
+```
+
+Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 
 ---
 
@@ -108,9 +115,9 @@ should have provable antériority.
 
 | Item | Where documented | When to do |
 |------|-----------------|------------|
-| **Vision spec + OpenTimestamps** | SESSION-CONTEXT.md | **NEXT PRIORITY** |
-| Real-world testing | SESSION-CONTEXT.md | After vision spec timestamped |
-| Knowledge compiler (`curate()` tool) | `docs/FUTURE-WORK.md` | After real-world testing validates fundamentals |
+| ~~**Vision spec + OpenTimestamps**~~ | ~~SESSION-CONTEXT.md~~ | **DONE** — vision doc committed, OTS set up (user must push tags + stamp) |
+| **Real-world testing** | SESSION-CONTEXT.md | **NEXT PRIORITY** — validate fundamentals with real data |
+| **Knowledge compiler (`curate()` tool)** | `docs/VISION-KNOWLEDGE-COMPILER.md` | After real-world testing |
 | Pre-packaged librarian agent (AGENTS.md) | `docs/FUTURE-WORK.md` | After curate() exists |
 | Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | After real testing |
 | Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority brainstorm |
@@ -121,8 +128,8 @@ should have provable antériority.
 
 ## Open questions (require interactive discussion)
 
-1. **Vision spec scope** — how detailed? Whitepaper-style or concise manifesto? Who is the audience?
-2. **OpenTimestamps setup** — timestamp individual commits? Tags? The vision doc specifically?
-3. **Real-world testing plan** — which sources first? YouTube, PDFs, web pages?
+1. ~~**Vision spec scope**~~ — **RESOLVED**: concise vision doc (docs/VISION-KNOWLEDGE-COMPILER.md), not a whitepaper.
+2. ~~**OpenTimestamps setup**~~ — **RESOLVED**: v0.X.0 tags only, script enforces pattern, user must run from machine.
+3. **Real-world testing plan** — which sources first? YouTube, PDFs, web pages? What quality metrics?
 4. **curate() design** — what goes in the synthesis prompt? How to handle "no relevant results"?
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
