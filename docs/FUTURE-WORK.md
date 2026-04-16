@@ -141,9 +141,40 @@ applied to development:
 
 EgoVault could offer the same pattern to its users for their own knowledge.
 
+### Refined architecture — Librarian agent pattern
+
+The RAG layer is NOT dead — it changes client. Instead of serving the user directly,
+it serves a **librarian agent** that is far better at querying, cross-referencing,
+and filtering than any human.
+
+```
+User ↔ Conversational agent (no DB access, clean context window)
+              ↓ "I need info about X"
+        Librarian agent
+              ├── searches compiled notes (fast, dense, reliable)
+              ├── if insufficient → queries RAG chunks (precise, verbatim)
+              ├── can run MULTIPLE RAG queries internally
+              ├── cross-references, deduplicates, detects contradictions
+              ├── decides: return existing note? compile on-the-fly? cite a chunk?
+              ↓
+        Returns to conversational: sorted, synthesized, minimal context
+```
+
+**Why this works:**
+- Conversational agent context window stays clean — only relevant material enters
+- RAG precision is preserved (exact quotes, specific facts) but noise is filtered out
+- Librarian can compile multi-source syntheses that don't exist as notes yet
+- Each layer has exactly one job: converse, curate, or store
+
+**What this changes for EgoVault:**
+- `search` tool becomes an internal tool for the librarian, not a user-facing endpoint
+- New tool: `curate(query, conversation_context) → CuratedContext`
+- The curated context may contain: note excerpts, chunk quotes, on-the-fly synthesis
+- User-facing search becomes "ask the librarian" not "query the vector DB"
+
 ### What this does NOT mean
 
-- Not replacing RAG — adding a layer on top
+- Not replacing RAG — giving it a smarter client (the librarian)
 - Not requiring a rewrite — incremental, builds on existing tools
 - Not blocking current work — this is a future direction, not a prerequisite
 
