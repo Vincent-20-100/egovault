@@ -85,6 +85,73 @@ Combine chunks from multiple sources into a coherent context window before LLM g
 
 ---
 
-*Extracted from the main spec during the 2026-03-28 consolidation.*
-*RAG improvements section added 2026-03-30.*
-*Feed this file as conversations progress; do not leave these ideas in CLAUDE.md or ARCHITECTURE.md.*
+## Architecture pivot — Knowledge compiler + Agent retrieval (2026-03-31)
+
+*Inspired by Andrej Karpathy's LLM Wiki pattern and the agentify project.*
+
+### The insight
+
+RAG retrieves chunks then forgets. A knowledge compiler **accumulates and densifies**
+knowledge over time. EgoVault already has the seed: `generate_note_from_source` digests
+a source into a structured note. But it stops there — search still returns raw chunks.
+
+### Two-layer architecture
+
+**Layer 1 — RAG on sources (keep as-is)**
+Chunk → embed → search over raw source material. Good for precise retrieval,
+exact quotes, specific facts. This is the current system and it works.
+
+**Layer 2 — Compiled knowledge on notes (new)**
+Notes are the distilled, human-validated knowledge. As notes accumulate, they form
+a compiled knowledge base that is denser and more reliable than raw chunks.
+Notes get re-embedded as they evolve (already implemented: `embed_note`).
+A "big note" could be a synthesis of multiple sources — not just one source per note.
+
+### Agent-based retrieval (the real evolution)
+
+Instead of dumping top-K chunks into the context window:
+
+1. **Context agent** reads the current conversation to understand what the user actually needs
+2. **Retrieval agent** searches both layers (source chunks + compiled notes), scores relevance
+3. **Synthesis agent** produces a **short list or mini-synthesis** from retrieved material
+4. Only the **useful, distilled result** enters the conversation context window
+
+This is fundamentally different from RAG:
+- RAG: query → retrieve chunks → stuff into context → hope the LLM figures it out
+- Agent retrieval: understand intent → search → synthesize → inject only what's relevant
+
+### Confidence scores + temporal decay
+
+Each fact (chunk, note, synthesis) carries a confidence score:
+- Raw chunk from a single source: base confidence
+- Confirmed by multiple sources: confidence increases
+- Contradicted by newer source: confidence decreases
+- Older facts without reconfirmation: gradual decay
+- Human-validated notes: high confidence, slow decay
+
+This mirrors human memory: repeated exposure strengthens, time without use weakens.
+
+### Connection to our own dev workflow
+
+Our 3-file system (CLAUDE.md, PROJECT-STATUS.md, SESSION-CONTEXT.md) is exactly this pattern
+applied to development:
+- CLAUDE.md = compiled knowledge (high confidence, slow change)
+- SESSION-CONTEXT.md = working memory (rewritten, consolidated each session)
+- PROJECT-STATUS.md = state (factual, updated frequently)
+
+EgoVault could offer the same pattern to its users for their own knowledge.
+
+### What this does NOT mean
+
+- Not replacing RAG — adding a layer on top
+- Not requiring a rewrite — incremental, builds on existing tools
+- Not blocking current work — this is a future direction, not a prerequisite
+
+### Prerequisites
+
+- Unified ingest workflow (in progress)
+- VaultContext refactoring (pending)
+- Multi-source note synthesis tool (new, not yet specced)
+- Agent framework for retrieval (new, needs dedicated brainstorm)
+
+---
