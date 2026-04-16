@@ -11,7 +11,13 @@
 
 ## Next action
 
-**Real-world testing** — ingest actual sources, test RAG + note generation quality. Then iterate on search quality and large source synthesis.
+**1. Vision spec + OpenTimestamps** — write a proper spec documenting the Knowledge Compiler
++ Librarian Agent pattern, then timestamp it via OpenTimestamps for provable antériority.
+
+**2. Real-world testing** — ingest actual sources, test RAG + note generation quality.
+
+See `docs/FUTURE-WORK.md` § "Architecture pivot" for the full vision.
+See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 ---
 
@@ -137,3 +143,4 @@
 | 2026-04-04 | `claude/brainstorming-pending-ideas-5zR2H` | **metadev-protocol adoption executed** — split CLAUDE.md (408→109 lines law + 193 lines mentor), renamed docs/superpowers/ → .meta/, created 3 project skills (save-progress, lint, test), configured Superpowers output paths. Git rebase completed and pushed. |
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
 | 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |
+| 2026-04-16 | `claude/check-project-status-6VthL` → `main` | **Product vision shift** — Knowledge Compiler + Librarian Agent pattern (inspired by Karpathy LLM Wiki + agentify). Two-layer architecture (RAG on sources + compiled knowledge on notes). Librarian as smart tool with isolated LLM call, not autonomous agent. Tiered approach (tier 0 deterministic, tier 1 with LLM). Pre-packaged agent for MCP clients. OpenTimestamps for IP antériority. All documented in FUTURE-WORK.md. |

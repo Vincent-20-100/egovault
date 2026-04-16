@@ -172,6 +172,48 @@ User ↔ Conversational agent (no DB access, clean context window)
 - The curated context may contain: note excerpts, chunk quotes, on-the-fly synthesis
 - User-facing search becomes "ask the librarian" not "query the vector DB"
 
+### Implementation decision — Librarian as smart tool, not autonomous agent
+
+The librarian is NOT a separate project or an internal agent loop. It's a **tool that uses
+one LLM call as a subroutine**, exactly like `generate_note_from_source` already does:
+
+```python
+def curate(query: str, ctx: VaultContext) -> CuratedContext:
+    notes = search_notes(query, ctx, top_k=5)       # deterministic
+    chunks = search_chunks(query, ctx, top_k=10)     # deterministic
+    synthesis = ctx.get_completion(curation_prompt)   # isolated LLM call, separate context
+    return CuratedContext(synthesis=synthesis, sources=cited_sources)
+```
+
+The LLM call has its own **isolated context** — it doesn't see the conversation, only
+the query + search results. This keeps it testable, mockable, and deterministic-except-one-call.
+
+### Tiered approach — works without LLM too
+
+| Tier | What `curate()` does | Dependency |
+|------|---------------------|------------|
+| 0 | Search + rank by similarity score + truncate top-K → return sorted raw results | **Nothing** (pure deterministic) |
+| 1 | Tier 0 + LLM synthesis (select, deduplicate, summarize) | LLM local or API key |
+
+Tier 0 means EgoVault is **fully functional without any LLM**. A Claude Code Premium user
+with no local LLM gets pre-filtered results; the conversational LLM compensates by doing
+its own synthesis from the tier 0 output. Less elegant, but it works.
+
+**Principle:** Every feature has a tier 0 deterministic baseline. LLM is an accelerator,
+never a prerequisite.
+
+### Pre-packaged librarian agent for MCP clients
+
+For users with Claude Code or any MCP client, provide a ready-to-use agent prompt:
+
+```
+.claude/rules/vault-usage.md  ← "when user asks a knowledge question, call curate() first"
+AGENTS.md                     ← librarian agent definition, ready to use
+```
+
+The user's own LLM **becomes** the librarian via the prompt. Zero extra infrastructure.
+This also opens the door to other pre-packaged agents (summarizer, note-linker, etc.).
+
 ### What this does NOT mean
 
 - Not replacing RAG — giving it a smarter client (the librarian)
