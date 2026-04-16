@@ -1,8 +1,7 @@
 # Plan: OpenTimestamps — Prouver l'antériorité des idées EgoVault
 
 **Date:** 2026-04-16
-**Spec:** Aucune spec formelle nécessaire — c'est de l'outillage, pas une feature produit.
-**Objectif:** Chaque commit est timestampé dans la blockchain Bitcoin.
+**Objectif:** Chaque milestone majeur (v0.X.0) est timestampé dans la blockchain Bitcoin.
 
 ---
 
@@ -15,9 +14,15 @@ de Merkle. Gratuit, open source, sans tiers de confiance.
 - Confirmation blockchain : 1-2 heures (agrégation en batch)
 - Coût : 0
 
-**Approche : timestamper le hash du commit git, pas les fichiers individuels.**
-Un commit git EST un hash de tout son contenu (fichiers, message, parenté, auteur, date).
-Timestamper 1 hash de commit = prouver l'état complet du repo à cette date.
+## Règle de timestamping
+
+**Seuls les tags v0.X.0 sont timestampés. Pas de v0.X.Y, pas de commits individuels.**
+
+Un tag git pointe vers un commit. Le commit EST un hash de tout le repo (fichiers, message,
+parenté, auteur, date). Timestamper le tag = prouver l'état complet du repo à cette date.
+
+Si un changement mérite un timestamp, il mérite d'être un v0.X.0.
+Si c'est juste une feature ou un fix, c'est un commit normal sans timestamp.
 
 ---
 
@@ -32,102 +37,102 @@ ots --version
 
 ---
 
-## Step 2 — Créer le dossier et le script
+## Step 2 — Créer le script de timestamping
 
-**Fichiers:** `.timestamps/` (dossier), `scripts/timestamp-commit.sh`
-**Do:**
+**Fichier:** `scripts/timestamp-release.sh`
 
 ```bash
 #!/bin/bash
-# scripts/timestamp-commit.sh — timestamp the latest commit hash
-# Called by post-commit hook or manually
+# scripts/timestamp-release.sh — timestamp a version tag
+# Usage: bash scripts/timestamp-release.sh v0.3.0
 
-command -v ots >/dev/null 2>&1 || { echo "[OTS] ots not installed, skipping"; exit 0; }
+set -e
+command -v ots >/dev/null 2>&1 || { echo "ERROR: ots not installed (pip install opentimestamps-client)"; exit 1; }
+
+TAG="${1:?Usage: $0 <tag>}"
+
+# Verify tag exists
+git rev-parse "$TAG" >/dev/null 2>&1 || { echo "ERROR: tag $TAG does not exist"; exit 1; }
+
+# Only allow v0.X.0 tags
+[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.0$ ]] || { echo "ERROR: only v0.X.0 tags are timestamped"; exit 1; }
 
 TIMESTAMP_DIR=".timestamps"
 mkdir -p "$TIMESTAMP_DIR"
 
-COMMIT_HASH=$(git rev-parse HEAD)
-SHORT_HASH=$(git rev-parse --short HEAD)
-OTS_FILE="$TIMESTAMP_DIR/$COMMIT_HASH.ots"
+COMMIT_HASH=$(git rev-parse "$TAG")
+OTS_FILE="$TIMESTAMP_DIR/$TAG.ots"
 
-# Don't re-stamp if already timestamped
-[ -f "$OTS_FILE" ] && exit 0
+[ -f "$OTS_FILE" ] && { echo "$TAG already timestamped"; exit 0; }
 
-echo -n "$COMMIT_HASH" | ots stamp /dev/stdin -O "$OTS_FILE" 2>/dev/null
-echo "[OTS] Timestamped commit $SHORT_HASH → $OTS_FILE"
+echo -n "$COMMIT_HASH" | ots stamp /dev/stdin -O "$OTS_FILE"
+echo "[OTS] Timestamped $TAG ($COMMIT_HASH) → $OTS_FILE"
+echo ""
+echo "Next steps:"
+echo "  1. git add $OTS_FILE && git commit -m 'chore: add OTS proof for $TAG'"
+echo "  2. Wait 1-2 hours for Bitcoin confirmation"
+echo "  3. Verify: ots verify $OTS_FILE"
 ```
 
-**Test:** `bash scripts/timestamp-commit.sh && ls .timestamps/`
+`chmod +x scripts/timestamp-release.sh`
 
 ---
 
-## Step 3 — Automatiser via post-commit hook
-
-**Fichiers:** `.git/hooks/post-commit`
-**Do:**
-
-```bash
-#!/bin/bash
-# Auto-timestamp every commit
-bash scripts/timestamp-commit.sh
-```
-
-`chmod +x .git/hooks/post-commit scripts/timestamp-commit.sh`
-
-**Alternative Claude Code:** Ajouter dans settings.json un PostCommit hook.
-
----
-
-## Step 4 — Timestamper les commits historiques clés
+## Step 3 — Créer les tags rétroactifs et timestamper
 
 **Do:**
 ```bash
-# Tous les commits de main (rétroactif)
-for hash in $(git log --format=%H main); do
-    echo -n "$hash" | ots stamp /dev/stdin -O ".timestamps/$hash.ots" 2>/dev/null
-    echo "[OTS] Stamped $hash"
-done
+# Tag the key milestones
+git tag -a v0.1.0 <commit-hash-architecture> -m "Hexagonal architecture, 3 ingest workflows, MCP server"
+git tag -a v0.2.0 <commit-hash-vaultcontext> -m "VaultContext refactoring, unified ingest, G4 compliant"
+git tag -a v0.3.0 HEAD -m "Knowledge compiler vision, librarian agent pattern, context engineering"
+
+# Timestamp each
+bash scripts/timestamp-release.sh v0.1.0
+bash scripts/timestamp-release.sh v0.2.0
+bash scripts/timestamp-release.sh v0.3.0
+
+# Commit the proofs
+git add .timestamps/ && git commit -m "chore: add OTS proofs for v0.1.0, v0.2.0, v0.3.0"
 ```
-
-Ou sélectivement — seulement les commits importants (vision, architecture, etc.).
-
-**Commit:** `chore: add OTS proofs for historical commits`
 
 ---
 
-## Step 5 — Vérification et documentation
+## Step 4 — Documentation
 
 **Fichier:** `docs/TIMESTAMPS.md`
 
 ```markdown
 # Timestamp verification
 
-Every commit in this repository is timestamped in the Bitcoin blockchain
-via OpenTimestamps.
+Major releases (v0.X.0) of this repository are timestamped in the Bitcoin
+blockchain via OpenTimestamps.
 
-## Verify a commit
-COMMIT_HASH=$(git rev-parse HEAD)
-ots verify .timestamps/$COMMIT_HASH.ots
+## Verify a release
+bash scripts/timestamp-release.sh v0.3.0   # create (if not done)
+ots verify .timestamps/v0.3.0.ots           # verify
 
 ## What this proves
-The SHA256 hash of the git commit was registered in the Bitcoin blockchain
-at the indicated date. This proves the entire repository state (all files,
-all history up to that point) existed at that date.
+The SHA256 hash of the git commit tagged v0.X.0 was registered in the
+Bitcoin blockchain. This proves the entire repository state at that
+version existed at the indicated date.
 
-## How it works
-- Post-commit hook runs `scripts/timestamp-commit.sh`
-- Generates `.timestamps/<commit-hash>.ots` proof file
-- Proof is confirmed on-chain within 1-2 hours
-- Verification works offline with a Bitcoin node, or online via calendar servers
+## Timestamped releases
+| Tag | Description |
+|-----|-------------|
+| v0.1.0 | Hexagonal architecture, 3 ingest workflows, MCP server |
+| v0.2.0 | VaultContext, unified ingest, G4 compliant |
+| v0.3.0 | Knowledge compiler vision, librarian agent pattern |
 ```
 
 ---
 
-## Step 6 — .gitignore update
+## Step 5 — Intégrer dans le workflow Phase 7 (SHIP)
 
-Les `.ots` sont commités (la preuve doit voyager avec le repo).
-Vérifier que `.timestamps/` n'est PAS dans `.gitignore`.
+Ajouter dans `docs/superpowers/specs/2026-03-31-development-workflow.md` Phase 7 :
+
+> If this milestone warrants a new v0.X.0 tag:
+> `git tag -a v0.X.0 -m "description" && bash scripts/timestamp-release.sh v0.X.0`
 
 ---
 
@@ -136,11 +141,10 @@ Vérifier que `.timestamps/` n'est PAS dans `.gitignore`.
 | Step | Quoi | Temps |
 |------|------|-------|
 | 1 | Installer ots | 1 min |
-| 2 | Script de timestamping | 3 min |
-| 3 | Hook post-commit | 2 min |
-| 4 | Timestamps rétroactifs | 2 min |
-| 5 | Documentation | 3 min |
-| 6 | Gitignore check | 1 min |
-| **Total** | | **~12 min** |
+| 2 | Script timestamp-release.sh | 3 min |
+| 3 | Tags rétroactifs + timestamps | 3 min |
+| 4 | Documentation | 3 min |
+| 5 | Intégrer dans workflow SHIP | 1 min |
+| **Total** | | **~11 min** |
 
-Après ça, chaque commit est automatiquement et gratuitement prouvé dans la blockchain.
+Après ça : quand un milestone v0.X.0 est atteint, une commande suffit pour le prouver dans la blockchain.
