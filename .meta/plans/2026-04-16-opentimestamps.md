@@ -83,8 +83,8 @@ echo "  3. Verify: ots verify $OTS_FILE"
 **Do:**
 ```bash
 # Tag the key milestones
-git tag -a v0.1.0 <commit-hash-architecture> -m "Hexagonal architecture, 3 ingest workflows, MCP server"
-git tag -a v0.2.0 <commit-hash-vaultcontext> -m "VaultContext refactoring, unified ingest, G4 compliant"
+git tag -a v0.1.0 6f31f28 -m "Initial project — hexagonal architecture, MCP server, 3 ingest workflows"
+git tag -a v0.2.0 9817b51 -m "VaultContext architecture — DI facade, full codebase migration, G4 compliant"
 git tag -a v0.3.0 HEAD -m "Knowledge compiler vision, librarian agent pattern, context engineering"
 
 # Timestamp each
@@ -129,7 +129,7 @@ version existed at the indicated date.
 
 ## Step 5 — Intégrer dans le workflow Phase 7 (SHIP)
 
-Ajouter dans `docs/superpowers/specs/2026-03-31-development-workflow.md` Phase 7 :
+Ajouter dans `.meta/specs/2026-03-31-development-workflow.md` Phase 7 :
 
 > If this milestone warrants a new v0.X.0 tag:
 > `git tag -a v0.X.0 -m "description" && bash scripts/timestamp-release.sh v0.X.0`
