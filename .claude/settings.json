@@ -2,6 +2,12 @@
   "attribution": {
     "commit": ""
   },
+  "env": {
+    "GIT_AUTHOR_NAME": "Vincent",
+    "GIT_AUTHOR_EMAIL": "vincent.lamy.33@gmail.com",
+    "GIT_COMMITTER_NAME": "Vincent",
+    "GIT_COMMITTER_EMAIL": "vincent.lamy.33@gmail.com"
+  },
   "permissions": {
     "defaultMode": "acceptEdits",
     "allow": [
@@ -46,6 +52,12 @@
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": "python scripts/force_git_author.py"}]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "compact",

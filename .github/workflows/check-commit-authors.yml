@@ -1,0 +1,32 @@
+name: Check commit authors
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['**']
+
+jobs:
+  check-authors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan commits for blocked author/committer
+        run: |
+          BLOCKED="Claude|Anthropic"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          else
+            BEFORE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+            [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+              && RANGE="${HEAD}~1..${HEAD}" || RANGE="${BEFORE}..${HEAD}"
+          fi
+          FOUND=$(git log "${RANGE}" --format="%H author:%an committer:%cn" | grep -iE "$BLOCKED" || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Commits avec auteur/committer bloqué:"
+            echo "$FOUND"
+            exit 1
+          fi
+          echo "Tous les auteurs OK."
