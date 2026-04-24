@@ -14,8 +14,8 @@ to be a v0.X.0 release. No exceptions.
 # 1. Tag the release
 git tag -a v0.X.0 -m "Description of this milestone"
 
-# 2. Timestamp it
-bash scripts/timestamp-release.sh v0.X.0
+# 2. Timestamp it (pure Python, no external dependencies)
+python scripts/timestamp-release.py v0.X.0
 
 # 3. Commit the proof
 git add .timestamps/ && git commit -m "chore: add OTS proof for v0.X.0"
@@ -26,11 +26,9 @@ git push origin --tags
 
 ## Verify a timestamp
 
-```bash
-ots verify .timestamps/v0.3.0.ots .timestamps/v0.3.0.hash
-```
+Upload the `.ots` file and its matching `.hash` file at https://opentimestamps.org/.
 
-Verification works online (via calendar servers) or offline (with a Bitcoin node).
+Or with the OTS CLI (if installed): `ots verify .timestamps/v0.3.0.ots .timestamps/v0.3.0.hash`
 
 ## What this proves
 
@@ -45,9 +43,3 @@ all history, author, date), this proves the complete project existed at that dat
 | v0.1.0 | 2026-03 | Initial project — hexagonal architecture, MCP server, 3 ingest workflows |
 | v0.2.0 | 2026-03-31 | VaultContext architecture — DI facade, full codebase migration, G4 compliant |
 | v0.3.0 | 2026-04-16 | Knowledge compiler vision, librarian agent pattern, context engineering |
-
-## Install
-
-```bash
-pip install opentimestamps-client
-```
