@@ -4,19 +4,24 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-06
-**Last session branch:** `main`
+**Last updated:** 2026-04-16
+**Last session branch:** `claude/check-project-status-6VthL`
 
 ---
 
 ## Next action
 
-**1. Vision spec + OpenTimestamps** — write a proper spec documenting the Knowledge Compiler
-+ Librarian Agent pattern, then timestamp it via OpenTimestamps for provable antériority.
+**1. Push tags + run OpenTimestamps** — tags v0.1.0/v0.2.0/v0.3.0 created locally but not pushed.
+Run from your machine: `git push origin --tags` then `bash scripts/timestamp-release.sh v0.X.0` for each.
+OTS calendar servers are unreachable from sandbox — must be done locally.
 
-**2. Real-world testing** — ingest actual sources, test RAG + note generation quality.
+**2. Real-world testing** — ingest actual sources (YouTube, PDF, web), test RAG + note generation quality.
+The system has never been tested with real data — all tests are mocked.
 
-See `docs/FUTURE-WORK.md` § "Architecture pivot" for the full vision.
+**3. VaultContext brainstorm** — interactive session to design curate() tool (first step toward librarian pattern).
+
+See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
+See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
 See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 ---
@@ -28,6 +33,13 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | `specs/2026-03-31-development-workflow.md` | Active | The process we follow |
 | `specs/2026-03-31-project-audit-spec.md` | Active | Reusable audit method |
 | `specs/2026-04-03-metadev-protocol-adoption-spec.md` | Implemented | Done |
+
+## Vision documents
+
+| Document | Topic |
+|----------|-------|
+| `docs/VISION-KNOWLEDGE-COMPILER.md` | Knowledge Compiler + Librarian Agent pattern — the north star |
+| `docs/TIMESTAMPS.md` | OpenTimestamps verification guide |
 
 ## Future specs (validated, not yet implemented)
 
@@ -75,6 +87,8 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | **B2 — Security Phase 1+2** | **2026-04-04** | **Done — all hardening implemented, 30 tests pass, spec archived** |
 | **Web ingestion V1** | **2026-04-05** | **Done — single URL fetch, SSRF protection, 2-tier extraction, 4 e2e tests** |
 | **Monitoring (run tracking + observability)** | **2026-04-05** | **Done — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints, 6 new tests** |
+| **Knowledge Compiler vision** | **2026-04-16** | **Done — VISION-KNOWLEDGE-COMPILER.md, 3-tier architecture, librarian pattern** |
+| **OpenTimestamps setup** | **2026-04-16** | **Done — script, docs, v0.1.0/v0.2.0/v0.3.0 tags (awaiting user push + stamp)** |
 
 ---
 
@@ -108,6 +122,11 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 - [x] **B2 — Security Phase 1+2** — DONE: all pre-launch docs + all hardening items already implemented. 30 security tests pass. Spec archived.
 - [x] **Web ingestion V1** — DONE: fetch_web tool, SSRF protection, parse_html/trafilatura extraction, web extractor in ingest pipeline, API/CLI/MCP surfaces, 4 e2e tests.
 - [x] **Monitoring (run tracking)** — DONE: run_id via contextvars, token_count/provider auto-extraction, workflow_runs table, 3 API endpoints (/monitoring/runs), 6 new tests.
+- [x] **Knowledge Compiler vision doc** — DONE: `docs/VISION-KNOWLEDGE-COMPILER.md` — 3-tier knowledge architecture, librarian as smart tool, tiered curate(), pre-packaged agent for MCP clients.
+- [x] **OpenTimestamps setup** — DONE: `scripts/timestamp-release.sh`, `docs/TIMESTAMPS.md`, `.meta/plans/2026-04-16-opentimestamps.md`. Tags created locally (v0.1.0, v0.2.0, v0.3.0). User must push tags + run stamps from their machine.
+- [ ] **Push tags + run timestamps** — user action required: `git push origin --tags` + `bash scripts/timestamp-release.sh v0.X.0`
+- [ ] **Real-world testing** — ingest actual sources, validate RAG + note generation quality
+- [ ] **curate() tool** — first concrete step toward librarian pattern
 
 ---
 
@@ -123,11 +142,14 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 8. ~~**B2 — Security Phase 1+2**~~ — **DONE**
 9. ~~**Web ingestion V1**~~ — **DONE**
 10. ~~**Monitoring (run tracking)**~~ — **DONE**
-11. **Large source synthesis** — spec written, needs plan + impl
-12. **Search quality (reranking)** — needs brainstorm
-13. ~~**Onboarding / DX (Getting Started guide)**~~ — **DONE** (docs/GETTING-STARTED.md)
-14. **Evaluation framework** — needs brainstorm
-15. **Frontend** — see `docs/FUTURE-WORK.md`
+11. ~~**Knowledge Compiler vision**~~ — **DONE** (docs/VISION-KNOWLEDGE-COMPILER.md)
+12. ~~**OpenTimestamps setup**~~ — **DONE** (script + docs, user must push tags + stamp)
+13. **Large source synthesis** — spec written, needs plan + impl
+14. **Search quality (reranking)** — needs brainstorm
+15. ~~**Onboarding / DX (Getting Started guide)**~~ — **DONE** (docs/GETTING-STARTED.md)
+16. **Evaluation framework** — needs brainstorm
+17. **curate() tool (librarian tier 0)** — first step toward Knowledge Compiler
+18. **Frontend** — see `docs/FUTURE-WORK.md`
 
 ---
 
