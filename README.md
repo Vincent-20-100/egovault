@@ -10,7 +10,7 @@
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io)
 
 EgoVault is a local knowledge pipeline — ingest YouTube videos, audio, PDFs, and ideas into a structured vault.   
-Browse it in Obsidian. Query it with any LLM via MCP with targeted RAG.
+Browse it in Obsidian. Query it with any LLM via MCP with dual-layer RAG.
 
 ---
 
@@ -50,35 +50,42 @@ flowchart TD
     classDef store fill:#E8B830,stroke:#0B4527,stroke-width:3px,color:#0B4527
     classDef access fill:#0B4527,stroke:#0B4527,stroke-width:2px,color:#F5F9F4
 
-    subgraph SOURCES["One source at a time"]
+    subgraph SOURCES["Input"]
         Y["YouTube URL"]:::source
-        A["Audio / Video file"]:::source
+        A["Audio / Video"]:::source
         P["PDF / Book"]:::source
-        I["Your idea · LLM output no external source needed"]:::source
+        I["Idea · LLM output"]:::source
     end
 
-    subgraph ENGINE["EgoVault Engine — fully local"]
-        T["Transcription faster-whisper · yt-dlp · pypdf"]:::engine
-        C["Chunking + Embedding sqlite-vec · Ollama · local vectors"]:::engine
-        L["Note draft  (optional LLM) Pydantic-validated output"]:::engine
-        H(["You review & validate"]):::human
-        DB[("vault.db SQLite + sqlite-vec single source of truth")]:::store
-        VLT["vault/notes/ Markdown for Obsidian"]:::engine
+    subgraph ENGINE["EgoVault Engine"]
+        T["Transcription  faster-whisper · yt-dlp · pypdf"]:::engine
+        C["Chunking + Embedding  → chunks_vec  sqlite-vec"]:::engine
+        L["Note draft (LLM optional)  Pydantic-validated"]:::engine
+        H(["Human review & validate"]):::human
+        NE["Note Embedding  → notes_vec"]:::engine
+        DB[("Unified Data Base vault.db  SQLite + sqlite-vec")]:::store
     end
 
-    subgraph ACCESS["Two ways in"]
-        OB["Obsidian visual · tags · graph · links"]:::access
-        MCP["MCP Server any LLM · targeted RAG"]:::access
+    subgraph HUMAN["Human Access"]
+        VLT[("Obsidian vault")]:::store
+        OB["Obsidian: browse · graph · tags"]:::access
     end
 
-    Y & A & P --> T --> C --> L --> H --> DB
-    I --> H
-    DB --> VLT --> OB
-    DB --> MCP
+    subgraph LLM_ACCESS["LLM Access"]
+        MCP["MCP Server: any LLM · dual-layer RAG"]:::access
+    end
+
+    Y & A & P --> T
+    T --> C --> DB
+    T --> L --> H --> NE --> DB
+    I --> L
+    DB -->|"Markdown sync"| VLT --> OB
+    DB -->|"notes_vec · chunks_vec"| MCP
 
     style SOURCES fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
     style ENGINE fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
-    style ACCESS fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+    style HUMAN fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
+    style LLM_ACCESS fill:#8FE0A0,stroke:#0B4527,stroke-width:2px,color:#0B4527
 
     linkStyle default stroke:#0B4527,stroke-width:2.5px
 ```
