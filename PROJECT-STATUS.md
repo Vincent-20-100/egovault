@@ -4,21 +4,20 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-16
-**Last session branch:** `claude/check-project-status-6VthL`
+**Last updated:** 2026-04-27
+**Last session branch:** `main`
 
 ---
 
 ## Next action
 
-**1. Push tags + run OpenTimestamps** — tags v0.1.0/v0.2.0/v0.3.0 created locally but not pushed.
-Run from your machine: `git push origin --tags` then `bash scripts/timestamp-release.sh v0.X.0` for each.
-OTS calendar servers are unreachable from sandbox — must be done locally.
-
-**2. Real-world testing** — ingest actual sources (YouTube, PDF, web), test RAG + note generation quality.
+**1. Real-world testing** — ingest actual sources (YouTube, PDF, web), test RAG + note generation quality.
 The system has never been tested with real data — all tests are mocked.
+MCP server is now connected to Claude Desktop — use it to drive the first real ingest.
 
-**3. VaultContext brainstorm** — interactive session to design curate() tool (first step toward librarian pattern).
+**2. MCP Claude Code setup** — add `mcpServers` block to `.claude/settings.json` (same config as Claude Desktop).
+
+**3. curate() tool brainstorm** — interactive session to design curate() (first step toward librarian pattern).
 
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
 See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
@@ -89,6 +88,8 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | **Monitoring (run tracking + observability)** | **2026-04-05** | **Done — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints, 6 new tests** |
 | **Knowledge Compiler vision** | **2026-04-16** | **Done — VISION-KNOWLEDGE-COMPILER.md, 3-tier architecture, librarian pattern** |
 | **OpenTimestamps setup** | **2026-04-16** | **Done — script, docs, v0.1.0/v0.2.0/v0.3.0 tags (awaiting user push + stamp)** |
+| **README diagram overhaul** | **2026-04-27** | **Done — dual-layer RAG, parallel branches, Human/LLM Access split, color scheme** |
+| **MCP Claude Desktop setup** | **2026-04-27** | **Done — `claude_desktop_config.json` + `docs/mcp/CLIENT-SETUP.md` created** |
 
 ---
 
@@ -124,6 +125,9 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 - [x] **Monitoring (run tracking)** — DONE: run_id via contextvars, token_count/provider auto-extraction, workflow_runs table, 3 API endpoints (/monitoring/runs), 6 new tests.
 - [x] **Knowledge Compiler vision doc** — DONE: `docs/VISION-KNOWLEDGE-COMPILER.md` — 3-tier knowledge architecture, librarian as smart tool, tiered curate(), pre-packaged agent for MCP clients.
 - [x] **OpenTimestamps setup** — DONE: `scripts/timestamp-release.sh`, `docs/TIMESTAMPS.md`, `.meta/plans/2026-04-16-opentimestamps.md`. Tags created locally (v0.1.0, v0.2.0, v0.3.0). User must push tags + run stamps from their machine.
+- [x] **README diagram overhaul** — dual-layer RAG pipeline, Human/LLM Access subgraphs, color scheme
+- [x] **MCP Claude Desktop setup** — `claude_desktop_config.json` + `docs/mcp/CLIENT-SETUP.md`
+- [ ] **MCP Claude Code setup** — add `mcpServers` to `.claude/settings.json`
 - [ ] **Push tags + run timestamps** — user action required: `git push origin --tags` + `bash scripts/timestamp-release.sh v0.X.0`
 - [ ] **Real-world testing** — ingest actual sources, validate RAG + note generation quality
 - [ ] **curate() tool** — first concrete step toward librarian pattern
@@ -166,3 +170,4 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
 | 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |
 | 2026-04-16 | `claude/check-project-status-6VthL` → `main` | **Product vision shift** — Knowledge Compiler + Librarian Agent pattern (inspired by Karpathy LLM Wiki + agentify). Two-layer architecture (RAG on sources + compiled knowledge on notes). Librarian as smart tool with isolated LLM call, not autonomous agent. Tiered approach (tier 0 deterministic, tier 1 with LLM). Pre-packaged agent for MCP clients. OpenTimestamps for IP antériority. All documented in FUTURE-WORK.md. |
+| 2026-04-27 | `main` | **README diagram overhaul** — dual-layer RAG pipeline (chunks_vec + notes_vec), parallel branches from transcription, Human/LLM Access split into separate subgraphs, green color scheme. **MCP Claude Desktop** — `claude_desktop_config.json` configured with absolute path, `docs/mcp/CLIENT-SETUP.md` created. |
