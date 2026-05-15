@@ -108,6 +108,14 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 8. **Don't assume the user understands the technical distinction between "agent" and "tool with LLM call"** — always explain concretely
 9. **The system has never been tested with real data** — all tests are mocked. Real-world testing is prerequisite for any quality optimization.
 10. **OpenTimestamps BEFORE publishing the vision** — establish antériority first.
+11. **RAG distance is L2 on UNNORMALIZED embeddings** (real-test F2). Absolute
+    similarity thresholds are meaningless. The `curate()` tier-0 spec's
+    `escalation_max_distance` is unworkable as written — fix the metric (cosine +
+    normalization) BEFORE implementing curate(). See `.meta/audits/2026-05-15-*`.
+12. **"374 tests pass" was stale** — real suite is 465 pass / 7 fail. Don't trust
+    historical pass counts; run the full suite.
+13. **Console mojibake ≠ data corruption** on Windows — verify stored bytes via
+    Python `-X utf8`, not the terminal, before chasing an "encoding bug".
 
 ---
 
@@ -132,6 +140,11 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 
 1. ~~**Vision spec scope**~~ — **RESOLVED**: concise vision doc (docs/VISION-KNOWLEDGE-COMPILER.md), not a whitepaper.
 2. ~~**OpenTimestamps setup**~~ — **RESOLVED**: v0.X.0 tags only, script enforces pattern, user must run from machine.
-3. **Real-world testing plan** — which sources first? YouTube, PDFs, web pages? What quality metrics?
-4. **curate() design** — what goes in the synthesis prompt? How to handle "no relevant results"?
+3. ~~**Real-world testing plan**~~ — STARTED 2026-05-15 (YouTube subtitles). Surfaced
+   F1–F5 (see audit). Remaining: PDF/web sources, queue test — blocked on F2/F5 decisions.
+4. **curate() design** — spec written but **F2 invalidates the escalation threshold**.
+   Must re-brainstorm: fix similarity metric (cosine+normalization) first, then revise
+   tier-0 escalation (relative/top-k instead of absolute distance).
+6. **F5 scope** — implement ollama/openai LLM generation, or require a Claude key for
+   real note-generation testing? Gates the ingest-queue test and Task 4.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
