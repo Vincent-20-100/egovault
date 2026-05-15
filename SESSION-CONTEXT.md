@@ -5,7 +5,7 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-05-15
 **Last session:** `main` (direct commits)
 
 ---
@@ -117,7 +117,7 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 |------|-----------------|------------|
 | ~~**Vision spec + OpenTimestamps**~~ | ~~SESSION-CONTEXT.md~~ | **DONE** — vision doc committed, OTS set up (user must push tags + stamp) |
 | ~~**MCP Claude Desktop setup**~~ | ~~SESSION-CONTEXT.md~~ | **DONE** — `claude_desktop_config.json` configured, `docs/mcp/CLIENT-SETUP.md` created |
-| **MCP Claude Code setup** | `docs/mcp/CLIENT-SETUP.md` | Next session — add `mcpServers` block to `.claude/settings.json` |
+| ~~**MCP Claude Code setup**~~ | ~~`docs/mcp/CLIENT-SETUP.md`~~ | **DONE** — versioned `.mcp.json` at repo root. Claude Code does NOT read `mcpServers` from settings.json; uses `.mcp.json` (project) or `claude mcp add -s user`. Active after restart. |
 | **Real-world testing** | SESSION-CONTEXT.md | **NEXT PRIORITY** — validate fundamentals with real data |
 | **Knowledge compiler (`curate()` tool)** | `docs/VISION-KNOWLEDGE-COMPILER.md` | After real-world testing |
 | Pre-packaged librarian agent (AGENTS.md) | `docs/FUTURE-WORK.md` | After curate() exists |

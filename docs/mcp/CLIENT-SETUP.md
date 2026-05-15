@@ -30,7 +30,8 @@ Then **restart Claude Desktop**. The EgoVault tools appear automatically in the 
 
 ## Claude Code (CLI)
 
-Add to your project or user `settings.json`:
+Claude Code does **not** read MCP servers from `.claude/settings.json`. Project-scoped
+servers live in **`.mcp.json` at the repo root** (checked into git, shared with the team):
 
 ```json
 {
@@ -42,6 +43,15 @@ Add to your project or user `settings.json`:
     }
   }
 }
+```
+
+This repo already ships a working `.mcp.json` — no setup needed if you cloned it.
+Restart Claude Code after first checkout so the server is picked up.
+
+For a **user-scoped** install (available across all your projects) instead, run:
+
+```bash
+claude mcp add egovault -s user -- /absolute/path/to/.venv/Scripts/python.exe mcp/server.py
 ```
 
 ---

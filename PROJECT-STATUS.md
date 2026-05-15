@@ -4,7 +4,7 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-05-15
 **Last session branch:** `main`
 
 ---
@@ -13,11 +13,10 @@
 
 **1. Real-world testing** — ingest actual sources (YouTube, PDF, web), test RAG + note generation quality.
 The system has never been tested with real data — all tests are mocked.
-MCP server is now connected to Claude Desktop — use it to drive the first real ingest.
+MCP is wired for both Claude Desktop and Claude Code (`.mcp.json`) — use it to drive the first real ingest
+(requires Claude Code restart to pick up the server).
 
-**2. MCP Claude Code setup** — add `mcpServers` block to `.claude/settings.json` (same config as Claude Desktop).
-
-**3. curate() tool brainstorm** — interactive session to design curate() (first step toward librarian pattern).
+**2. curate() tool brainstorm** — interactive session to design curate() (first step toward librarian pattern).
 
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
 See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
@@ -127,7 +126,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 - [x] **OpenTimestamps setup** — DONE: `scripts/timestamp-release.sh`, `docs/TIMESTAMPS.md`, `.meta/plans/2026-04-16-opentimestamps.md`. Tags created locally (v0.1.0, v0.2.0, v0.3.0). User must push tags + run stamps from their machine.
 - [x] **README diagram overhaul** — dual-layer RAG pipeline, Human/LLM Access subgraphs, color scheme
 - [x] **MCP Claude Desktop setup** — `claude_desktop_config.json` + `docs/mcp/CLIENT-SETUP.md`
-- [ ] **MCP Claude Code setup** — add `mcpServers` to `.claude/settings.json`
+- [x] **MCP Claude Code setup** — DONE: versioned `.mcp.json` at repo root, `CLIENT-SETUP.md` corrected (Claude Code uses `.mcp.json`, not settings.json). Active after Claude Code restart.
 - [ ] **Push tags + run timestamps** — user action required: `git push origin --tags` + `bash scripts/timestamp-release.sh v0.X.0`
 - [ ] **Real-world testing** — ingest actual sources, validate RAG + note generation quality
 - [ ] **curate() tool** — first concrete step toward librarian pattern
@@ -170,4 +169,5 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
 | 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |
 | 2026-04-16 | `claude/check-project-status-6VthL` → `main` | **Product vision shift** — Knowledge Compiler + Librarian Agent pattern (inspired by Karpathy LLM Wiki + agentify). Two-layer architecture (RAG on sources + compiled knowledge on notes). Librarian as smart tool with isolated LLM call, not autonomous agent. Tiered approach (tier 0 deterministic, tier 1 with LLM). Pre-packaged agent for MCP clients. OpenTimestamps for IP antériority. All documented in FUTURE-WORK.md. |
+| 2026-05-15 | `main` | **MCP Claude Code setup** — versioned `.mcp.json` at repo root (project-scoped, checked in). Corrected `CLIENT-SETUP.md`: Claude Code uses `.mcp.json`, not `settings.json`; documented `claude mcp add -s user` alternative. Next: real-world testing. |
 | 2026-04-27 | `main` | **README diagram overhaul** — dual-layer RAG pipeline (chunks_vec + notes_vec), parallel branches from transcription, Human/LLM Access split into separate subgraphs, green color scheme. **MCP Claude Desktop** — `claude_desktop_config.json` configured with absolute path, `docs/mcp/CLIENT-SETUP.md` created. |
