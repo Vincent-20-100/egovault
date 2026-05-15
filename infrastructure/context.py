@@ -8,6 +8,7 @@ from core.config import Settings
 from core.context import VaultContext
 
 from infrastructure import embedding_provider, llm_provider, vault_writer
+from infrastructure.db import init_db, init_system_db
 from infrastructure.vault_db import VaultDB
 
 
@@ -20,6 +21,16 @@ def _llm_is_configured(settings: Settings) -> bool:
 
 def build_context(settings: Settings) -> VaultContext:
     """Build a fully wired VaultContext from application settings."""
+    # Ensure the schema exists for every surface (CLI/MCP, not only the API
+    # lifespan). Both calls are idempotent — safe on an existing DB.
+    init_db(
+        settings.vault_db_path,
+        dims=settings.system.embedding.dims,
+        provider=settings.system.embedding.provider,
+        model=settings.system.embedding.model,
+    )
+    init_system_db(settings.system_db_path)
+
     db = VaultDB(settings.vault_db_path)
 
     embed_fn = lambda text: embedding_provider.embed(text, settings)  # noqa: E731

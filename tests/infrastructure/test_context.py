@@ -122,6 +122,31 @@ def test_build_context_generate_is_callable_when_llm_configured(tmp_settings):
 
 
 # ============================================================
+# build_context — schema bootstrap (all surfaces)
+# ============================================================
+
+def test_build_context_initializes_vault_schema(tmp_settings):
+    """build_context() must leave the vault DB queryable for CLI/MCP, not only API."""
+    from infrastructure.context import build_context
+    from infrastructure.db import get_vault_connection
+    build_context(tmp_settings)
+    conn = get_vault_connection(tmp_settings.vault_db_path)
+    conn.execute("SELECT * FROM sources LIMIT 0")
+    conn.execute("SELECT * FROM notes LIMIT 0")
+    conn.execute("SELECT * FROM chunks LIMIT 0")
+    conn.close()
+
+
+def test_build_context_initializes_system_schema(tmp_settings):
+    from infrastructure.context import build_context
+    from infrastructure.db import get_system_connection
+    build_context(tmp_settings)
+    conn = get_system_connection(tmp_settings.system_db_path)
+    conn.execute("SELECT * FROM jobs LIMIT 0")
+    conn.close()
+
+
+# ============================================================
 # build_context — path derivation matches settings
 # ============================================================
 
