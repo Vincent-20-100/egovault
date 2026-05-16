@@ -19,9 +19,8 @@ cosine metric makes the escalation threshold meaningful). Execute
 implement the Ollama provider or require a Claude API key. Gates real note-generation
 testing (Task 4) and the ingest-queue test (Task 6).
 
-**3. Fix F6 packaging** — `beautifulsoup4` (used by `tools/text/parse_html.py`) and
-`ruff` are undeclared in `pyproject.toml`. `uv sync` prunes them → broken env. Add
-`beautifulsoup4` to deps, `ruff` to the dev group.
+**3. ~~Fix F6 packaging~~** — RESOLVED 2026-05-16: `beautifulsoup4` was already
+declared; only `ruff` was missing → added to dev group.
 
 Real-world testing STARTED 2026-05-15 (YouTube): F1 (DB bootstrap) + F2 (cosine
 metric) fixed & verified. Findings: `.meta/audits/2026-05-15-real-world-test-findings.md`.
@@ -119,7 +118,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | ~~RAG distance = L2 on unnormalized embeddings~~ | ~~CRITICAL~~ | **RESOLVED 2026-05-16** — cosine metric + normalized embeddings (`a30e443`), reembed script (`a1043e6`), verified semantically discriminant. curate() threshold now meaningful. |
 | **7 pre-existing broken tests** | MAJOR | Real suite = 465 pass / 7 fail (NOT "374 pass"). typst signature, api ingest_text ×3, integration ×2, cli notes. Separate cleanup pass. F4 |
 | **Ollama/OpenAI LLM generation unimplemented** | MAJOR | Only `claude` implemented. Local note gen (Option B) unsupported. Scope decision. F5 |
-| **beautifulsoup4 + ruff undeclared in pyproject** | MAJOR | F6 — `bs4` imported by `tools/text/parse_html.py` but not a declared dep; `uv sync`/`uv run` prunes it → env broken (pytest can't collect). Add to deps; ruff → dev group. |
+| ~~beautifulsoup4 + ruff undeclared in pyproject~~ | ~~MAJOR~~ | **RESOLVED 2026-05-16** — `beautifulsoup4` was already declared+committed (web-ingestion-V1, `0fab5b3`); only `ruff` was missing. Added to dev group (`chore` commit). pytest collects 476 tests, bs4 4.14.3 installed. |
 | **save-progress skill missing preflight script** | MINOR | `scripts/save_progress_preflight.py` absent; skill's `uv run` fallback prunes the venv. Create script or fix skill. |
 | **96 files unformatted (ruff format)** | MINOR | Pre-existing; `ruff format` not enforced. Run a formatting pass separately. |
 
