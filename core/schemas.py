@@ -193,6 +193,22 @@ class SearchFilters(BaseModel):
     date_to: str | None = None
 
 
+class CuratedSource(BaseModel):
+    tier: Literal["note", "chunk"]
+    uid: str
+    source_uid: str | None = None
+    title: str
+    content: str
+    distance: float
+
+
+class CuratedContext(BaseModel):
+    synthesis: str
+    sources: list[CuratedSource]
+    confidence: float | None = None
+    query: str
+
+
 class ExportResult(BaseModel):
     output_path: str
     format: Literal["typst", "mermaid"]
