@@ -11,12 +11,23 @@
 
 ## Next action
 
-**1. Real-world testing** — ingest actual sources (YouTube, PDF, web), test RAG + note generation quality.
-The system has never been tested with real data — all tests are mocked.
-MCP is wired for both Claude Desktop and Claude Code (`.mcp.json`) — use it to drive the first real ingest
-(requires Claude Code restart to pick up the server).
+**1. Implement `curate()` tier 0** — spec + plan ready and **unblocked** (F2 resolved:
+cosine metric makes the escalation threshold meaningful). Execute
+`.meta/plans/2026-05-15-curate-tier0-plan.md` (7 TDD tasks).
 
-**2. curate() tool brainstorm** — interactive session to design curate() (first step toward librarian pattern).
+**2. Decide F5 scope** — Ollama/OpenAI note generation is unimplemented. Either
+implement the Ollama provider or require a Claude API key. Gates real note-generation
+testing (Task 4) and the ingest-queue test (Task 6).
+
+**3. Fix F6 packaging** — `beautifulsoup4` (used by `tools/text/parse_html.py`) and
+`ruff` are undeclared in `pyproject.toml`. `uv sync` prunes them → broken env. Add
+`beautifulsoup4` to deps, `ruff` to the dev group.
+
+Real-world testing STARTED 2026-05-15 (YouTube): F1 (DB bootstrap) + F2 (cosine
+metric) fixed & verified. Findings: `.meta/audits/2026-05-15-real-world-test-findings.md`.
+
+See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
+See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
 See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
@@ -108,6 +119,9 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | ~~RAG distance = L2 on unnormalized embeddings~~ | ~~CRITICAL~~ | **RESOLVED 2026-05-16** — cosine metric + normalized embeddings (`a30e443`), reembed script (`a1043e6`), verified semantically discriminant. curate() threshold now meaningful. |
 | **7 pre-existing broken tests** | MAJOR | Real suite = 465 pass / 7 fail (NOT "374 pass"). typst signature, api ingest_text ×3, integration ×2, cli notes. Separate cleanup pass. F4 |
 | **Ollama/OpenAI LLM generation unimplemented** | MAJOR | Only `claude` implemented. Local note gen (Option B) unsupported. Scope decision. F5 |
+| **beautifulsoup4 + ruff undeclared in pyproject** | MAJOR | F6 — `bs4` imported by `tools/text/parse_html.py` but not a declared dep; `uv sync`/`uv run` prunes it → env broken (pytest can't collect). Add to deps; ruff → dev group. |
+| **save-progress skill missing preflight script** | MINOR | `scripts/save_progress_preflight.py` absent; skill's `uv run` fallback prunes the venv. Create script or fix skill. |
+| **96 files unformatted (ruff format)** | MINOR | Pre-existing; `ruff format` not enforced. Run a formatting pass separately. |
 
 ---
 
@@ -172,6 +186,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
 | 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |
 | 2026-04-16 | `claude/check-project-status-6VthL` → `main` | **Product vision shift** — Knowledge Compiler + Librarian Agent pattern (inspired by Karpathy LLM Wiki + agentify). Two-layer architecture (RAG on sources + compiled knowledge on notes). Librarian as smart tool with isolated LLM call, not autonomous agent. Tiered approach (tier 0 deterministic, tier 1 with LLM). Pre-packaged agent for MCP clients. OpenTimestamps for IP antériority. All documented in FUTURE-WORK.md. |
+| 2026-05-16 | `main` | **F2 fully resolved** — cosine metric + normalized embeddings (`a30e443`), `reembed.py` script (`a1043e6`), dev DB migrated, verified semantically discriminant. Regression I introduced (zero-vector test embeddings under cosine) fixed (`48891bd`). curate() spec recalibrated, plan unblocked. **F6 discovered**: bs4/ruff undeclared in pyproject (save-progress skill's missing preflight script triggered `uv run` which pruned the venv). 468 pass / 7 pre-existing fail / 0 regression. |
 | 2026-05-15 | `main` | **First real-world test** — curate() tier-0 brainstorm→spec→plan (`.meta/specs|plans/2026-05-15-curate-tier0-*`). Real YouTube ingest surfaced 5 findings (`.meta/audits/2026-05-15-real-world-test-findings.md`): F1 DB-bootstrap-in-build_context **fixed** (`160f27f`, verified end-to-end), F2 **CRITICAL** RAG L2/unnormalized distance breaks curate() threshold, F3 mojibake false alarm, F4 7 pre-existing broken tests, F5 ollama gen unimplemented. |
 | 2026-05-15 | `main` | **MCP Claude Code setup** — versioned `.mcp.json` at repo root (project-scoped, checked in). Corrected `CLIENT-SETUP.md`: Claude Code uses `.mcp.json`, not `settings.json`; documented `claude mcp add -s user` alternative. Next: real-world testing. |
 | 2026-04-27 | `main` | **README diagram overhaul** — dual-layer RAG pipeline (chunks_vec + notes_vec), parallel branches from transcription, Human/LLM Access split into separate subgraphs, green color scheme. **MCP Claude Desktop** — `claude_desktop_config.json` configured with absolute path, `docs/mcp/CLIENT-SETUP.md` created. |

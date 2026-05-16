@@ -117,6 +117,15 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
     historical pass counts; run the full suite.
 13. **Console mojibake ≠ data corruption** on Windows — verify stored bytes via
     Python `-X utf8`, not the terminal, before chasing an "encoding bug".
+14. **The dev venv has undeclared deps** (`beautifulsoup4`, `ruff`) NOT in
+    `pyproject.toml` (F6). Any `uv sync`/`uv run` PRUNES them → `pytest` can't even
+    collect (`No module named 'bs4'`). Until F6 is fixed: run tests with
+    `.venv/Scripts/python.exe -m pytest`, do NOT run `uv run`/`uv sync`. ruff is only
+    available via `uvx ruff`. The save-progress skill is broken here (missing
+    `scripts/save_progress_preflight.py`) — its `uv run` fallback caused exactly this.
+15. **Cosine distance is undefined for the zero vector** — sqlite-vec returns
+    `NULL` distance → `SearchResult.distance: float` ValidationError. Never use a
+    zero embedding in tests (`make_embedding(0.0)`); real embeddings are never zero.
 
 ---
 
