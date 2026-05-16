@@ -22,6 +22,7 @@ from tools.vault.update_note import update_note as _update_note_tool
 from tools.vault.finalize_source import finalize_source as _finalize_source_tool
 from tools.vault.generate_note_from_source import generate_note_from_source as _generate_note_from_source_tool
 from tools.vault.search import search as _search_tool
+from tools.vault.curate import curate as _curate_tool
 from tools.export.typst import export_typst as _export_typst_tool
 from tools.export.mermaid import export_mermaid as _export_mermaid_tool
 from infrastructure.context import build_context
@@ -138,6 +139,26 @@ def search(query: str, filters: dict | None = None, mode: str = "chunks") -> lis
     search_filters = SearchFilters(**(filters or {}))
     results = _search_tool(query, ctx, search_filters, mode)
     return [r.model_dump(mode="json") for r in results]
+
+
+@mcp.tool()
+def curate(query: str, filters: dict | None = None, limit: int = 5) -> dict:
+    """
+    Librarian retrieval — the preferred entry point for any knowledge question.
+
+    Searches your compiled notes first, falls back to raw source chunks only
+    when notes are sparse, and returns a single assembled context with
+    verifiable source UIDs.
+
+    When to use: BEFORE answering any question from the vault. Prefer this
+    over search() — it returns curated signal, not raw top-K noise.
+
+    What to call next: get_note(uid) or get_source(source_uid) to read full
+    content for any source you want to quote verbatim.
+    """
+    search_filters = SearchFilters(**(filters or {}))
+    result = _curate_tool(query, ctx, filters=search_filters, limit=limit)
+    return result.model_dump(mode="json")
 
 
 @mcp.tool()
