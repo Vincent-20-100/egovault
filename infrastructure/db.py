@@ -120,11 +120,11 @@ def _build_vec_schema_sql(dims: int) -> str:
     return f"""
     CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
         chunk_uid    TEXT,
-        embedding    FLOAT[{dims}]
+        embedding    FLOAT[{dims}] distance_metric=cosine
     );
     CREATE VIRTUAL TABLE IF NOT EXISTS notes_vec USING vec0(
         note_uid     TEXT,
-        embedding    FLOAT[{dims}]
+        embedding    FLOAT[{dims}] distance_metric=cosine
     );
     """
 

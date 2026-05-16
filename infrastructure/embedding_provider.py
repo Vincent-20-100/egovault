@@ -4,21 +4,33 @@ Embedding provider factory. Routes to the configured backend.
 Changing the embedding model requires full re-embedding of all chunks and notes.
 """
 
+import math
+
 import requests
 from core.config import Settings
+
+
+def _l2_normalize(vector: list[float]) -> list[float]:
+    """Scale a vector to unit length. A zero vector is returned unchanged."""
+    norm = math.sqrt(sum(v * v for v in vector))
+    if norm == 0.0:
+        return vector
+    return [v / norm for v in vector]
 
 
 def embed(text: str, settings: Settings) -> list[float]:
     """
     Embed text using the configured provider.
-    Returns a list of floats (dimension depends on model).
+    Returns a unit-normalized vector so cosine distance is well-behaved
+    regardless of provider magnitude.
     Raises NotImplementedError for providers not yet implemented in v1.
     """
     provider = settings.user.embedding.provider
     model = settings.user.embedding.model
 
     if provider == "ollama":
-        return _embed_ollama(text, model, settings.install.providers.ollama_base_url)
+        raw = _embed_ollama(text, model, settings.install.providers.ollama_base_url)
+        return _l2_normalize(raw)
     elif provider == "openai":
         raise NotImplementedError(
             "OpenAI embedding is not implemented in v1. "

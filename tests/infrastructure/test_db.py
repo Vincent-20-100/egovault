@@ -65,6 +65,27 @@ def test_init_db_creates_vec_virtual_tables(tmp_path):
     conn.close()
 
 
+def test_vec_tables_use_cosine_distance(tmp_path):
+    """Parallel vectors of different magnitude must be ~0 apart (cosine, not L2)."""
+    import sqlite_vec
+    from infrastructure.db import init_db, get_vault_connection
+    db_file = tmp_path / "test.db"
+    init_db(db_file, dims=3)
+    conn = get_vault_connection(db_file)
+    conn.execute(
+        "INSERT INTO chunks_vec(chunk_uid, embedding) VALUES (?, ?)",
+        ("c1", sqlite_vec.serialize_float32([2.0, 0.0, 0.0])),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT distance FROM chunks_vec WHERE embedding MATCH ? AND k = 1",
+        (sqlite_vec.serialize_float32([1.0, 0.0, 0.0]),),
+    ).fetchone()
+    conn.close()
+    # cosine distance of parallel vectors ≈ 0; L2 would give 1.0
+    assert row[0] < 0.01
+
+
 def test_init_db_inserts_metadata(tmp_path):
     from infrastructure.db import init_db, get_vault_connection
     db_file = tmp_path / "test.db"
