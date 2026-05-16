@@ -45,7 +45,7 @@ def test_update_note_re_embeds_note(ctx):
     result = update_note(uid, {"body": "Updated body content here."}, ctx)
 
     assert result.note.sync_status == "synced"
-    results = ctx.db.search_notes(make_embedding(0.0), None, 5)
+    results = ctx.db.search_notes(make_embedding(), None, 5)
     assert any(r.note_uid == uid for r in results)
 
 

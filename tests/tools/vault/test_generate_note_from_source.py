@@ -76,7 +76,7 @@ def test_generate_note_note_is_searchable(ctx):
 
     result = generate_note_from_source("src-2", test_ctx)
 
-    hits = ctx.db.search_notes(make_embedding(0.0), None, 5)
+    hits = ctx.db.search_notes(make_embedding(), None, 5)
     note_uids = [h.note_uid for h in hits]
     assert result.note.uid in note_uids
 

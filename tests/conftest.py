@@ -101,7 +101,8 @@ def ctx(tmp_settings, tmp_path):
         settings=tmp_settings,
         db=db,
         system_db_path=tmp_path / ".system.db",
-        embed=lambda text: make_embedding(0.0),
+        # Non-zero: cosine distance is undefined for the zero vector
+        embed=lambda text: make_embedding(),
         generate=None,
         # Real vault_writer so tests that check markdown file existence work correctly
         write_note=_write_note,

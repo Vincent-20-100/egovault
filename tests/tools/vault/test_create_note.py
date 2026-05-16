@@ -71,7 +71,7 @@ def test_create_note_embeds_into_notes_vec(ctx):
     system = _system_fields()
     create_note(_content(), system, ctx)
 
-    results = ctx.db.search_notes(make_embedding(0.0), None, 5)
+    results = ctx.db.search_notes(make_embedding(), None, 5)
     assert len(results) == 1
     assert results[0].note_uid == system.uid
 
