@@ -125,7 +125,7 @@ Opens the door to other pre-packaged agents (summarizer, note-linker, etc.).
 
 ## Incremental implementation path
 
-1. **`curate()` tier 0** — search + rank + truncate (deterministic, zero new dependency)
+1. **`curate()` tier 0** — search + rank + truncate (deterministic, zero new dependency) — **✅ implemented 2026-05-16** (MCP + CLI surfaces)
 2. **`curate()` tier 1** — add LLM synthesis call
 3. **`compile()`** — multi-source synthesis persisted as note
 4. **AGENTS.md** — pre-packaged librarian for MCP clients

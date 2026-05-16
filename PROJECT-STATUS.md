@@ -4,16 +4,18 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-05-15
+**Last updated:** 2026-05-16
 **Last session branch:** `main`
 
 ---
 
 ## Next action
 
-**1. Implement `curate()` tier 0** — spec + plan ready and **unblocked** (F2 resolved:
-cosine metric makes the escalation threshold meaningful). Execute
-`.meta/plans/2026-05-15-curate-tier0-plan.md` (7 TDD tasks).
+**1. ~~Implement `curate()` tier 0~~** — **DONE 2026-05-16**. 7 TDD tasks executed,
+9 tests, MCP+CLI surfaces, 0 regression (477 pass / 7 pre-existing F4 fail).
+Next concrete step: **calibrate `escalation_max_distance`** with real-world data,
+then **curate() tier 1** (LLM synthesis — needs generic `complete` Protocol on
+VaultContext; gated by F5).
 
 **2. Decide F5 scope** — Ollama/OpenAI note generation is unimplemented. Either
 implement the Ollama provider or require a Claude API key. Gates real note-generation
@@ -99,6 +101,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | **OpenTimestamps setup** | **2026-04-16** | **Done — script, docs, v0.1.0/v0.2.0/v0.3.0 tags (awaiting user push + stamp)** |
 | **README diagram overhaul** | **2026-04-27** | **Done — dual-layer RAG, parallel branches, Human/LLM Access split, color scheme** |
 | **MCP Claude Desktop setup** | **2026-04-27** | **Done — `claude_desktop_config.json` + `docs/mcp/CLIENT-SETUP.md` created** |
+| **curate() tier 0 (Librarian)** | **2026-05-16** | **Done — deterministic notes→chunks orchestration, MCP+CLI, 9 tests, 0 regression** |
 
 ---
 
@@ -145,7 +148,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 - [x] **MCP Claude Code setup** — DONE: versioned `.mcp.json` at repo root, `CLIENT-SETUP.md` corrected (Claude Code uses `.mcp.json`, not settings.json). Active after Claude Code restart.
 - [ ] **Push tags + run timestamps** — user action required: `git push origin --tags` + `bash scripts/timestamp-release.sh v0.X.0`
 - [ ] **Real-world testing** — ingest actual sources, validate RAG + note generation quality
-- [ ] **curate() tool** — first concrete step toward librarian pattern
+- [x] **curate() tool** — tier 0 DONE 2026-05-16 (deterministic; tier 1 LLM synthesis deferred)
 
 ---
 
@@ -167,7 +170,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 14. **Search quality (reranking)** — needs brainstorm
 15. ~~**Onboarding / DX (Getting Started guide)**~~ — **DONE** (docs/GETTING-STARTED.md)
 16. **Evaluation framework** — needs brainstorm
-17. **curate() tool (librarian tier 0)** — first step toward Knowledge Compiler
+17. ~~**curate() tool (librarian tier 0)**~~ — **DONE 2026-05-16** (tier 1 LLM synthesis deferred)
 18. **Frontend** — see `docs/FUTURE-WORK.md`
 
 ---
@@ -185,6 +188,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
 | 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |
 | 2026-04-16 | `claude/check-project-status-6VthL` → `main` | **Product vision shift** — Knowledge Compiler + Librarian Agent pattern (inspired by Karpathy LLM Wiki + agentify). Two-layer architecture (RAG on sources + compiled knowledge on notes). Librarian as smart tool with isolated LLM call, not autonomous agent. Tiered approach (tier 0 deterministic, tier 1 with LLM). Pre-packaged agent for MCP clients. OpenTimestamps for IP antériority. All documented in FUTURE-WORK.md. |
+| 2026-05-16 | `main` | **curate() tier 0 SHIPPED** — full plan executed (7 TDD tasks): `CuratedContext`/`CuratedSource` schema, `CurateConfig`, `tools/vault/curate.py` (deterministic notes→chunks, escalation, merge notes-first, per-item truncation), MCP `curate` tool, `egovault curate` CLI. 9 new tests, 477 pass / 7 pre-existing F4 fail / **0 regression**. Ripple docs updated (vault-usage, ARCHITECTURE, VISION). **F6 resolved** (bs4 already declared; ruff added to dev group). |
 | 2026-05-16 | `main` | **F2 fully resolved** — cosine metric + normalized embeddings (`a30e443`), `reembed.py` script (`a1043e6`), dev DB migrated, verified semantically discriminant. Regression I introduced (zero-vector test embeddings under cosine) fixed (`48891bd`). curate() spec recalibrated, plan unblocked. **F6 discovered**: bs4/ruff undeclared in pyproject (save-progress skill's missing preflight script triggered `uv run` which pruned the venv). 468 pass / 7 pre-existing fail / 0 regression. |
 | 2026-05-15 | `main` | **First real-world test** — curate() tier-0 brainstorm→spec→plan (`.meta/specs|plans/2026-05-15-curate-tier0-*`). Real YouTube ingest surfaced 5 findings (`.meta/audits/2026-05-15-real-world-test-findings.md`): F1 DB-bootstrap-in-build_context **fixed** (`160f27f`, verified end-to-end), F2 **CRITICAL** RAG L2/unnormalized distance breaks curate() threshold, F3 mojibake false alarm, F4 7 pre-existing broken tests, F5 ollama gen unimplemented. |
 | 2026-05-15 | `main` | **MCP Claude Code setup** — versioned `.mcp.json` at repo root (project-scoped, checked in). Corrected `CLIENT-SETUP.md`: Claude Code uses `.mcp.json`, not `settings.json`; documented `claude mcp add -s user` alternative. Next: real-world testing. |

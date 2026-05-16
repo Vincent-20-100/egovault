@@ -74,6 +74,7 @@ Each term has exactly one definition. Never use interchangeably.
 | `generation_template` | Named prompt template used to generate a note body. Defines LLM instructions + Markdown structure. Not editable via frontmatter or by the LLM. Modifiable only via a human-triggered regeneration workflow. NULL for manually written notes. |
 | `rating` | Integer 1–5 set exclusively by the user. Intentionally open semantics (importance, quality, priority — the user decides). Never inferred by the LLM. |
 | `run_id` | UUID4 identifying a workflow execution or MCP session. Propagated via `contextvars`. |
+| `curate()` | Librarian tier 0 — deterministic notes→chunks orchestration returning `CuratedContext`. No LLM. Tier 1 (LLM synthesis) deferred. |
 
 ---
 
@@ -131,6 +132,7 @@ egovault/                          ← PUBLIC git repo
 │   │   ├── update_note.py         ← uid + partial update → NoteResult
 │   │   ├── generate_note_from_source.py ← source_uid → NoteResult (LLM-generated draft)
 │   │   ├── search.py              ← query → list[SearchResult]
+│   │   ├── curate.py              ← query → CuratedContext (Librarian tier 0)
 │   │   ├── finalize_source.py     ← marks source as processed
 │   │   ├── delete_note.py         ← soft or hard delete a note
 │   │   ├── delete_source.py       ← soft or hard delete a source + its chunks

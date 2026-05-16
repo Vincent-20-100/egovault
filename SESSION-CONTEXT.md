@@ -5,7 +5,7 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-05-15
+**Last updated:** 2026-05-16
 **Last session:** `main` (direct commits)
 
 ---
@@ -137,7 +137,10 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 | ~~**MCP Claude Desktop setup**~~ | ~~SESSION-CONTEXT.md~~ | **DONE** — `claude_desktop_config.json` configured, `docs/mcp/CLIENT-SETUP.md` created |
 | ~~**MCP Claude Code setup**~~ | ~~`docs/mcp/CLIENT-SETUP.md`~~ | **DONE** — versioned `.mcp.json` at repo root. Claude Code does NOT read `mcpServers` from settings.json; uses `.mcp.json` (project) or `claude mcp add -s user`. Active after restart. |
 | **Real-world testing** | SESSION-CONTEXT.md | **NEXT PRIORITY** — validate fundamentals with real data |
-| **Knowledge compiler (`curate()` tool)** | `docs/VISION-KNOWLEDGE-COMPILER.md` | After real-world testing |
+| ~~**Knowledge compiler (`curate()` tool)**~~ | ~~`docs/VISION-KNOWLEDGE-COMPILER.md`~~ | **DONE 2026-05-16 — tier 0 shipped** |
+| **curate() tier 1 (LLM synthesis)** | plan §Self-Review / VISION | After F5 — needs generic `complete` Protocol on VaultContext; fills `confidence`, upgrades `synthesis` |
+| **curate() API `/curate` endpoint** | plan §5 | Deferred — only MCP+CLI surfaces in tier 0 |
+| **Calibrate `escalation_max_distance`** | `config/system.yaml` (=0.5) | During real-world testing — default is a guess |
 | Pre-packaged librarian agent (AGENTS.md) | `docs/FUTURE-WORK.md` | After curate() exists |
 | Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | After real testing |
 | Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority brainstorm |
@@ -152,9 +155,9 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 2. ~~**OpenTimestamps setup**~~ — **RESOLVED**: v0.X.0 tags only, script enforces pattern, user must run from machine.
 3. ~~**Real-world testing plan**~~ — STARTED 2026-05-15 (YouTube subtitles). Surfaced
    F1–F5 (see audit). Remaining: PDF/web sources, queue test — blocked on F2/F5 decisions.
-4. ~~**curate() design**~~ — F2 RESOLVED: similarity metric now cosine+normalized,
-   spec's absolute `escalation_max_distance` is valid. Spec stands; only empirical
-   tuning of the default remains. Ready for implementation (plan exists).
+4. ~~**curate() design**~~ — **RESOLVED for tier 0 (implemented 2026-05-16)**.
+   Only empirical tuning of `escalation_max_distance` remains (real-world test).
+   Tier 1 (LLM synthesis) is a separate future item, gated by F5.
 6. **F5 scope** — implement ollama/openai LLM generation, or require a Claude key for
    real note-generation testing? Gates the ingest-queue test and Task 4.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
