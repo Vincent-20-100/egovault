@@ -84,13 +84,18 @@ the vector reused for both note and chunk searches.
 ```yaml
 curate:
   escalation_min_notes: 3        # < N relevant notes → escalate to chunks
-  escalation_max_distance: 0.5   # "relevant" threshold — TO CALIBRATE in real-world test
+  escalation_max_distance: 0.5   # cosine distance ceiling (0=identical … 2=opposite)
   synthesis_max_chars_per_item: 800
 ```
 
-`escalation_max_distance` is an explicit magic number that **cannot be calibrated without
-real data** (trap #9). Default is a placeholder; calibration is a deferred task tied to
-the real-world testing milestone.
+**Updated 2026-05-16 (F2 resolved).** The RAG distance is now **cosine on
+unit-normalized embeddings** (`distance_metric=cosine` in `vec0`, `embed()`
+L2-normalizes). `distance` is bounded `[0, 2]` and **comparable across queries**, so
+`escalation_max_distance` is now a meaningful absolute threshold (not the unworkable
+unbounded-L2 value the original draft assumed). `0.5` ≈ cosine similarity ≥ 0.5.
+Still empirically tunable, but the metric is sound — this is no longer a blocking
+"magic number". Re-embedding after a metric/model change is handled by
+`scripts/reembed.py`.
 
 ## 5. Surfaces
 

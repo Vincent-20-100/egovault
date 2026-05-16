@@ -105,7 +105,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | ~~Old workflow files (ingest_youtube/audio/pdf)~~ | ~~MINOR~~ | **RESOLVED** — deleted, all callers use workflows.ingest |
 | API test fixtures: direct infrastructure.db imports | MINOR | Seed fixtures (session-scoped, no `client`) use raw DB — refactor when fixture pattern allows |
 | System DB operations in tests | INFO | Jobs/system DB not in VaultDB — acceptable, consider facade later |
-| **RAG distance = L2 on unnormalized embeddings** | **CRITICAL** | Absolute similarity thresholds meaningless. Blocks useful `curate()`. Cosine + normalization needed. See `.meta/audits/2026-05-15-real-world-test-findings.md` F2 |
+| ~~RAG distance = L2 on unnormalized embeddings~~ | ~~CRITICAL~~ | **RESOLVED 2026-05-16** — cosine metric + normalized embeddings (`a30e443`), reembed script (`a1043e6`), verified semantically discriminant. curate() threshold now meaningful. |
 | **7 pre-existing broken tests** | MAJOR | Real suite = 465 pass / 7 fail (NOT "374 pass"). typst signature, api ingest_text ×3, integration ×2, cli notes. Separate cleanup pass. F4 |
 | **Ollama/OpenAI LLM generation unimplemented** | MAJOR | Only `claude` implemented. Local note gen (Option B) unsupported. Scope decision. F5 |
 

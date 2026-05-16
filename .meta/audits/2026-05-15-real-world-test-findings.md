@@ -19,7 +19,18 @@ in `build_context()`, the documented single wiring point. Commit `160f27f`. Veri
 end-to-end: real ingest reaches `rag_ready`. +2 unit tests, zero regression
 (pre-fix 7 fail/463 pass vs post-fix 7 fail/465 pass — identical failures).
 
-### F2 — RAG distance metric is L2 on unnormalized embeddings — CRITICAL, OPEN
+### F2 — RAG distance metric is L2 on unnormalized embeddings — RESOLVED 2026-05-16
+
+**Fix:** `distance_metric=cosine` on both `vec0` tables + `embed()` L2-normalizes
+(commit `a30e443`). Re-embed of existing data via `scripts/reembed.py` (commit
+`a1043e6`). Verified end-to-end: real-search distances now ∈ [0,2], on-topic query
+≈0.33 vs off-topic ≈0.47 — semantically discriminant. The `curate()` tier-0
+`escalation_max_distance=0.5` threshold is now meaningful and comparable across
+queries. Spec updated accordingly.
+
+Original analysis (kept for context):
+
+
 
 `vec0` virtual tables use default **L2 (euclidean)** distance. Ollama embeddings are
 returned raw (`_embed_ollama`), **not normalized**. Observed search distances ≈ 15–17,
