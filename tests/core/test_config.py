@@ -165,3 +165,12 @@ def test_taxonomy_shortcut(tmp_path):
     from core.config import load_settings
     settings = load_settings(config_dir)
     assert settings.taxonomy is settings.system.taxonomy
+
+
+def test_curate_config_defaults():
+    from core.config import load_settings
+
+    s = load_settings()
+    assert s.system.curate.escalation_min_notes == 3
+    assert s.system.curate.escalation_max_distance == 0.5
+    assert s.system.curate.synthesis_max_chars_per_item == 800

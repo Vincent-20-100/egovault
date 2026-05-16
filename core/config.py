@@ -53,12 +53,19 @@ class WebConfig(BaseModel):
     max_redirects: int = 5
 
 
+class CurateConfig(BaseModel):
+    escalation_min_notes: int = 3
+    escalation_max_distance: float = 0.5
+    synthesis_max_chars_per_item: int = 800
+
+
 class SystemConfig(BaseModel):
     chunking: ChunkingConfig
     embedding: EmbeddingConfig = EmbeddingConfig()
     llm: LLMSystemConfig
     upload: UploadConfig = UploadConfig()
     web: WebConfig = WebConfig()
+    curate: CurateConfig = CurateConfig()
     taxonomy: TaxonomyConfig
 
 
