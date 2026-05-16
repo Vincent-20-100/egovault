@@ -8,6 +8,7 @@ import typer
 
 from cli.commands.ingest import ingest as _ingest
 from cli.commands.search import search_cmd as _search
+from cli.commands.curate import curate_cmd as _curate
 from cli.commands.notes import app as notes_app
 from cli.commands.sources import app as sources_app
 from cli.commands.status import status as _status
@@ -22,6 +23,7 @@ app = typer.Typer(
 # Single-command groups: register the function directly to avoid double-nesting
 app.command("ingest")(_ingest)
 app.command("search")(_search)
+app.command("curate")(_curate)
 app.command("status")(_status)
 
 # Multi-command groups: add_typer works correctly here
