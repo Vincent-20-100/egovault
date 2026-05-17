@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS sources (
     date_source  DATE,
     media_path   TEXT,
     transcript   TEXT,
-    raw_metadata TEXT
+    raw_metadata TEXT,
+    previous_status TEXT
 );
 
 CREATE TABLE IF NOT EXISTS notes (
@@ -75,7 +76,8 @@ CREATE TABLE IF NOT EXISTS notes (
     date_created        DATE NOT NULL,
     date_modified       DATE NOT NULL,
     language            TEXT DEFAULT 'fr',
-    status              TEXT NOT NULL DEFAULT 'active'
+    status              TEXT NOT NULL DEFAULT 'active',
+    previous_sync_status TEXT
 );
 
 CREATE TABLE IF NOT EXISTS chunks (

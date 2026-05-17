@@ -584,3 +584,17 @@ def test_list_sources_filter_by_status(tmp_path):
         insert_source(db, s)
     results = list_sources(db, status="vaulted", limit=20, offset=0)
     assert len(results) == 2
+
+
+def test_fresh_init_db_has_soft_delete_columns(tmp_path):
+    """DB-C1: previous_status / previous_sync_status must exist on a fresh DB."""
+    from infrastructure.db import init_db, get_vault_connection
+
+    db_file = tmp_path / "vault.db"
+    init_db(db_file)
+    conn = get_vault_connection(db_file)
+    src_cols = {r[1] for r in conn.execute("PRAGMA table_info(sources)").fetchall()}
+    note_cols = {r[1] for r in conn.execute("PRAGMA table_info(notes)").fetchall()}
+    conn.close()
+    assert "previous_status" in src_cols
+    assert "previous_sync_status" in note_cols
