@@ -216,10 +216,11 @@ def test_ollama_retries_on_invalid_then_succeeds(tmp_settings):
         "tags": ["test"],
         "url": null
     }'''
-    calls = {"n": 0}
+    calls = {"n": 0, "payloads": []}
 
     def fake_post(*a, **k):
         calls["n"] += 1
+        calls["payloads"].append(k["json"])
         return _ollama_response("not json" if calls["n"] == 1 else good)
 
     with patch("infrastructure.llm_provider.requests.post", side_effect=fake_post):
@@ -229,18 +230,20 @@ def test_ollama_retries_on_invalid_then_succeeds(tmp_settings):
         )
     assert calls["n"] == 2
     assert result.title == "Titre valide ok"
+    assert "Previous attempt failed" in calls["payloads"][1]["messages"][0]["content"]
 
 
 def test_ollama_raises_after_max_retries(tmp_settings):
     from infrastructure.llm_provider import generate_note_content
 
     with patch("infrastructure.llm_provider.requests.post",
-               return_value=_ollama_response("invalid always")):
+               return_value=_ollama_response("invalid always")) as mock_post:
         with pytest.raises(ValueError, match="LLM failed to produce valid NoteContentInput"):
             generate_note_content(
                 "c", {"title": "T", "source_type": "youtube"}, "standard",
                 _ollama_settings(tmp_settings),
             )
+    assert mock_post.call_count == 3
 
 
 def test_ollama_down_raises_sanitized_runtime_error(tmp_settings):
@@ -298,3 +301,19 @@ def test_ollama_does_not_enforce_taxonomy_context(tmp_settings):
             _ollama_settings(tmp_settings),
         )
     assert result.note_type == "totally-unknown"  # same as claude: no context = no enforcement
+
+
+def test_ollama_http_error_model_not_pulled_sanitized(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+    import requests
+
+    def http_404(*a, **k):
+        raise requests.HTTPError("404 Client Error: Not Found - model 'qwen2.5:7b-instruct' not found")
+
+    with patch("infrastructure.llm_provider.requests.post", side_effect=http_404):
+        with pytest.raises(RuntimeError) as exc:
+            generate_note_content(
+                "c", {"title": "T", "source_type": "youtube"}, "standard",
+                _ollama_settings(tmp_settings),
+            )
+    assert "Traceback" not in str(exc.value)
