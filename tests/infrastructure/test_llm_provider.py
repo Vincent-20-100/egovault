@@ -188,3 +188,17 @@ def test_generate_note_content_ollama_happy_path(tmp_settings):
     assert isinstance(result, NoteContentInput)
     assert result.title == "Decentralisation et resilience"
     assert mock_post.call_count == 1
+
+
+def test_ollama_malformed_200_body_retries_then_raises(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+
+    bad = MagicMock()
+    bad.raise_for_status.return_value = None
+    bad.json.return_value = {"error": "model 'x' not found"}  # no 'message' key, HTTP 200
+    with patch("infrastructure.llm_provider.requests.post", return_value=bad):
+        with pytest.raises(ValueError, match="LLM failed to produce valid NoteContentInput"):
+            generate_note_content(
+                "c", {"title": "T", "source_type": "youtube"}, "standard",
+                _ollama_settings(tmp_settings),
+            )

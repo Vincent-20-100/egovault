@@ -145,11 +145,11 @@ def _generate_ollama(
         except Exception as e:
             from core.sanitize import sanitize_error
             raise RuntimeError(sanitize_error(e)) from None
-        raw = response.json()["message"]["content"]
         try:
+            raw = response.json()["message"]["content"]
             data = json.loads(raw)
             return NoteContentInput(**data)
-        except (json.JSONDecodeError, ValidationError) as e:
+        except (json.JSONDecodeError, ValidationError, KeyError) as e:
             last_error = e
 
     raise ValueError(
