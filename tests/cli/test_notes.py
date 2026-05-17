@@ -97,7 +97,6 @@ def test_note_create_from_file(tmp_path):
     mock_ctx = MagicMock()
     mock_ctx.settings.taxonomy = MagicMock(note_types=["synthese"], source_types=["youtube"])
     with patch("cli.commands.notes._build_ctx", return_value=mock_ctx), \
-         patch("cli.commands.notes._get_existing_slugs", return_value=set()), \
          patch("cli.commands.notes._create_note", return_value=note_result):
         result = runner.invoke(app, ["create", "--from-file", str(yaml_file)])
     assert result.exit_code == 0

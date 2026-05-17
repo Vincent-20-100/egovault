@@ -83,3 +83,14 @@ def test_export_typst_accepts_lang_and_font(ctx):
     assert 'lang: "en"' in content
     assert 'region: "EN"' in content
     assert '"EB Garamond"' in content
+
+
+def test_note_to_typst_escapes_quotes_in_document_title():
+    """Quotes/backslashes in the title must be escaped in #set document(title: \"...\")."""
+    from tools.export.typst import _note_to_typst
+
+    note = _make_note()
+    note.title = 'Test "with quotes" and \\backslash'
+    result = _note_to_typst(note, "fr", "EB Garamond")
+
+    assert r'#set document(title: "Test \"with quotes\" and \\backslash")' in result
