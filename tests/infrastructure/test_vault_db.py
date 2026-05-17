@@ -53,11 +53,10 @@ def _make_note(uid: str = "note-1", slug: str = "test-note", **overrides) -> Not
 
 
 def _init_db_with_migrations(db_path: Path) -> None:
-    """Initialize DB and apply all migrations (mirrors production setup)."""
+    """Initialize a fresh DB. Former one-shot migrations (002/003) are now
+    folded into _SCHEMA_SQL, so init_db alone is the production setup."""
     from infrastructure.db import init_db
-    from scripts.temp._002_add_previous_status import run as apply_002
     init_db(db_path)
-    apply_002(db_path)
 
 
 @pytest.fixture
