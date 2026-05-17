@@ -122,7 +122,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | ~~RAG distance = L2 on unnormalized embeddings~~ | ~~CRITICAL~~ | **RESOLVED 2026-05-16** — cosine metric + normalized embeddings (`a30e443`), reembed script (`a1043e6`), verified semantically discriminant. curate() threshold now meaningful. |
 | ~~7 pre-existing broken tests~~ | ~~MAJOR~~ | **RESOLVED 2026-05-17 (F4)** — audit (`.meta/audits/2026-05-17-pre-reinit-audit.md`) proved ZERO real product bugs: 5/7 = one test-isolation defect (TEST-C1, fixed `44f333b`), 2/7 = stale tests (TEST-M2/M3, fixed `c017db4`). **Suite now 481 pass / 0 fail / 1 skip, deterministic.** |
 | **Deferred audit debt (2026-05-17)** | MAJOR/MINOR | Tracked in audit report: DB-M1 atomic purge_source, DB-M2 DB error wrapping, DB-M3 connection-leak (try/finally, ~50 funcs — the "DB lock" root cause), DB-M4 search ignores filters, SCRIPT-M1 reembed backup/probe, TEST-C2 no real semantic/ingest e2e test, TEST-M1 missing test files. Post-reinit. |
-| **Ollama/OpenAI LLM generation unimplemented** | MAJOR | Only `claude` implemented. Local note gen (Option B) unsupported. Scope decision. F5 |
+| ~~**Ollama/OpenAI LLM generation unimplemented**~~ | ~~MAJOR~~ | **RESOLVED 2026-05-17 (F5)** - ollama note generation implemented (brainstorm->spec->reviewed->plan->subagent-driven impl, ~7 tests). openai still deferred (do not implement partially). |
 | ~~beautifulsoup4 + ruff undeclared in pyproject~~ | ~~MAJOR~~ | **RESOLVED 2026-05-16** — `beautifulsoup4` was already declared+committed (web-ingestion-V1, `0fab5b3`); only `ruff` was missing. Added to dev group (`chore` commit). pytest collects 476 tests, bs4 4.14.3 installed. |
 | **save-progress skill missing preflight script** | MINOR | `scripts/save_progress_preflight.py` absent; skill's `uv run` fallback prunes the venv. Create script or fix skill. |
 | **96 files unformatted (ruff format)** | MINOR | Pre-existing; `ruff format` not enforced. Run a formatting pass separately. |
@@ -181,6 +181,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 | Date | Branch | What was done |
 |------|--------|---------------|
+| 2026-05-17 | `main` | **F5 ollama LLM provider SHIPPED** - brainstorm->spec (architect+code reviewed, 11 fixes)->plan->subagent-driven TDD (6 tasks). `_generate_ollama` mirrors claude path, keyless local note gen, qwen2.5:7b-instruct target. Suite green. Chantier B (openai/providers.mode/wizard/OpenRouter) still open (10.4). |
 | 2026-03-31 | `claude/check-project-status-6VthL` | B1 embedding.dims fix, unified ingest spec, project audit (47 findings), CLAUDE.md rewrite, development workflow spec, audit spec |
 | 2026-03-31 | `claude/brainstorm-ulBda` | VaultContext brainstorm → spec → plan → **FULL IMPLEMENTATION (13/13 steps)**. G13 rule added. Strategic vision (VISION.md). docs/superpowers/ reorganized. All tools, workflows, surfaces migrated to ctx. 355 tests pass, zero regressions. |
 | 2026-04-01 | `claude/brainstorm-ulBda` | Post-VaultContext cleanup: fixed 9 DB lock errors (root cause: unmocked background threads in rate limit tests), fixed 10 ModuleNotFoundError tests (sys.modules stubs), removed app.state.settings backward compat. **374 tests pass, 0 failures.** |

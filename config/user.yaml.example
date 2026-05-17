@@ -12,6 +12,10 @@ embedding:
 
 # ATTENTION: same warning — if provider != "ollama", data is sent externally.
 llm:
+  # provider: claude | ollama (ollama = local, zero API key, fully private)
+  #   openai is listed but not implemented yet.
+  # For ollama, recommended model: qwen2.5:7b-instruct
+  #   low-RAM fallback: qwen2.5:3b-instruct
   provider: claude           # claude | openai | ollama
   model: claude-sonnet-4-6
 

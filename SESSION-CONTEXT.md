@@ -5,7 +5,7 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-05-16
+**Last updated:** 2026-05-17
 **Last session:** `main` (direct commits)
 
 ---
@@ -168,12 +168,11 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    empirical tuning of `escalation_max_distance` remains. Tier 1 (LLM
    synthesis) is a separate future item, gated by F5.
    Spec + plan archived to `.meta/archive/{specs,plans}/`.
-6. **F5 scope — ACTIVE DISCUSSION (étape 7)** — user wants local note
-   generation via Ollama. Reality: `llm_provider.generate_note_content`
-   explicitly `raise NotImplementedError` for ollama/openai; only `claude`
-   (Anthropic, structured output + validation retry) is implemented. Implementing
-   ollama gen = a real feature: ollama chat with JSON/structured output honoring
-   the same validation-retry contract. Treat via brainstorm→spec→plan, NOT bolted
-   onto the test. Separate from the search-quality track (finding E).
+6. ~~**F5 scope**~~ — **RESOLVED 2026-05-17 (ollama)** — local note
+   generation via Ollama implemented (brainstorm->spec->architect/code
+   reviewed->plan->subagent-driven TDD). `_generate_ollama` mirrors the claude
+   path: ollama chat with structured output honoring the same validation-retry
+   contract. Suite green. **Chantier B still open** (openai provider,
+   `providers.mode`, install wizard, OpenRouter) — ref audit 10.4.
    See `.meta/audits/2026-05-17-real-ingest-test-results.md`.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?

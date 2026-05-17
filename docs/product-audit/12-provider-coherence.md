@@ -26,7 +26,7 @@ If each service uses a different provider, a user could need **4-5 separate API 
 
 | Persona | Config | Keys needed | Services |
 |---------|--------|-------------|----------|
-| **Local-first** | Ollama + faster-whisper + chandra (local) | 0 | Everything runs on-device. Needs GPU for chandra. |
+| **Local-first** | Ollama + faster-whisper + chandra (local) | 0 | Everything runs on-device. Needs GPU for chandra. LLM note generation via Ollama: **implemented 2026-05-17 (F5)**. |
 | **Ollama + cloud LLM** | Ollama for embeddings, OpenAI/Anthropic for LLM | 1 | Best balance: fast local embeddings, smart cloud LLM. |
 | **Full cloud** | OpenAI for everything (or OpenRouter) | 1 | Simplest setup. Pay-per-token. No GPU needed. |
 | **MCP-only** | No internal LLM needed | 0 (for LLM) | The user's Claude/GPT subscription handles all intelligence via MCP. EgoVault only needs an embedding provider. |

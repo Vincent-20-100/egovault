@@ -35,6 +35,9 @@ Should the `rating` field be proposable by the LLM (subject to human validation)
 ### Multi-provider embedding
 Add OpenAI / alternative Ollama models. Requires the full re-embedding system (see section above). Do not implement partially.
 
+### Ollama LLM note generation — DONE 2026-05-17 (F5)
+Local, keyless note generation via Ollama is implemented (`_generate_ollama` mirrors the claude path with the same validation-retry contract). The openai LLM provider remains deferred — see Chantier B (openai provider, `providers.mode`, install wizard, OpenRouter), do not implement partially.
+
 ### Full bidirectional watcher
 Currently vault→DB only. DB→vault is handled by `vault_writer.py` on explicit calls. Full bidirectional sync (programmatic edits reflected live in Obsidian) is a future feature.
 
