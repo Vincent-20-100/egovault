@@ -174,3 +174,11 @@ def test_curate_config_defaults():
     assert s.system.curate.escalation_min_notes == 3
     assert s.system.curate.escalation_max_distance == 0.5
     assert s.system.curate.synthesis_max_chars_per_item == 800
+
+
+def test_providers_config_ollama_tuning_defaults():
+    from core.config import ProvidersConfig
+
+    p = ProvidersConfig()
+    assert p.ollama_num_ctx == 8192
+    assert p.ollama_timeout_s == 180

@@ -111,6 +111,8 @@ class PathsConfig(BaseModel):
 
 class ProvidersConfig(BaseModel):
     ollama_base_url: str = "http://localhost:11434"
+    ollama_num_ctx: int = 8192
+    ollama_timeout_s: int = 180
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
 
