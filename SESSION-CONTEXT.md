@@ -155,9 +155,14 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 2. ~~**OpenTimestamps setup**~~ — **RESOLVED**: v0.X.0 tags only, script enforces pattern, user must run from machine.
 3. ~~**Real-world testing plan**~~ — STARTED 2026-05-15 (YouTube subtitles). Surfaced
    F1–F5 (see audit). Remaining: PDF/web sources, queue test — blocked on F2/F5 decisions.
-4. ~~**curate() design**~~ — **RESOLVED for tier 0 (implemented 2026-05-16)**.
-   Only empirical tuning of `escalation_max_distance` remains (real-world test).
-   Tier 1 (LLM synthesis) is a separate future item, gated by F5.
+4. ~~**curate() design**~~ — **RESOLVED for tier 0 (implemented 2026-05-16,
+   validated on live vault 2026-05-17)**. curate() ran end-to-end on real
+   embedded data (0 notes → chunk escalation, cosine distances discriminant).
+   Findings A/B/C logged in `.meta/scratch/2026-05-17-prereinit-findings.md`
+   (CLI UTF-8 mojibake, source.title None, hook brittleness FIXED). Only
+   empirical tuning of `escalation_max_distance` remains. Tier 1 (LLM
+   synthesis) is a separate future item, gated by F5.
+   Spec + plan archived to `.meta/archive/{specs,plans}/`.
 6. **F5 scope** — implement ollama/openai LLM generation, or require a Claude key for
    real note-generation testing? Gates the ingest-queue test and Task 4.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
