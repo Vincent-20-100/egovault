@@ -3,12 +3,25 @@ Shared fixtures for API tests.
 
 - tmp_settings: Settings with temp vault.db + .system.db
 - client: FastAPI TestClient wrapping the app
+- reset_rate_counts (autouse): isolates the module-level rate-limit state so
+  the session-scoped client cannot leak 429s across API test files (TEST-C1).
 """
 
 import pytest
 import yaml
 from pathlib import Path
 from fastapi.testclient import TestClient
+
+import api.main as _main_module
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_counts():
+    """Clear api.main._request_counts before/after every API test so the
+    shared (session-scoped) app's rate limiter is per-test deterministic."""
+    _main_module._request_counts.clear()
+    yield
+    _main_module._request_counts.clear()
 
 from core.config import load_settings
 from infrastructure.db import init_db, init_system_db
