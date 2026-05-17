@@ -215,6 +215,20 @@ def init_db(
                 dims, stored_dim,
             )
 
+    # Startup validation — warn on a stale pre-cosine (L2) vec table. The
+    # IF NOT EXISTS above is a no-op on an old DB, so embeddings would be
+    # cosine-normalized while the index still scores L2 → silent mis-ranking
+    # and meaningless curate() thresholds. Re-embedding is user-initiated.
+    vec_ddl = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE name = 'chunks_vec'"
+    ).fetchone()
+    if vec_ddl is not None and "distance_metric=cosine" not in (vec_ddl[0] or ""):
+        _logger.warning(
+            "chunks_vec uses the legacy L2 metric (no distance_metric=cosine). "
+            "Embeddings are cosine-normalized — search ranking and curate() "
+            "thresholds are unreliable. Run scripts/reembed.py to rebuild."
+        )
+
     conn.commit()
     conn.close()
     from core.security import set_restrictive_permissions

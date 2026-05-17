@@ -598,3 +598,25 @@ def test_fresh_init_db_has_soft_delete_columns(tmp_path):
     conn.close()
     assert "previous_status" in src_cols
     assert "previous_sync_status" in note_cols
+
+
+def test_init_db_warns_on_stale_l2_vec_table(tmp_path, caplog):
+    """DB-C2: a pre-cosine (L2) vec table must trigger a warning on init_db."""
+    import logging
+    import sqlite_vec
+    from infrastructure.db import init_db, get_vault_connection
+
+    db_file = tmp_path / "vault.db"
+    # Simulate a stale DB: chunks_vec created WITHOUT distance_metric=cosine
+    conn = get_vault_connection(db_file)
+    conn.execute(
+        "CREATE VIRTUAL TABLE chunks_vec USING vec0("
+        "chunk_uid TEXT, embedding FLOAT[768])"
+    )
+    conn.commit()
+    conn.close()
+
+    with caplog.at_level(logging.WARNING):
+        init_db(db_file)
+
+    assert any("cosine" in r.message.lower() for r in caplog.records), caplog.text
