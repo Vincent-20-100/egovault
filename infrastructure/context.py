@@ -13,9 +13,11 @@ from infrastructure.vault_db import VaultDB
 
 
 def _llm_is_configured(settings: Settings) -> bool:
-    """Check if a supported LLM provider has credentials configured."""
+    """Check if a usable LLM provider is configured (credentials OR keyless local)."""
     if settings.user.llm.provider == "claude":
         return bool(settings.install.providers.anthropic_api_key)
+    if settings.user.llm.provider == "ollama":
+        return True
     return False
 
 

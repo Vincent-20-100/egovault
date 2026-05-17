@@ -55,6 +55,18 @@ def test_llm_is_not_configured_when_provider_is_not_claude(tmp_settings):
     assert _llm_is_configured(settings) is False
 
 
+def test_llm_is_configured_true_for_ollama(tmp_settings):
+    from core.config import LLMUserConfig
+    from infrastructure.context import _llm_is_configured
+
+    s = tmp_settings.model_copy(
+        update={"user": tmp_settings.user.model_copy(
+            update={"llm": LLMUserConfig(provider="ollama", model="qwen2.5:7b-instruct")}
+        )}
+    )
+    assert _llm_is_configured(s) is True
+
+
 # ============================================================
 # build_context — field types and presence
 # ============================================================
