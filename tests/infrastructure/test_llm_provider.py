@@ -276,3 +276,25 @@ def test_ollama_payload_shape(tmp_settings):
     assert payload["stream"] is False
     assert payload["messages"][0]["role"] == "system"
     assert mp.call_args.kwargs["timeout"] == 180
+
+
+def test_ollama_does_not_enforce_taxonomy_context(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+
+    # note_type 'totally-unknown' is NOT in tmp_settings taxonomy
+    payload = '''{
+        "title": "Titre hors taxo ok",
+        "docstring": "D.",
+        "body": "## Body section\\n\\nContent text here",
+        "note_type": "totally-unknown",
+        "source_type": "youtube",
+        "tags": ["t"],
+        "url": null
+    }'''
+    with patch("infrastructure.llm_provider.requests.post",
+               return_value=_ollama_response(payload)):
+        result = generate_note_content(
+            "c", {"title": "T", "source_type": "youtube"}, "standard",
+            _ollama_settings(tmp_settings),
+        )
+    assert result.note_type == "totally-unknown"  # same as claude: no context = no enforcement
