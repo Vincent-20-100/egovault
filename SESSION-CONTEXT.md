@@ -168,6 +168,12 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    empirical tuning of `escalation_max_distance` remains. Tier 1 (LLM
    synthesis) is a separate future item, gated by F5.
    Spec + plan archived to `.meta/archive/{specs,plans}/`.
-6. **F5 scope** — implement ollama/openai LLM generation, or require a Claude key for
-   real note-generation testing? Gates the ingest-queue test and Task 4.
+6. **F5 scope — ACTIVE DISCUSSION (étape 7)** — user wants local note
+   generation via Ollama. Reality: `llm_provider.generate_note_content`
+   explicitly `raise NotImplementedError` for ollama/openai; only `claude`
+   (Anthropic, structured output + validation retry) is implemented. Implementing
+   ollama gen = a real feature: ollama chat with JSON/structured output honoring
+   the same validation-retry contract. Treat via brainstorm→spec→plan, NOT bolted
+   onto the test. Separate from the search-quality track (finding E).
+   See `.meta/audits/2026-05-17-real-ingest-test-results.md`.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
