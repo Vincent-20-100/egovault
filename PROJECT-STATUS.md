@@ -4,28 +4,29 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-05-16
+**Last updated:** 2026-05-17
 **Last session branch:** `main`
 
 ---
 
 ## Next action
 
-**1. ~~Implement `curate()` tier 0~~** — **DONE 2026-05-16**. 7 TDD tasks executed,
-9 tests, MCP+CLI surfaces, 0 regression (477 pass / 7 pre-existing F4 fail).
-Next concrete step: **calibrate `escalation_max_distance`** with real-world data,
-then **curate() tier 1** (LLM synthesis — needs generic `complete` Protocol on
-VaultContext; gated by F5).
+Multi-step plan in progress (étapes 0→7). Done: 0 (preserve egovault-data),
+1 (curate validated on live vault), 2 (archive plan/docs), 3 (pre-reinit audit),
+4 (5 critical fixes — suite 481/0 deterministic).
 
-**2. Decide F5 scope** — Ollama/OpenAI note generation is unimplemented. Either
-implement the Ollama provider or require a Claude API key. Gates real note-generation
-testing (Task 4) and the ingest-queue test (Task 6).
+**NEXT — étape 5 (DESTRUCTIVE, requires explicit confirmation):** copy
+`egovault-data/sources/raw-sources/` out, then reinit the live DB
+(`egovault-user/data/` → moved to `_trash-egovault-YYYYMMDD/`, NOT deleted).
+`egovault-data` is preserved (local commit, never delete per user).
 
-**3. ~~Fix F6 packaging~~** — RESOLVED 2026-05-16: `beautifulsoup4` was already
-declared; only `ruff` was missing → added to dev group.
+**Then — étape 6:** real-condition ingestion test on the raw-sources corpus
+(fresh DB) — first true integration signal (TEST-C2: unit suite is blind to
+real ingest/semantic ranking). **Étape 7:** plan curate() tier 1 / F5 /
+`/curate` API endpoint from the test findings.
 
-Real-world testing STARTED 2026-05-15 (YouTube): F1 (DB bootstrap) + F2 (cosine
-metric) fixed & verified. Findings: `.meta/audits/2026-05-15-real-world-test-findings.md`.
+**F5 scope (open question)** — Ollama/OpenAI note generation unimplemented;
+gates real note-generation. Decide before étape 6 note-gen sub-test.
 
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
 See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
@@ -119,7 +120,8 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | API test fixtures: direct infrastructure.db imports | MINOR | Seed fixtures (session-scoped, no `client`) use raw DB — refactor when fixture pattern allows |
 | System DB operations in tests | INFO | Jobs/system DB not in VaultDB — acceptable, consider facade later |
 | ~~RAG distance = L2 on unnormalized embeddings~~ | ~~CRITICAL~~ | **RESOLVED 2026-05-16** — cosine metric + normalized embeddings (`a30e443`), reembed script (`a1043e6`), verified semantically discriminant. curate() threshold now meaningful. |
-| **7 pre-existing broken tests** | MAJOR | Real suite = 465 pass / 7 fail (NOT "374 pass"). typst signature, api ingest_text ×3, integration ×2, cli notes. Separate cleanup pass. F4 |
+| ~~7 pre-existing broken tests~~ | ~~MAJOR~~ | **RESOLVED 2026-05-17 (F4)** — audit (`.meta/audits/2026-05-17-pre-reinit-audit.md`) proved ZERO real product bugs: 5/7 = one test-isolation defect (TEST-C1, fixed `44f333b`), 2/7 = stale tests (TEST-M2/M3, fixed `c017db4`). **Suite now 481 pass / 0 fail / 1 skip, deterministic.** |
+| **Deferred audit debt (2026-05-17)** | MAJOR/MINOR | Tracked in audit report: DB-M1 atomic purge_source, DB-M2 DB error wrapping, DB-M3 connection-leak (try/finally, ~50 funcs — the "DB lock" root cause), DB-M4 search ignores filters, SCRIPT-M1 reembed backup/probe, TEST-C2 no real semantic/ingest e2e test, TEST-M1 missing test files. Post-reinit. |
 | **Ollama/OpenAI LLM generation unimplemented** | MAJOR | Only `claude` implemented. Local note gen (Option B) unsupported. Scope decision. F5 |
 | ~~beautifulsoup4 + ruff undeclared in pyproject~~ | ~~MAJOR~~ | **RESOLVED 2026-05-16** — `beautifulsoup4` was already declared+committed (web-ingestion-V1, `0fab5b3`); only `ruff` was missing. Added to dev group (`chore` commit). pytest collects 476 tests, bs4 4.14.3 installed. |
 | **save-progress skill missing preflight script** | MINOR | `scripts/save_progress_preflight.py` absent; skill's `uv run` fallback prunes the venv. Create script or fix skill. |
@@ -188,6 +190,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | 2026-04-05 | `claude/brainstorming-pending-ideas-5zR2H` | **B2 Security marked done** (already implemented). **Web ingestion V1** — full brainstorm→spec→plan→impl (SSRF protection, fetch_web, 2-tier extraction, web extractor, all surfaces). **Monitoring** — run_id contextvars, token_count/provider extraction, workflow_runs table, 3 API endpoints. Fixed 3 pre-existing test failures. 331 tests pass. |
 | 2026-04-06 | `main` | **Git history cleanup** — 115 commits → 12 squashed, all authored by Vincent. **ADR-008 metadev changes** — attribution.commit="", permissions, rules/, pre-commit, SessionStart hook. **Large source synthesis brainstorm + spec** — cascade strategy, template reuse, presets. **Vault-usage rules** for MCP guidance. **MCP parity** — added ingest_youtube/audio/pdf tools + 10 tests. **Getting Started guide** — zero-to-first-note tutorial, Ollama + Claude Desktop MCP setup. |
 | 2026-04-16 | `claude/check-project-status-6VthL` → `main` | **Product vision shift** — Knowledge Compiler + Librarian Agent pattern (inspired by Karpathy LLM Wiki + agentify). Two-layer architecture (RAG on sources + compiled knowledge on notes). Librarian as smart tool with isolated LLM call, not autonomous agent. Tiered approach (tier 0 deterministic, tier 1 with LLM). Pre-packaged agent for MCP clients. OpenTimestamps for IP antériority. All documented in FUTURE-WORK.md. |
+| 2026-05-17 | `main` | **curate() validated on live vault** (real data, end-to-end). **Pre-reinit audit** (3 parallel agents: DB/scripts/tests) → `.meta/audits/2026-05-17-pre-reinit-audit.md`: 7 F4 = ZERO product bugs. **5 critical fixes** (DB-C1 schema, SCRIPT-M2 dead migrations purged, TEST-C1 isolation, TEST-M2/M3 stale tests, DB-C2 cosine guard). **Suite 481 pass / 0 fail, deterministic.** Hook bug fixed (`664d953`). egovault-data preserved (local commit, not deleted). NEXT: étape 5 data cleanup + DB reinit (destructive, awaiting confirmation) → real ingestion test. |
 | 2026-05-16 | `main` | **curate() tier 0 SHIPPED** — full plan executed (7 TDD tasks): `CuratedContext`/`CuratedSource` schema, `CurateConfig`, `tools/vault/curate.py` (deterministic notes→chunks, escalation, merge notes-first, per-item truncation), MCP `curate` tool, `egovault curate` CLI. 9 new tests, 477 pass / 7 pre-existing F4 fail / **0 regression**. Ripple docs updated (vault-usage, ARCHITECTURE, VISION). **F6 resolved** (bs4 already declared; ruff added to dev group). |
 | 2026-05-16 | `main` | **F2 fully resolved** — cosine metric + normalized embeddings (`a30e443`), `reembed.py` script (`a1043e6`), dev DB migrated, verified semantically discriminant. Regression I introduced (zero-vector test embeddings under cosine) fixed (`48891bd`). curate() spec recalibrated, plan unblocked. **F6 discovered**: bs4/ruff undeclared in pyproject (save-progress skill's missing preflight script triggered `uv run` which pruned the venv). 468 pass / 7 pre-existing fail / 0 regression. |
 | 2026-05-15 | `main` | **First real-world test** — curate() tier-0 brainstorm→spec→plan (`.meta/specs|plans/2026-05-15-curate-tier0-*`). Real YouTube ingest surfaced 5 findings (`.meta/audits/2026-05-15-real-world-test-findings.md`): F1 DB-bootstrap-in-build_context **fixed** (`160f27f`, verified end-to-end), F2 **CRITICAL** RAG L2/unnormalized distance breaks curate() threshold, F3 mojibake false alarm, F4 7 pre-existing broken tests, F5 ollama gen unimplemented. |

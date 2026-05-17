@@ -113,8 +113,13 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
     queries, verified semantically discriminant. `scripts/reembed.py` rebuilds vec
     tables after any metric/model change (run it on existing vaults). curate() spec
     `escalation_max_distance=0.5` is now meaningful.
-12. **"374 tests pass" was stale** — real suite is 465 pass / 7 fail. Don't trust
-    historical pass counts; run the full suite.
+12. **Test counts: now 481 pass / 0 fail / 1 skip, DETERMINISTIC** (2026-05-17).
+    The old "7 pre-existing failures" were audited (zero product bugs) and fully
+    fixed. The API suite was non-deterministic (session client + global
+    rate-limit state) — fixed via autouse reset in `tests/api/conftest.py`.
+    Still: a green suite is NOT a strong gate (TEST-C2 — ingest/semantic ranking
+    is over-mocked). Always run the full suite; treat the real-data ingest
+    (étape 6) as the first true integration signal.
 13. **Console mojibake ≠ data corruption** on Windows — verify stored bytes via
     Python `-X utf8`, not the terminal, before chasing an "encoding bug".
 14. **F6 RESOLVED 2026-05-16** — `beautifulsoup4` was in fact already declared

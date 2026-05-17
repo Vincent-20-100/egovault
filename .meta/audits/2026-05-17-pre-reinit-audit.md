@@ -111,6 +111,28 @@ a deterministic hash-based fake embed.
   blindness). Zero real product bugs in the 7. Treat the real-data ingest as the first
   genuine integration signal.
 
+## Resolution status (étape 4 — DONE 2026-05-17)
+
+| Fix | Commit | Result |
+|-----|--------|--------|
+| DB-C1 | `0434e07` | previous_status/previous_sync_status folded into _SCHEMA_SQL |
+| SCRIPT-M2 | `cc8ef7f` | scripts/temp/ + 2 obsolete migration tests deleted; helper simplified |
+| TEST-C1 | `44f333b` | autouse rate-counter reset in tests/api/conftest.py |
+| TEST-M3 | `c017db4` | orphan typst test deleted, quote-escape ported to canonical |
+| TEST-M2 | `c017db4` | stale `_get_existing_slugs` patch removed |
+| DB-C2 | `dd9dd4b` | init_db warns on stale L2 vec table |
+
+**Full suite after étape 4: 481 passed / 0 failed / 1 skipped — deterministic.**
+The historical "7 pre-existing failures" (F4) are fully eliminated and were
+confirmed to contain ZERO real product bugs.
+
+**Still deferred (tracked debt, post-reinit):** DB-M1 (atomic purge_source),
+DB-M2 (DB error wrapping/logging), DB-M3 (connection-leak / try-finally —
+systemic ~50 funcs), DB-M4 (search ignores filters), SCRIPT-M1 (reembed
+backup/probe), TEST-C2 (no real semantic-relevance / ingest e2e test),
+TEST-M1 (missing test files: monitoring router, summarize, extract_audio),
+plus listed MINORs.
+
 ## Recommended fix order before reinit (étape 4)
 
 1. **DB-C1** — fold previous_status columns into `_SCHEMA_SQL` (mandatory, ~2 lines).
