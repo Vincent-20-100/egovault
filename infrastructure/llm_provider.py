@@ -5,6 +5,7 @@ LLM provider with structured output and validation retry.
 import json
 from pathlib import Path
 
+import requests
 from pydantic import ValidationError
 
 from core.config import Settings
@@ -31,10 +32,7 @@ def generate_note_content(
             "Configure provider: claude in user.yaml."
         )
     elif provider == "ollama":
-        raise NotImplementedError(
-            "LLM provider 'ollama' is not implemented in v1. "
-            "Configure provider: claude in user.yaml."
-        )
+        return _generate_ollama(source_content, source_metadata, template_name, settings)
     else:
         raise NotImplementedError(
             f"LLM provider '{provider}' is not supported. "
@@ -95,6 +93,59 @@ def _generate_anthropic(
             from core.sanitize import sanitize_error
             raise RuntimeError(sanitize_error(e)) from None
         raw = message.content[0].text
+        try:
+            data = json.loads(raw)
+            return NoteContentInput(**data)
+        except (json.JSONDecodeError, ValidationError) as e:
+            last_error = e
+
+    raise ValueError(
+        f"LLM failed to produce valid NoteContentInput after {max_retries + 1} attempts. "
+        f"Last error: {last_error}"
+    )
+
+
+def _generate_ollama(
+    source_content: str,
+    source_metadata: dict,
+    template_name: str,
+    settings: Settings,
+) -> NoteContentInput:
+    template = _load_template(template_name)
+    base_url = settings.install.providers.ollama_base_url
+    num_ctx = settings.install.providers.ollama_num_ctx
+    timeout_s = settings.install.providers.ollama_timeout_s
+    max_retries = settings.system.llm.max_retries
+    user_message = _build_user_message(source_content, source_metadata, template)
+    last_error: Exception | None = None
+
+    for attempt in range(max_retries + 1):
+        error_context = (
+            f"\n\nPrevious attempt failed with: {last_error}. "
+            "Fix the JSON and try again."
+            if last_error else ""
+        )
+        try:
+            response = requests.post(
+                f"{base_url}/api/chat",
+                json={
+                    "model": settings.user.llm.model,
+                    "stream": False,
+                    "format": "json",
+                    "options": {"temperature": 0.2, "num_ctx": num_ctx},
+                    "messages": [
+                        {"role": "system",
+                         "content": template["system_prompt"] + error_context},
+                        {"role": "user", "content": user_message},
+                    ],
+                },
+                timeout=timeout_s,
+            )
+            response.raise_for_status()
+        except Exception as e:
+            from core.sanitize import sanitize_error
+            raise RuntimeError(sanitize_error(e)) from None
+        raw = response.json()["message"]["content"]
         try:
             data = json.loads(raw)
             return NoteContentInput(**data)

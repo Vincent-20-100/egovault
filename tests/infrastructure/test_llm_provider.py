@@ -144,3 +144,47 @@ def test_generate_note_content_unknown_provider_raises(tmp_settings):
             template_name="standard",
             settings=bad_settings,
         )
+
+
+def _ollama_settings(tmp_settings):
+    from core.config import LLMUserConfig
+    return tmp_settings.model_copy(
+        update={"user": tmp_settings.user.model_copy(
+            update={"llm": LLMUserConfig(provider="ollama", model="qwen2.5:7b-instruct")}
+        )}
+    )
+
+
+def _ollama_response(text):
+    resp = MagicMock()
+    resp.raise_for_status.return_value = None
+    resp.json.return_value = {"message": {"role": "assistant", "content": text}}
+    return resp
+
+
+def test_generate_note_content_ollama_happy_path(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+    from core.schemas import NoteContentInput
+
+    good = '''{
+        "title": "Decentralisation et resilience",
+        "docstring": "Les systemes decentralises resistent mieux aux pannes.",
+        "body": "## Idee\\n\\nPas de point unique de defaillance.",
+        "note_type": "synthese",
+        "source_type": "youtube",
+        "tags": ["decentralisation"],
+        "url": null
+    }'''
+
+    with patch("infrastructure.llm_provider.requests.post",
+               return_value=_ollama_response(good)) as mock_post:
+        result = generate_note_content(
+            source_content="Les systemes decentralises...",
+            source_metadata={"title": "Test", "source_type": "youtube"},
+            template_name="standard",
+            settings=_ollama_settings(tmp_settings),
+        )
+
+    assert isinstance(result, NoteContentInput)
+    assert result.title == "Decentralisation et resilience"
+    assert mock_post.call_count == 1
