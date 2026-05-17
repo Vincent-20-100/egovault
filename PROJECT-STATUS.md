@@ -11,22 +11,28 @@
 
 ## Next action
 
-Multi-step plan in progress (étapes 0→7). Done: 0 (preserve egovault-data),
-1 (curate validated on live vault), 2 (archive plan/docs), 3 (pre-reinit audit),
-4 (5 critical fixes — suite 481/0 deterministic).
+Multi-step plan étapes 0→6 + F5 all DONE (2026-05-17): 0 preserve
+egovault-data, 1 curate validated on live vault, 2 archive plan/docs,
+3 pre-reinit audit, 4 five critical fixes, 5 data cleanup + DB reinit
+(live DB → `_trash-egovault-20260517`, corpus → `_corpus-test-20260517`),
+6 real-condition ingest test (25 sources, findings D/E), then **F5 ollama
+LLM provider SHIPPED** (brainstorm→spec→reviewed→plan→subagent-driven TDD,
+9 commits `a8e9d47..b766930`, suite 491/0/1skip, ship-ready).
 
-**NEXT — étape 5 (DESTRUCTIVE, requires explicit confirmation):** copy
-`egovault-data/sources/raw-sources/` out, then reinit the live DB
-(`egovault-user/data/` → moved to `_trash-egovault-YYYYMMDD/`, NOT deleted).
-`egovault-data` is preserved (local commit, never delete per user).
+**NEXT (pick up here):**
+1. **Calibrate / real note-gen test** — with F5 done, generate notes locally
+   on the `_corpus-test-20260517` corpus (set `user.yaml` `llm.provider:
+   ollama`, `model: qwen2.5:7b-instruct`, `ollama pull` it first) → finally
+   exercise curate() **tier-2** (notes layer) on real data; tune
+   `escalation_max_distance` (finding E: cosine ranking imprecise on FR).
+2. **Search-quality track** (finding E) — embedding model / reranking /
+   chunking. Separate from F5.
+3. **curate() tier 1** (LLM synthesis) — now unblocked (local LLM exists).
+4. **Chantier B** (open question 10.4) — openai provider, `providers.mode`,
+   setup wizard, OpenRouter, hot-swap. F5 was slice A only.
 
-**Then — étape 6:** real-condition ingestion test on the raw-sources corpus
-(fresh DB) — first true integration signal (TEST-C2: unit suite is blind to
-real ingest/semantic ranking). **Étape 7:** plan curate() tier 1 / F5 /
-`/curate` API endpoint from the test findings.
-
-**F5 scope (open question)** — Ollama/OpenAI note generation unimplemented;
-gates real note-generation. Decide before étape 6 note-gen sub-test.
+Deferred audit debt (DB-M1..M4, SCRIPT-M1, TEST-C2/M1) still tracked in
+`.meta/audits/2026-05-17-pre-reinit-audit.md`.
 
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
 See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
