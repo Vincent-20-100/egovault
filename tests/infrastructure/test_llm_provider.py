@@ -202,3 +202,77 @@ def test_ollama_malformed_200_body_retries_then_raises(tmp_settings):
                 "c", {"title": "T", "source_type": "youtube"}, "standard",
                 _ollama_settings(tmp_settings),
             )
+
+
+def test_ollama_retries_on_invalid_then_succeeds(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+
+    good = '''{
+        "title": "Titre valide ok",
+        "docstring": "Un docstring valide.",
+        "body": "## Corps\\n\\nContenu.",
+        "note_type": "synthese",
+        "source_type": "youtube",
+        "tags": ["test"],
+        "url": null
+    }'''
+    calls = {"n": 0}
+
+    def fake_post(*a, **k):
+        calls["n"] += 1
+        return _ollama_response("not json" if calls["n"] == 1 else good)
+
+    with patch("infrastructure.llm_provider.requests.post", side_effect=fake_post):
+        result = generate_note_content(
+            "c", {"title": "T", "source_type": "youtube"}, "standard",
+            _ollama_settings(tmp_settings),
+        )
+    assert calls["n"] == 2
+    assert result.title == "Titre valide ok"
+
+
+def test_ollama_raises_after_max_retries(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+
+    with patch("infrastructure.llm_provider.requests.post",
+               return_value=_ollama_response("invalid always")):
+        with pytest.raises(ValueError, match="LLM failed to produce valid NoteContentInput"):
+            generate_note_content(
+                "c", {"title": "T", "source_type": "youtube"}, "standard",
+                _ollama_settings(tmp_settings),
+            )
+
+
+def test_ollama_down_raises_sanitized_runtime_error(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+    import requests
+
+    def boom(*a, **k):
+        raise requests.ConnectionError("connection refused to http://localhost:11434")
+
+    with patch("infrastructure.llm_provider.requests.post", side_effect=boom):
+        with pytest.raises(RuntimeError) as exc:
+            generate_note_content(
+                "c", {"title": "T", "source_type": "youtube"}, "standard",
+                _ollama_settings(tmp_settings),
+            )
+    assert "Traceback" not in str(exc.value)
+
+
+def test_ollama_payload_shape(tmp_settings):
+    from infrastructure.llm_provider import generate_note_content
+
+    good = '''{"title":"Titre ok valide","docstring":"D.","body":"## Body\\n\\nContent here",
+        "note_type":"synthese","source_type":"youtube","tags":["t"],"url":null}'''
+    with patch("infrastructure.llm_provider.requests.post",
+               return_value=_ollama_response(good)) as mp:
+        generate_note_content(
+            "c", {"title": "T", "source_type": "youtube"}, "standard",
+            _ollama_settings(tmp_settings),
+        )
+    payload = mp.call_args.kwargs["json"]
+    assert payload["format"] == "json"
+    assert payload["model"] == "qwen2.5:7b-instruct"
+    assert payload["stream"] is False
+    assert payload["messages"][0]["role"] == "system"
+    assert mp.call_args.kwargs["timeout"] == 180
