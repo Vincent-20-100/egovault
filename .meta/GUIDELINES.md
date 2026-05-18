@@ -148,8 +148,25 @@ Before any change is considered complete:
 - Tags: French, lowercase, no accents, hyphens (e.g. `biais-cognitifs`)
 
 ### Scripts
-- One-shot scripts go in `scripts/temp/`
-- Never in `scripts/setup/` (reserved for init) nor at project root
+- One-shot / throwaway scripts go in `.meta/scratch/` (gitignored) — NOT
+  `scripts/temp/` (deleted 2026-05-17, SCRIPT-M2) and never `scripts/setup/`
+  (reserved for init) nor the project root
+- Durable maintenance scripts live in `scripts/` (e.g. `reembed.py`)
+
+### Git commits
+- **ASCII-only commit messages.** No accented chars, em/en-dashes (`—`/`–`),
+  curly quotes, or emoji. Use `-`, `"`, `'`. Conventional prefixes
+  (`feat:`/`fix:`/`docs:`/`chore:`) per CLAUDE.md §5.
+- **Why:** on the Windows dev shell, non-ASCII passed to `git commit -m`
+  via the Bash tool is double-mojibake'd (`é`→`Ã©`, `—`→`â€"`) and persisted
+  corrupted **in git history** (verified: `é` → bytes `c3 83 c2 a9`). This is
+  shell/encoding-level — the `force_git_author` hook does NOT prevent it.
+- **If corruption slips in:** recover + re-ASCII a message with
+  `msg.encode('cp1252').decode('utf-8')` then transliterate; rewrite history
+  with `git filter-branch --msg-filter` over the affected range ONLY (never
+  touch commits that are ancestors of OpenTimestamps tags `v0.X.0` —
+  rewriting them invalidates the `.timestamps/*.ots` antériorité proofs).
+  Precedent: 8 commits cleaned 2026-05-18 (all post-`v0.3.0`, OTS safe).
 
 ---
 
