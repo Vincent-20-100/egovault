@@ -120,8 +120,14 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
     Still: a green suite is NOT a strong gate (TEST-C2 — ingest/semantic ranking
     is over-mocked). Always run the full suite; treat the real-data ingest
     (étape 6) as the first true integration signal.
-13. **Console mojibake ≠ data corruption** on Windows — verify stored bytes via
-    Python `-X utf8`, not the terminal, before chasing an "encoding bug".
+13. **Mojibake on Windows shell** — console display mojibake != data corruption
+    (verify stored bytes via Python `-X utf8`). BUT git **commit messages**
+    passed via Bash `-m` ARE corrupted into history (shell argv encoding).
+    Rule now durable in `.meta/GUIDELINES.md` § Git commits: ASCII-only
+    messages. 8 corrupted commits cleaned 2026-05-18 via `filter-branch`
+    (post-`v0.3.0` only — OTS proofs preserved), force-pushed. The
+    `force_git_author` hook was also fixed (was appending `--author` to the
+    last segment of compound commands). Backup branch `backup-pre-histclean`.
 14. **F6 RESOLVED 2026-05-16** — `beautifulsoup4` was in fact already declared
     (`0fab5b3`, web-ingestion-V1) and installed (4.14.3); only `ruff` was missing,
     now in the dev group. pytest collects 476 tests cleanly. Still prefer

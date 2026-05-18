@@ -187,6 +187,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 | Date | Branch | What was done |
 |------|--------|---------------|
+| 2026-05-18 | `main` | **force_git_author hook fixed** (was appending `--author` to last segment of compound cmds; now after `commit` keyword; 5 TDD tests, suite 496/0). **History cleaned**: 8 mojibake commit messages (post-`v0.3.0`, OTS-safe) recovered via `filter-branch` + ASCII translit, tree byte-identical, force-pushed `--force-with-lease`, backup branch `backup-pre-histclean`. ASCII-commit rule + recovery recipe + OTS constraint in `.meta/GUIDELINES.md`. |
 | 2026-05-17 | `main` | **F5 ollama LLM provider SHIPPED** - brainstorm->spec (architect+code reviewed, 11 fixes)->plan->subagent-driven TDD (6 tasks). `_generate_ollama` mirrors claude path, keyless local note gen, qwen2.5:7b-instruct target. Suite green. Chantier B (openai/providers.mode/wizard/OpenRouter) still open (10.4). |
 | 2026-03-31 | `claude/check-project-status-6VthL` | B1 embedding.dims fix, unified ingest spec, project audit (47 findings), CLAUDE.md rewrite, development workflow spec, audit spec |
 | 2026-03-31 | `claude/brainstorm-ulBda` | VaultContext brainstorm → spec → plan → **FULL IMPLEMENTATION (13/13 steps)**. G13 rule added. Strategic vision (VISION.md). docs/superpowers/ reorganized. All tools, workflows, surfaces migrated to ctx. 355 tests pass, zero regressions. |
