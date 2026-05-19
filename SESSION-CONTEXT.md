@@ -128,12 +128,15 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
     (post-`v0.3.0` only — OTS proofs preserved), force-pushed. The
     `force_git_author` hook was also fixed (was appending `--author` to the
     last segment of compound commands). Backup branch `backup-pre-histclean`.
-14. **F6 RESOLVED 2026-05-16** — `beautifulsoup4` was in fact already declared
-    (`0fab5b3`, web-ingestion-V1) and installed (4.14.3); only `ruff` was missing,
-    now in the dev group. pytest collects 476 tests cleanly. Still prefer
-    `.venv/Scripts/python.exe -m pytest` over `uv run`; `ruff` not yet `uv sync`'d
-    into `.venv` (use `uvx ruff` or re-sync). The save-progress skill remains broken
-    here (missing `scripts/save_progress_preflight.py`) — separate MINOR debt.
+14. **uv ban LIFTED 2026-05-19** — full import audit (app + scripts/ + tests/)
+    shows ZERO undeclared third-party deps; `pyproject.toml` is complete.
+    Validated: `uv sync --all-extras` then full pytest = **496 pass / 1 skip /
+    0 fail**, tech_watch works. **MANDATORY invocation: `uv sync --all-extras`**
+    — bare `uv sync` STILL prunes `trafilatura` (tier1), `feedparser` +
+    `huggingface_hub` (tech-watch) because they are *optional extras* the code
+    imports. Use `--all-extras` and the env is fully functional. Backup freeze:
+    `Documents/_venv-freeze-backup-20260519.txt` (deletable). save-progress
+    skill still missing its preflight script — separate MINOR debt.
 15. **Cosine distance is undefined for the zero vector** — sqlite-vec returns
     `NULL` distance → `SearchResult.distance: float` ValidationError. Never use a
     zero embedding in tests (`make_embedding(0.0)`); real embeddings are never zero.

@@ -153,6 +153,15 @@ Before any change is considered complete:
   (reserved for init) nor the project root
 - Durable maintenance scripts live in `scripts/` (e.g. `reembed.py`)
 
+### Environment (uv)
+- `pyproject.toml` declares 100% of real imports (app + scripts + tests),
+  audited 2026-05-19. Keep it that way: any new third-party import must be
+  added to deps (or the right optional-extra) in the same change.
+- **Sync with `uv sync --all-extras`** — never bare `uv sync`. `trafilatura`
+  (`tier1`), `feedparser`/`huggingface_hub` (`tech-watch`) are optional extras
+  the code imports; bare `uv sync` prunes them and breaks the env.
+- Tests run via `.venv/Scripts/python.exe -m pytest` (stable regardless).
+
 ### Git commits
 - **ASCII-only commit messages.** No accented chars, em/en-dashes (`—`/`–`),
   curly quotes, or emoji. Use `-`, `"`, `'`. Conventional prefixes
