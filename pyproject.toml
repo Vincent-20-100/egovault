@@ -24,6 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 tier1 = ["trafilatura>=1.8"]
+tech-watch = ["feedparser>=6.0", "huggingface_hub>=0.20"]
 
 [dependency-groups]
 dev = [
