@@ -185,3 +185,11 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    `providers.mode`, install wizard, OpenRouter) — ref audit 10.4.
    See `.meta/audits/2026-05-17-real-ingest-test-results.md`.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
+7. **curate() retrieval redesign (NEW, from 2026-05-19 tech-watch)** — 3
+   independent SOTA projects reject pure cosine (synthesis card
+   `.meta/references/research/synthesis-retrieval-sota-2026-05-19.md`). The
+   deferred "curate() tier-1 = LLM synthesis of cosine top-K" must be
+   re-brainstormed against hybrid (BM25+cosine RRF) + structural/tree
+   retrieval BEFORE it is planned. Concrete first step (search-quality
+   track, no brainstorm needed, no new dep): **RRF(BM25 via SQLite FTS5,
+   cosine)** tested on the finding-E corpus.
