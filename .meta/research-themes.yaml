@@ -1,0 +1,71 @@
+# Tech-watch sweep themes for EgoVault.
+# Derived from docs/VISION-KNOWLEDGE-COMPILER.md + 2026-05-19 SOTA synthesis.
+themes:
+  - name: knowledge-compiler
+    keywords:
+      - knowledge compiler
+      - LLM wiki
+      - compiled knowledge
+      - second brain
+      - personal knowledge graph
+      - PKM AI
+      - note synthesis
+      - knowledge distillation
+      - obsidian AI
+      - compounding notes
+    negative:
+      - cryptocurrency
+  - name: librarian-retrieval
+    keywords:
+      - agentic retrieval
+      - context engineering
+      - context curation
+      - retrieval orchestration
+      - MCP server
+      - MCP knowledge
+      - curate
+      - librarian agent
+      - token budget agent
+    negative: []
+  - name: rag-memory-layers
+    keywords:
+      - GraphRAG
+      - hierarchical retrieval
+      - long-term memory
+      - agent memory
+      - memory layer
+      - vectorless RAG
+      - reranking
+      - hybrid retrieval
+      - RRF retrieval
+      - BM25 vector
+    negative: []
+  - name: local-llm-structured
+    keywords:
+      - local LLM
+      - ollama
+      - on-device LLM
+      - structured output
+      - constrained decoding
+      - JSON mode
+      - small language model
+      - llama.cpp
+    negative:
+      - fine-tuning dataset
+  - name: embeddings-reranking
+    keywords:
+      - text embeddings
+      - reranking
+      - sqlite-vec
+      - semantic search
+      - french embeddings
+      - multilingual embeddings
+      - retrieval evaluation
+      - colbert
+      - late interaction
+    negative:
+      - image embedding
+defaults:
+  max_new_per_source: 5
+  max_new_per_theme: 15
+  weight: 1.0
