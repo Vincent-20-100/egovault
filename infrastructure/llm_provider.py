@@ -3,6 +3,8 @@ LLM provider with structured output and validation retry.
 """
 
 import json
+import re
+import unicodedata
 from pathlib import Path
 
 import requests
@@ -10,6 +12,29 @@ from pydantic import ValidationError
 
 from core.config import Settings
 from core.schemas import NoteContentInput
+
+
+def _slugify_tag(tag: str) -> str:
+    """Normalize one LLM-emitted tag to satisfy NoteContentInput's validator:
+    lowercase + ASCII (no accents) + kebab-case [a-z0-9-], no leading/trailing
+    hyphens, no spaces or underscores."""
+    s = unicodedata.normalize("NFKD", tag).encode("ascii", "ignore").decode("ascii").lower()
+    s = re.sub(r"[\s_]+", "-", s)
+    s = re.sub(r"[^a-z0-9-]", "", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s
+
+
+def _normalize_tags(tags: list[str]) -> list[str]:
+    """Slugify each tag and drop empties; preserve order, dedupe."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for t in tags:
+        n = _slugify_tag(t)
+        if n and n not in seen:
+            out.append(n)
+            seen.add(n)
+    return out
 
 
 def generate_note_content(
@@ -95,6 +120,8 @@ def _generate_anthropic(
         raw = message.content[0].text
         try:
             data = json.loads(raw)
+            if isinstance(data.get("tags"), list):
+                data["tags"] = _normalize_tags(data["tags"])
             return NoteContentInput(**data)
         except (json.JSONDecodeError, ValidationError) as e:
             last_error = e
@@ -148,6 +175,8 @@ def _generate_ollama(
         try:
             raw = response.json()["message"]["content"]
             data = json.loads(raw)
+            if isinstance(data.get("tags"), list):
+                data["tags"] = _normalize_tags(data["tags"])
             return NoteContentInput(**data)
         except (json.JSONDecodeError, ValidationError, KeyError) as e:
             last_error = e

@@ -317,3 +317,45 @@ def test_ollama_http_error_model_not_pulled_sanitized(tmp_settings):
                 _ollama_settings(tmp_settings),
             )
     assert "Traceback" not in str(exc.value)
+
+
+def test_ollama_tags_with_accents_are_normalized(tmp_settings):
+    """Real-world finding (2026-05-20): qwen2.5:7b generates accented FR tags
+    (`systèmes`) that fail NoteContentInput's ASCII-tag validator. The provider
+    must slugify tags to satisfy lowercase + ASCII + kebab-case before construction.
+    """
+    from infrastructure.llm_provider import generate_note_content
+
+    payload = '''{
+        "title": "Fragilite des systemes centralises",
+        "docstring": "D.", "body": "Body text only.",
+        "note_type": "synthese", "source_type": "youtube",
+        "tags": ["systèmes", "Decentralisation", "bio_ethique"],
+        "url": null
+    }'''
+    with patch("infrastructure.llm_provider.requests.post",
+               return_value=_ollama_response(payload)):
+        result = generate_note_content(
+            "c", {"title": "T", "source_type": "youtube"}, "standard",
+            _ollama_settings(tmp_settings),
+        )
+    assert result.tags == ["systemes", "decentralisation", "bio-ethique"]
+
+
+def test_claude_tags_with_accents_are_normalized_parity(tmp_settings):
+    """Same normalization on the claude path (provider parity per F5 spec)."""
+    from infrastructure.llm_provider import generate_note_content
+
+    mock_message = MagicMock()
+    mock_message.content = [MagicMock(text='''{
+        "title": "Fragilite des systemes centralises",
+        "docstring": "D.", "body": "Body text only.",
+        "note_type": "synthese", "source_type": "youtube",
+        "tags": ["systèmes", "Decentralisation"],
+        "url": null
+    }''')]
+    with patch("anthropic.Anthropic") as MockA:
+        MockA.return_value.messages.create.return_value = mock_message
+        result = generate_note_content("c", {"title": "T", "source_type": "youtube"},
+                                       "standard", tmp_settings)
+    assert result.tags == ["systemes", "decentralisation"]
