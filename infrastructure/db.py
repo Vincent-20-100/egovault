@@ -242,6 +242,18 @@ def init_db(
             "thresholds are unreliable. Run scripts/reembed.py to rebuild."
         )
 
+    # Idempotent FTS backfill: populate the FTS5 mirrors from existing rows when
+    # the table is empty but its source has data (e.g. DB created before FTS5).
+    if conn.execute("SELECT COUNT(*) FROM chunks_fts").fetchone()[0] == 0:
+        conn.execute(
+            "INSERT INTO chunks_fts(uid, content) SELECT uid, content FROM chunks"
+        )
+    if conn.execute("SELECT COUNT(*) FROM notes_fts").fetchone()[0] == 0:
+        conn.execute(
+            "INSERT INTO notes_fts(uid, title, docstring) "
+            "SELECT uid, title, COALESCE(docstring, '') FROM notes"
+        )
+
     conn.commit()
     conn.close()
     from core.security import set_restrictive_permissions
@@ -314,6 +326,11 @@ def insert_note(db_path: Path, note: Note) -> None:
          note.title, note.docstring, note.body, note.url,
          note.date_created, note.date_modified),
     )
+    # Mirror searchable text into the FTS5 index (BM25 retrieval, hybrid with cosine)
+    conn.execute(
+        "INSERT INTO notes_fts(uid, title, docstring) VALUES (?, ?, ?)",
+        (note.uid, note.title, note.docstring or ""),
+    )
     conn.commit()
     conn.close()
     if note.tags:
@@ -354,6 +371,17 @@ def update_note(db_path: Path, uid: str, fields: dict) -> None:
         return
     conn = get_vault_connection(db_path)
     conn.execute(f"UPDATE notes SET {set_clauses} WHERE uid = ?", values + [uid])
+    # Resync notes_fts if a searchable field changed
+    if "title" in fields or "docstring" in fields:
+        row = conn.execute(
+            "SELECT title, docstring FROM notes WHERE uid = ?", (uid,)
+        ).fetchone()
+        if row is not None:
+            conn.execute("DELETE FROM notes_fts WHERE uid = ?", (uid,))
+            conn.execute(
+                "INSERT INTO notes_fts(uid, title, docstring) VALUES (?, ?, ?)",
+                (uid, row["title"], row["docstring"] or ""),
+            )
     conn.commit()
     conn.close()
 
@@ -398,12 +426,22 @@ def insert_chunks(db_path: Path, source_uid: str, chunks: list[ChunkResult]) -> 
         "INSERT INTO chunks (uid, source_uid, position, content, token_count) VALUES (?, ?, ?, ?, ?)",
         [(c.uid, source_uid, c.position, c.content, c.token_count) for c in chunks],
     )
+    # Mirror chunk text into FTS5 for BM25 hybrid retrieval
+    conn.executemany(
+        "INSERT INTO chunks_fts(uid, content) VALUES (?, ?)",
+        [(c.uid, c.content) for c in chunks],
+    )
     conn.commit()
     conn.close()
 
 
 def delete_chunks_for_source(db_path: Path, source_uid: str) -> None:
     conn = get_vault_connection(db_path)
+    # Delete FTS entries first while the chunks rows still exist as the subquery
+    conn.execute(
+        "DELETE FROM chunks_fts WHERE uid IN (SELECT uid FROM chunks WHERE source_uid = ?)",
+        (source_uid,),
+    )
     conn.execute("DELETE FROM chunks WHERE source_uid = ?", (source_uid,))
     conn.commit()
     conn.close()
@@ -717,6 +755,7 @@ def restore_note(db_path: Path, uid: str) -> str:
 def hard_delete_note(db_path: Path, uid: str) -> None:
     conn = get_vault_connection(db_path)
     conn.execute("DELETE FROM notes WHERE uid = ?", (uid,))
+    conn.execute("DELETE FROM notes_fts WHERE uid = ?", (uid,))
     conn.commit()
     conn.close()
 

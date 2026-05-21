@@ -669,3 +669,124 @@ def test_rrf_fuse_respects_limit():
     from infrastructure.db import _rrf_fuse
     result = _rrf_fuse(cosine=["a", "b", "c"], bm25=["d", "e", "f"], limit=2)
     assert len(result) == 2
+
+
+def _bm25(conn, table, term):
+    """Helper: return UIDs matching a BM25 query on chunks_fts/notes_fts."""
+    return [r[0] for r in conn.execute(
+        f"SELECT uid FROM {table} WHERE {table} MATCH ? ORDER BY rank LIMIT 5", (term,)
+    ).fetchall()]
+
+
+def test_insert_note_populates_notes_fts(tmp_path):
+    from infrastructure.db import init_db, insert_note, get_vault_connection
+    from core.schemas import Note
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    n = Note(uid="n1", slug="souverainete-monetaire", title="Souverainete monetaire",
+             docstring="bitcoin et controle de la monnaie",
+             body="body content padding minlen.", note_type="synthese", source_type="youtube",
+             tags=["bitcoin"], date_created=date.today().isoformat(),
+             date_modified=date.today().isoformat(), generation_template="standard")
+    insert_note(db, n)
+    conn = get_vault_connection(db)
+    assert _bm25(conn, "notes_fts", "souverainete") == ["n1"]
+    assert _bm25(conn, "notes_fts", "bitcoin") == ["n1"]
+    conn.close()
+
+
+def test_update_note_updates_notes_fts(tmp_path):
+    from infrastructure.db import init_db, insert_note, update_note, get_vault_connection
+    from core.schemas import Note
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    n = Note(uid="n1", slug="ancien-titre", title="Ancien titre",
+             docstring="ancien", body="body content padding minlen.", note_type="synthese", source_type="youtube",
+             tags=["t"], date_created=date.today().isoformat(),
+             date_modified=date.today().isoformat(), generation_template="standard")
+    insert_note(db, n)
+    update_note(db, "n1", {"title": "Nouveau titre", "docstring": "nouveau contenu"})
+    conn = get_vault_connection(db)
+    assert _bm25(conn, "notes_fts", "ancien") == []   # old gone
+    assert _bm25(conn, "notes_fts", "nouveau") == ["n1"]  # new present
+    conn.close()
+
+
+def test_insert_chunks_populates_chunks_fts(tmp_path):
+    from infrastructure.db import (init_db, insert_source, insert_chunks,
+                                    get_vault_connection)
+    from core.schemas import Source, ChunkResult
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    insert_source(db, Source(uid="s1", slug="src-1", source_type="texte",
+                              status="raw", date_added=date.today().isoformat()))
+    insert_chunks(db, "s1", [
+        ChunkResult(uid="c1", position=0, content="fragilite des systemes centralises", token_count=5),
+        ChunkResult(uid="c2", position=1, content="resilience des reseaux maillés", token_count=4),
+    ])
+    conn = get_vault_connection(db)
+    assert _bm25(conn, "chunks_fts", "fragilite") == ["c1"]
+    assert _bm25(conn, "chunks_fts", "reseaux") == ["c2"]
+    conn.close()
+
+
+def test_delete_chunks_for_source_cleans_fts(tmp_path):
+    from infrastructure.db import (init_db, insert_source, insert_chunks,
+                                    delete_chunks_for_source, get_vault_connection)
+    from core.schemas import Source, ChunkResult
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    insert_source(db, Source(uid="s1", slug="src-1", source_type="texte",
+                              status="raw", date_added=date.today().isoformat()))
+    insert_chunks(db, "s1", [ChunkResult(uid="c1", position=0, content="x", token_count=1)])
+    delete_chunks_for_source(db, "s1")
+    conn = get_vault_connection(db)
+    assert _bm25(conn, "chunks_fts", "x") == []
+    conn.close()
+
+
+def test_hard_delete_note_cleans_fts(tmp_path):
+    from infrastructure.db import (init_db, insert_note, hard_delete_note,
+                                    get_vault_connection)
+    from core.schemas import Note
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    n = Note(uid="n1", slug="hello-note", title="hello", docstring="world", body="body padding minlen.",
+             note_type="synthese", source_type="youtube", tags=["t"],
+             date_created=date.today().isoformat(),
+             date_modified=date.today().isoformat(), generation_template="standard")
+    insert_note(db, n)
+    hard_delete_note(db, "n1")
+    conn = get_vault_connection(db)
+    assert _bm25(conn, "notes_fts", "hello") == []
+    conn.close()
+
+
+def test_init_db_backfills_fts_from_existing_rows(tmp_path):
+    """A DB whose FTS tables are empty (e.g. created before FTS5 was added) must
+    be backfilled by init_db from the existing chunks/notes rows."""
+    from infrastructure.db import (init_db, insert_source, insert_chunks,
+                                    get_vault_connection)
+    from core.schemas import Source, ChunkResult
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    insert_source(db, Source(uid="s1", slug="src-1", source_type="texte",
+                              status="raw", date_added=date.today().isoformat()))
+    insert_chunks(db, "s1", [
+        ChunkResult(uid="c1", position=0, content="fragilite des systemes", token_count=2)
+    ])
+    # Simulate the pre-FTS state: chunks exist, chunks_fts is empty
+    conn = get_vault_connection(db)
+    conn.execute("DELETE FROM chunks_fts")
+    conn.commit(); conn.close()
+    # Re-running init_db must repopulate chunks_fts from chunks (idempotent)
+    init_db(db)
+    conn = get_vault_connection(db)
+    assert _bm25(conn, "chunks_fts", "fragilite") == ["c1"]
+    conn.close()
