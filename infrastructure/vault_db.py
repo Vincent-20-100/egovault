@@ -131,6 +131,28 @@ class VaultDB:
     ) -> list[SearchResult]:
         return _db.search_notes(self._db_path, query_embedding, filters, limit)
 
+    def search_chunks_hybrid(
+        self,
+        query_text: str,
+        query_embedding: list[float],
+        filters: SearchFilters | None,
+        limit: int,
+    ) -> list[SearchResult]:
+        return _db.search_chunks_hybrid(
+            self._db_path, query_text, query_embedding, filters, limit
+        )
+
+    def search_notes_hybrid(
+        self,
+        query_text: str,
+        query_embedding: list[float],
+        filters: SearchFilters | None,
+        limit: int,
+    ) -> list[SearchResult]:
+        return _db.search_notes_hybrid(
+            self._db_path, query_text, query_embedding, filters, limit
+        )
+
     # -- Utility --
 
     def ping(self) -> bool:

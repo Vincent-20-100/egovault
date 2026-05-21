@@ -34,6 +34,7 @@ curate:
   escalation_min_notes: 3        # < N relevant notes → escalate to chunks
   escalation_max_distance: 0.5   # "relevant" threshold — TO CALIBRATE in real-world test
   synthesis_max_chars_per_item: 800
+  use_hybrid_retrieval: false    # true = cosine + BM25/FTS5 fused via RRF (exp #1, 2026-05-21)
 
 # ============================================================
 # TAXONOMY — user-configurable classification values

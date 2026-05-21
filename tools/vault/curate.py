@@ -23,12 +23,19 @@ def curate(
     cfg = ctx.settings.system.curate
     query_embedding = ctx.embed(query)
 
-    notes = ctx.db.search_notes(query_embedding, filters, limit)
+    # Opt-in hybrid retrieval (cosine + BM25 fused via RRF). When off, pure cosine.
+    if cfg.use_hybrid_retrieval:
+        notes = ctx.db.search_notes_hybrid(query, query_embedding, filters, limit)
+    else:
+        notes = ctx.db.search_notes(query_embedding, filters, limit)
     relevant = [n for n in notes if n.distance < cfg.escalation_max_distance]
 
     chunks = []
     if len(relevant) < cfg.escalation_min_notes:
-        chunks = ctx.db.search_chunks(query_embedding, filters, limit)
+        if cfg.use_hybrid_retrieval:
+            chunks = ctx.db.search_chunks_hybrid(query, query_embedding, filters, limit)
+        else:
+            chunks = ctx.db.search_chunks(query_embedding, filters, limit)
 
     note_sources = [
         CuratedSource(tier="note", uid=n.note_uid, source_uid=n.source_uid,

@@ -57,6 +57,7 @@ class CurateConfig(BaseModel):
     escalation_min_notes: int = 3
     escalation_max_distance: float = 0.5
     synthesis_max_chars_per_item: int = 800
+    use_hybrid_retrieval: bool = False  # cosine + BM25/FTS5 via RRF when True
 
 
 class SystemConfig(BaseModel):

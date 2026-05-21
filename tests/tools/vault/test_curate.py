@@ -12,6 +12,7 @@ def _ctx_with(notes, chunks):
     ctx.settings.system.curate.escalation_min_notes = 3
     ctx.settings.system.curate.escalation_max_distance = 0.5
     ctx.settings.system.curate.synthesis_max_chars_per_item = 800
+    ctx.settings.system.curate.use_hybrid_retrieval = False
     return ctx
 
 
@@ -76,3 +77,27 @@ def test_per_item_content_truncation():
     result = curate("q", ctx)
     assert "x" * 100 in result.synthesis
     assert "x" * 101 not in result.synthesis
+
+
+def test_hybrid_flag_routes_to_hybrid_methods():
+    """use_hybrid_retrieval=True must call db.search_*_hybrid with query+embedding,
+    and never the pure-cosine variants."""
+    notes = [SearchResult(note_uid="nA", source_uid="s", content="b",
+                          title="N", distance=0.1)]
+    chunks = [SearchResult(chunk_uid="cA", source_uid="s", content="b",
+                           title="C", distance=0.2)]
+    ctx = _ctx_with(notes, chunks)
+    ctx.settings.system.curate.use_hybrid_retrieval = True
+    ctx.db.search_notes_hybrid.return_value = notes
+    ctx.db.search_chunks_hybrid.return_value = []
+
+    result = curate("fragilite des systemes", ctx)
+
+    ctx.db.search_notes.assert_not_called()
+    ctx.db.search_chunks.assert_not_called()
+    ctx.db.search_notes_hybrid.assert_called_once()
+    args, kwargs = ctx.db.search_notes_hybrid.call_args
+    # signature: (query_text, query_embedding, filters, limit) — positional or kw
+    flat = list(args) + list(kwargs.values())
+    assert "fragilite des systemes" in flat
+    assert result.sources[0].uid == "nA"
