@@ -645,3 +645,27 @@ def test_fresh_init_db_has_fts5_tables(tmp_path):
     ).fetchone()
     conn.close()
     assert hit[0] == "c1"
+
+
+def test_rrf_fuse_basic():
+    """RRF: doc in both lists wins over doc in only one. Classical 1/(k+rank) sum."""
+    from infrastructure.db import _rrf_fuse
+
+    # 'b' is rank-0 in cosine AND rank-1 in bm25 → highest score
+    # 'a' only in cosine, 'c' only in bm25 → both present, lower scores
+    result = _rrf_fuse(cosine=["a", "b"], bm25=["c", "b"], k=60, limit=10)
+    assert result[0] == "b"
+    assert set(result) == {"a", "b", "c"}
+
+
+def test_rrf_fuse_only_one_source():
+    from infrastructure.db import _rrf_fuse
+    assert _rrf_fuse(cosine=[], bm25=["x", "y"]) == ["x", "y"]
+    assert _rrf_fuse(cosine=["x", "y"], bm25=[]) == ["x", "y"]
+    assert _rrf_fuse(cosine=[], bm25=[]) == []
+
+
+def test_rrf_fuse_respects_limit():
+    from infrastructure.db import _rrf_fuse
+    result = _rrf_fuse(cosine=["a", "b", "c"], bm25=["d", "e", "f"], limit=2)
+    assert len(result) == 2

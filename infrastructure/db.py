@@ -440,6 +440,24 @@ def delete_note_embedding(db_path: Path, note_uid: str) -> None:
     conn.close()
 
 
+def _rrf_fuse(
+    cosine: list[str],
+    bm25: list[str],
+    k: int = 60,
+    limit: int = 10,
+) -> list[str]:
+    """Reciprocal Rank Fusion of two ranked UID lists.
+
+    Score per uid = sum of 1/(k + rank) across the lists it appears in,
+    where rank is 1-indexed (best=1). Higher score = better.
+    """
+    scores: dict[str, float] = {}
+    for ranked in (cosine, bm25):
+        for rank0, uid in enumerate(ranked):
+            scores[uid] = scores.get(uid, 0.0) + 1.0 / (k + rank0 + 1)
+    return [uid for uid, _ in sorted(scores.items(), key=lambda x: -x[1])[:limit]]
+
+
 def search_chunks(
     db_path: Path, query_embedding: list[float], filters: SearchFilters | None, limit: int
 ) -> list[SearchResult]:
