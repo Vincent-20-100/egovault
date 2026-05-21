@@ -113,7 +113,8 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
     queries, verified semantically discriminant. `scripts/reembed.py` rebuilds vec
     tables after any metric/model change (run it on existing vaults). curate() spec
     `escalation_max_distance=0.5` is now meaningful.
-12. **Test counts: now 481 pass / 0 fail / 1 skip, DETERMINISTIC** (2026-05-17).
+12. **Test counts: now 511 pass / 0 fail / 1 skip, DETERMINISTIC** (2026-05-21,
+    +5 from F5 follow-up, +14 from RRF hybrid slice, +1 from curate adoption).
     The old "7 pre-existing failures" were audited (zero product bugs) and fully
     fixed. The API suite was non-deterministic (session client + global
     rate-limit state) — fixed via autouse reset in `tests/api/conftest.py`.

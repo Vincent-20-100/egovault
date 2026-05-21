@@ -19,40 +19,36 @@ egovault-data, 1 curate validated on live vault, 2 archive plan/docs,
 LLM provider SHIPPED** (brainstorm→spec→reviewed→plan→subagent-driven TDD,
 9 commits `a8e9d47..b766930`, suite 491/0/1skip, ship-ready).
 
-**NEXT (pick up here):**
-1. ~~Real note-gen test~~ — **DONE 2026-05-20**, +
-   ~~tag-translit fix~~ — **DONE 2026-05-21** (`93ee644`):
-   `_normalize_tags()` slugifies (NFKD → ASCII → lowercase → kebab) before
-   validation in both providers; 2 TDD tests (ollama + claude parity).
-   Empirical re-run of the 3 originally-failed sources: **3/3 ok**. Corpus
-   now at **25/25 notes (100%)**. Suite 498/0/1skip.
-2. ~~Experiment #1 — RRF(BM25, cosine)~~ — **DONE 2026-05-21**
-   (`.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`). FTS5 +
-   `_rrf_fuse` + `search_chunks_hybrid`/`search_notes_hybrid` shipped; 13 new
-   tests; suite 510/0/1skip; 0 Python deps added. On the 4 thematic queries:
-   1 BIG WIN (Q2 finding-E case: exact-topic note promoted from outside-top-3
-   to rank 2 via BM25), 1 smaller win (Q2 chunks), 1 reorder, 5 neutral,
-   0 regression. **Next slice (small):** add `curate.use_hybrid_retrieval`
-   config flag (default `false`), wire in `tools/vault/curate.py`. Reversible
-   A/B, default-on later.
-3. **curate() tier-1 redesign brainstorm** (open Q #7) — now with 25 real FR
-   notes as the test bed, can compare hybrid (BM25+cosine) vs LLM-reasoned
-   structural retrieval in concrete terms.
-4. **Chantier B** — provider management (openai, `providers.mode`, wizard,
-   OpenRouter). F5 was slice A only.
-2. **Search-quality track** (finding E) — embedding model / reranking /
-   chunking. Separate from F5.
-3. **curate() tier 1** (LLM synthesis) — now unblocked (local LLM exists).
-4. **Chantier B** (open question 10.4) — openai provider, `providers.mode`,
-   setup wizard, OpenRouter, hot-swap. F5 was slice A only.
+**Latest state (2026-05-21):** F5 ollama LLM provider shipped + tag-slugify
+fix → corpus at 25/25 notes (100%). RRF hybrid retrieval shipped (FTS5 +
+`_rrf_fuse` + `search_*_hybrid`, opt-in flag `curate.use_hybrid_retrieval`
+default `false`, validated 1 big win Q2 / 0 regression). Full user-guide
+delivered (12 chapters, ~2300 lines) + CLAUDE.md automatism #8 enforcing doc
+maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
 
-Deferred audit debt (DB-M1..M4, SCRIPT-M1, TEST-C2/M1) still tracked in
-`.meta/audits/2026-05-17-pre-reinit-audit.md`.
+**NEXT (the recommended next session's first move):**
 
-See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
-See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
+1. **Brainstorm `curate()` tier-1 redesign** (open question #7) — informed by:
+   - 25 real FR notes as test bed
+   - Empirical RRF results (`.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`)
+   - The 3-way SOTA synthesis (`.meta/references/research/synthesis-retrieval-sota-2026-05-19.md`)
+     — structural navigation (claude-obsidian), LLM-reasoned-tree (PageIndex),
+     hybrid recall (TencentDB). The original "tier-1 = LLM synthesis of cosine
+     top-K" framing should be challenged before any plan is written.
 
-See `docs/VISION-KNOWLEDGE-COMPILER.md` for the full Knowledge Compiler vision.
+**Other candidates (no urgency signal):**
+- **Chantier B — provider management** (open Q 10.4): openai provider,
+  `providers.mode`, setup wizard, OpenRouter, hot-swap. F5 was slice A only.
+- **Search-quality track extras** (finding E remaining): embedding-model
+  evaluation, cross-encoder reranking (see ARCHITECTURE §7.4), chunking
+  granularity. RRF already absorbed the main pain.
+- **Deferred audit debt** — `.meta/audits/2026-05-17-pre-reinit-audit.md`:
+  DB-M1 atomic `purge_source`, DB-M2 error wrapping, DB-M3 connection-leak
+  (try/finally, ~50 funcs), DB-M4 search ignores filters, SCRIPT-M1 reembed
+  safety, TEST-C2 no real semantic e2e test, TEST-M1 missing test files.
+
+See `docs/user-guide/` for the user manual (12 chapters).
+See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Knowledge Compiler vision.
 See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
 See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
@@ -202,6 +198,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 | Date | Branch | What was done |
 |------|--------|---------------|
+| 2026-05-21 | `main` | **curate() opt-in hybrid adoption** (`8911fda`) — `CurateConfig.use_hybrid_retrieval: bool = False` + `system.yaml` flag + `VaultDB.search_*_hybrid` exposed + `tools/vault/curate.py` branches on the flag. 1 TDD routing test. Suite 511/0/1skip. Then **full user-guide delivered**: `docs/user-guide/` 12 chapters (~2300 lines: concepts, install, config, providers, ingest, search-curate, notes, CLI, MCP, Obsidian, maintenance, troubleshooting) + Phase-1 synch of GETTING-STARTED/ARCHITECTURE/FUTURE-WORK/README. CLAUDE.md automatism **#8** added: doc-maintenance is non-negotiable on user-visible changes. 5 commits `ac5377b..9e92a64`. |
 | 2026-05-21 | `main` | **RRF hybrid retrieval shipped** (experiment #1) — FTS5 mirror tables (`chunks_fts`/`notes_fts`, unicode61+remove_diacritics 2), `_rrf_fuse` helper, `search_chunks_hybrid`/`search_notes_hybrid`. 6 commits TDD (~85 lines prod + 13 tests, 0 new Python deps, FTS5 from SQLite stdlib). DB sync hooks on insert/update/delete; idempotent `init_db` backfill. Empirical eyeball on 4 thematic queries: 1 big win (Q2 finding-E case — exact-topic note promoted to rank 2 via BM25), 1 smaller win, 1 reorder, 5 neutral, **0 regression**. Suite 510/0/1skip. Audit: `.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`. Next: small slice to wire curate(). |
 | 2026-05-20 | `main` | **Real local note-gen + tag-translit fix** — 25/25 notes (100%) on corpus; tag-slugify in both providers (NFKD→ASCII→lowercase→kebab); 2 TDD parity tests. |
 | 2026-05-19 | `main` | **tech-watch ported** from metadev-protocol (skill shipped SKILL.md-only; `scripts/tech_watch/` package copied, `tech-watch` optional deps declared, operational via venv python). **uv ban LIFTED** — pyproject 100% complete (app+scripts+tests audited), `uv sync --all-extras` validated (496/0). **SOTA research**: 3 deep cards (claude-obsidian, PageIndex, TencentDB-Agent-Memory) + synthesis in `.meta/references/research/`. Emergent thesis: 3 independent projects reject pure cosine → finding E answer is hybrid/structural retrieval. Concrete next: RRF(BM25 FTS5, cosine) experiment; curate() tier-1 now needs a brainstorm (not just impl). |
