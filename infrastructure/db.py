@@ -116,6 +116,19 @@ CREATE TABLE IF NOT EXISTS tool_logs (
     error       TEXT,
     timestamp   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
+    uid UNINDEXED,
+    content,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+    uid UNINDEXED,
+    title,
+    docstring,
+    tokenize='unicode61 remove_diacritics 2'
+);
 """
 
 def _build_vec_schema_sql(dims: int) -> str:

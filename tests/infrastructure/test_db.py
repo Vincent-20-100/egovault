@@ -620,3 +620,28 @@ def test_init_db_warns_on_stale_l2_vec_table(tmp_path, caplog):
         init_db(db_file)
 
     assert any("cosine" in r.message.lower() for r in caplog.records), caplog.text
+
+
+def test_fresh_init_db_has_fts5_tables(tmp_path):
+    """Hybrid retrieval (RRF): chunks_fts and notes_fts must exist + be queryable."""
+    from infrastructure.db import init_db, get_vault_connection
+
+    db = tmp_path / "vault.db"
+    init_db(db)
+    conn = get_vault_connection(db)
+    # both FTS5 virtual tables exist
+    rows = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_fts'"
+    ).fetchall()}
+    assert "chunks_fts" in rows and "notes_fts" in rows
+    # insert + BM25 query roundtrip
+    conn.execute(
+        "INSERT INTO chunks_fts(uid, content) VALUES (?, ?)",
+        ("c1", "fragilite des systemes centralises et points de defaillance"),
+    )
+    conn.commit()
+    hit = conn.execute(
+        "SELECT uid FROM chunks_fts WHERE chunks_fts MATCH 'fragilite' ORDER BY rank LIMIT 1"
+    ).fetchone()
+    conn.close()
+    assert hit[0] == "c1"
