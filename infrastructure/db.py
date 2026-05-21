@@ -549,6 +549,96 @@ def search_notes(
     ]
 
 
+# Sentinel for BM25-only hits: max cosine distance ([0,2] cosine range), so the
+# downstream curate threshold (e.g. 0.5) treats them as "not cosine-relevant"
+# while RRF still surfaces them via lexical signal.
+_BM25_ONLY_DISTANCE = 2.0
+
+
+def _bm25_topk_uids(conn, table: str, query_text: str, limit: int) -> list[str]:
+    """Run a BM25 query on chunks_fts/notes_fts; tolerant to FTS5 syntax errors
+    (e.g. punctuation, reserved tokens) by falling back to empty results."""
+    try:
+        rows = conn.execute(
+            f"SELECT uid FROM {table} WHERE {table} MATCH ? ORDER BY rank LIMIT ?",
+            (query_text, limit),
+        ).fetchall()
+    except Exception:
+        return []
+    return [r[0] for r in rows]
+
+
+def search_chunks_hybrid(
+    db_path: Path,
+    query_text: str,
+    query_embedding: list[float],
+    filters: SearchFilters | None,
+    limit: int,
+) -> list[SearchResult]:
+    """Cosine + BM25 (FTS5) fused via RRF. Returns up to `limit` SearchResults.
+
+    BM25-only hits get distance = _BM25_ONLY_DISTANCE so curate's cosine
+    threshold treats them as lexical recall (not cosine-relevant)."""
+    cosine_results = search_chunks(db_path, query_embedding, filters, limit)
+    cosine_uids = [r.chunk_uid for r in cosine_results]
+    conn = get_vault_connection(db_path)
+    bm25_uids = _bm25_topk_uids(conn, "chunks_fts", query_text, limit)
+    fused = _rrf_fuse(cosine_uids, bm25_uids, limit=limit)
+    cosine_map = {r.chunk_uid: r for r in cosine_results}
+    out: list[SearchResult] = []
+    for uid in fused:
+        if uid in cosine_map:
+            out.append(cosine_map[uid])
+            continue
+        row = conn.execute(
+            """SELECT c.content, c.uid AS chunk_uid, c.source_uid, s.title
+               FROM chunks c JOIN sources s ON s.uid = c.source_uid
+               WHERE c.uid = ?""",
+            (uid,),
+        ).fetchone()
+        if row is not None:
+            out.append(SearchResult(
+                chunk_uid=row["chunk_uid"], source_uid=row["source_uid"],
+                content=row["content"], title=row["title"] or "",
+                distance=_BM25_ONLY_DISTANCE,
+            ))
+    conn.close()
+    return out
+
+
+def search_notes_hybrid(
+    db_path: Path,
+    query_text: str,
+    query_embedding: list[float],
+    filters: SearchFilters | None,
+    limit: int,
+) -> list[SearchResult]:
+    """Same shape as search_chunks_hybrid but over notes_fts + notes_vec."""
+    cosine_results = search_notes(db_path, query_embedding, filters, limit)
+    cosine_uids = [r.note_uid for r in cosine_results]
+    conn = get_vault_connection(db_path)
+    bm25_uids = _bm25_topk_uids(conn, "notes_fts", query_text, limit)
+    fused = _rrf_fuse(cosine_uids, bm25_uids, limit=limit)
+    cosine_map = {r.note_uid: r for r in cosine_results}
+    out: list[SearchResult] = []
+    for uid in fused:
+        if uid in cosine_map:
+            out.append(cosine_map[uid])
+            continue
+        row = conn.execute(
+            "SELECT uid AS note_uid, source_uid, title, COALESCE(docstring,'') AS content "
+            "FROM notes WHERE uid = ?", (uid,),
+        ).fetchone()
+        if row is not None:
+            out.append(SearchResult(
+                note_uid=row["note_uid"], source_uid=row["source_uid"],
+                content=row["content"], title=row["title"],
+                distance=_BM25_ONLY_DISTANCE,
+            ))
+    conn.close()
+    return out
+
+
 # ============================================================
 # TAGS
 # ============================================================

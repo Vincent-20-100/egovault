@@ -790,3 +790,56 @@ def test_init_db_backfills_fts_from_existing_rows(tmp_path):
     conn = get_vault_connection(db)
     assert _bm25(conn, "chunks_fts", "fragilite") == ["c1"]
     conn.close()
+
+
+def test_search_chunks_hybrid_combines_cosine_and_bm25(tmp_path):
+    """ca matches the query embedding (cosine top1), cb matches the keyword
+    (BM25 top1). Hybrid must surface BOTH in the fused results."""
+    from infrastructure.db import (init_db, insert_source, insert_chunks,
+                                    insert_chunk_embeddings, search_chunks_hybrid)
+    from core.schemas import Source, ChunkResult
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    insert_source(db, Source(uid="s", slug="src-h", source_type="texte",
+                              status="raw", date_added=date.today().isoformat()))
+    insert_chunks(db, "s", [
+        ChunkResult(uid="ca", position=0, content="hello world content", token_count=3),
+        ChunkResult(uid="cb", position=1, content="fragilite des systemes centralises", token_count=4),
+    ])
+    e_a = [1.0, 0.0] + [0.0]*766
+    e_b = [0.0, 1.0] + [0.0]*766
+    insert_chunk_embeddings(db, "ca", e_a)
+    insert_chunk_embeddings(db, "cb", e_b)
+    results = search_chunks_hybrid(db, query_text="fragilite",
+                                    query_embedding=e_a, filters=None, limit=5)
+    uids = {r.chunk_uid for r in results}
+    assert "ca" in uids   # cosine matched the embedding
+    assert "cb" in uids   # BM25 matched the keyword
+
+
+def test_search_notes_hybrid_combines_cosine_and_bm25(tmp_path):
+    from infrastructure.db import (init_db, insert_note, insert_note_embedding,
+                                    search_notes_hybrid)
+    from core.schemas import Note
+    from datetime import date
+    db = tmp_path / "vault.db"
+    init_db(db)
+    today = date.today().isoformat()
+    a = Note(uid="na", slug="hello-note", title="hello",
+             docstring="semantic match content", body="body content padding minlen.",
+             note_type="synthese", source_type="youtube", tags=["t"],
+             date_created=today, date_modified=today, generation_template="standard")
+    b = Note(uid="nb", slug="frag-note", title="fragilite des systemes",
+             docstring="keyword target", body="body content padding minlen.",
+             note_type="synthese", source_type="youtube", tags=["t"],
+             date_created=today, date_modified=today, generation_template="standard")
+    insert_note(db, a); insert_note(db, b)
+    e_a = [1.0, 0.0] + [0.0]*766
+    e_b = [0.0, 1.0] + [0.0]*766
+    insert_note_embedding(db, "na", e_a)
+    insert_note_embedding(db, "nb", e_b)
+    results = search_notes_hybrid(db, query_text="fragilite",
+                                   query_embedding=e_a, filters=None, limit=5)
+    uids = {r.note_uid for r in results}
+    assert "na" in uids and "nb" in uids
