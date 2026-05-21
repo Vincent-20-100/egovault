@@ -28,16 +28,22 @@ python -m venv .venv
 # macOS/Linux:
 source .venv/bin/activate
 
-# Install dependencies
-pip install -e .
+# Install dependencies (one of)
+pip install -e .[tier1,tech-watch]        # plain pip
+uv sync --all-extras                       # if you use uv (recommended)
 ```
+
+> **Important on `uv`:** always use `uv sync --all-extras`, never bare `uv sync`
+> — `trafilatura` (web extraction), `feedparser` + `huggingface_hub`
+> (tech-watch) are *optional extras* the code imports; bare `uv sync` prunes
+> them and breaks the env. See `docs/user-guide/02-installation.md`.
 
 ---
 
-## 3. Set up Ollama (embeddings only)
+## 3. Set up Ollama (embeddings — and optionally local note generation)
 
-EgoVault needs an embedding model to make your content searchable.
-Ollama runs locally — your data never leaves your machine.
+EgoVault needs an embedding model. Ollama runs locally — your data never leaves
+your machine.
 
 ```bash
 # Start Ollama (keep it running in background)
@@ -47,8 +53,27 @@ ollama serve
 ollama pull nomic-embed-text
 ```
 
-> **Why Ollama?** Claude is great at reading and writing, but it can't produce
-> embedding vectors. Ollama fills that one gap — for free, locally.
+**Optional — local note generation (F5, fully offline, zero API key):**
+
+```bash
+# Recommended (best FR + structured JSON adherence, ~4.7 GB, needs ~7 GB RAM)
+ollama pull qwen2.5:7b-instruct
+# RAM-tight fallback (~1.9 GB, ~3 GB RAM, lower quality)
+ollama pull qwen2.5:3b-instruct
+```
+
+Then in `config/user.yaml`:
+
+```yaml
+llm:
+  provider: ollama
+  model: qwen2.5:7b-instruct
+```
+
+> **Three provider personas** (see `docs/user-guide/04-providers.md`):
+> - **Local-first** (0 keys): Ollama for both embed and LLM — what we just set up
+> - **MCP-only** (0 keys): your Claude/GPT subscription via MCP handles LLM work, Ollama covers embeddings only
+> - **Cloud LLM**: Anthropic API key in `install.yaml`, Ollama still for embeddings
 
 ---
 
@@ -197,6 +222,17 @@ Now that you have content, try semantic search:
 
 Claude calls `search()` and returns the most relevant chunks from your sources and notes.
 
+For better precision on French content with exact-keyword queries, enable the
+hybrid retrieval mode in `config/system.yaml`:
+
+```yaml
+curate:
+  use_hybrid_retrieval: true   # cosine + BM25 (FTS5) fused via RRF
+```
+
+This complements pure cosine semantic search with lexical (keyword) recall —
+see `docs/user-guide/06-search-and-curate.md` for when and why.
+
 ---
 
 ## 10. Open in Obsidian (optional)
@@ -246,6 +282,13 @@ Ollama only handles the embedding vectors (turning text into searchable numbers)
 | MCP tools don't appear | Check paths in `claude_desktop_config.json`, restart Claude Desktop |
 | Embedding fails | Verify: `ollama list` should show `nomic-embed-text` |
 | Tests fail with `sqlite_vec` | Run `pip install sqlite-vec` in your venv |
+| `No module named 'feedparser'` / `'trafilatura'` after `uv sync` | Use `uv sync --all-extras` (see §2 note) |
+| Local note generation fails: `tag must contain only ASCII characters` | Already auto-fixed since 2026-05-21 (slugify in provider); update your install |
+| Note generation slow / RAM swap | Use `qwen2.5:3b-instruct` instead of 7b (set in `user.yaml`) — see `04-providers.md` |
+| Search results imprecise on French | Enable `curate.use_hybrid_retrieval: true` in `system.yaml` — see `06-search-and-curate.md` |
+| Console shows mojibake (`é` → `Ã©`) | Display-only on Windows. Stored bytes are clean UTF-8. Verify with `python -X utf8`. |
+
+For deeper troubleshooting see `docs/user-guide/12-troubleshooting.md`.
 
 ---
 
@@ -253,7 +296,9 @@ Ollama only handles the embedding vectors (turning text into searchable numbers)
 
 - **Ingest more sources** — YouTube, PDFs, web pages, raw text
 - **Build your knowledge graph** — create concept notes linking multiple sources
-- **Export** — Typst PDF export, Mermaid diagrams
-- **Search & discover** — semantic search across all your ingested content
-
-See `docs/mcp-setup.md` for advanced MCP configuration (Cursor, Windsurf, etc.).
+- **Configure your provider** — local Ollama, cloud (Anthropic), or hybrid →
+  `docs/user-guide/04-providers.md`
+- **Tune retrieval** — escalation thresholds, hybrid RRF →
+  `docs/user-guide/06-search-and-curate.md`
+- **Full reference** — `docs/user-guide/` covers concepts, configuration, CLI,
+  MCP, Obsidian, maintenance, troubleshooting in detail.

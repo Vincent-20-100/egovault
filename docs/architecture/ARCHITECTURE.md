@@ -75,6 +75,9 @@ Each term has exactly one definition. Never use interchangeably.
 | `rating` | Integer 1–5 set exclusively by the user. Intentionally open semantics (importance, quality, priority — the user decides). Never inferred by the LLM. |
 | `run_id` | UUID4 identifying a workflow execution or MCP session. Propagated via `contextvars`. |
 | `curate()` | Librarian tier 0 — deterministic notes→chunks orchestration returning `CuratedContext`. No LLM. Tier 1 (LLM synthesis) deferred. |
+| `RRF` | Reciprocal Rank Fusion: combines two ranked lists (cosine + BM25) into one via score = Σ 1/(k + rank). Shipped 2026-05-21 in `infrastructure/db.py::_rrf_fuse` (k=60 default). |
+| `hybrid retrieval` | curate()/search opting into cosine + BM25 (FTS5) fused via RRF. Toggled by `system.yaml` `curate.use_hybrid_retrieval` (default false). Targets finding E (FR cosine imprecision). |
+| `FTS5` | SQLite native full-text search engine (BM25 by default). Mirror tables `chunks_fts`/`notes_fts` synced via write-path hooks; tokenizer `unicode61 remove_diacritics 2` (FR-friendly). |
 
 ---
 
@@ -499,6 +502,14 @@ Interface: `RerankProvider` Protocol with `CrossEncoderReranker` and `NoopRerank
 Automatic fallback: if `sentence-transformers` not installed → silent `NoopReranker`.
 Singleton: model loaded once into memory via `get_reranker(settings)`.
 Optional dependency: `uv sync --extra reranker`.
+
+**Status:** the cross-encoder reranker above remains future work. A *lexical
+companion* — RRF(BM25, cosine) — was shipped 2026-05-21 as a separate slice
+(no ML dep, deterministic, opt-in via `curate.use_hybrid_retrieval`). It
+covers a different failure mode (exact-keyword recall) than cross-encoder
+reranking (deep relevance scoring) — both can coexist later. See
+`infrastructure/db.py::search_chunks_hybrid` / `search_notes_hybrid` and
+audit `.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`.
 
 ### 7.5 Semantic cache
 

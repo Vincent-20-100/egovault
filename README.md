@@ -220,7 +220,7 @@ The LLM cannot corrupt timestamps, break the schema, or override taxonomy rules.
 | Audio file (.mp3, .wav…) | faster-whisper — local, GPU-accelerated | ❌ |
 | Video file (.mp4, .mkv…) | Audio extraction → faster-whisper | ❌ |
 | PDF / Book | pypdf text extraction | ❌ |
-| Web article | *(coming soon)* | ❌ |
+| Web article | `fetch_web` + 2-tier extraction (bs4 / trafilatura), SSRF-protected | ❌ |
 | Your idea / LLM output | Write directly — no transcription step | ❌ |
 
 Your audio never leaves your machine. The transcript is saved before any LLM step — interruptions lose nothing.
@@ -258,6 +258,18 @@ Community templates will be shareable as standalone `.yaml` files.
 ### MCP server — bring your own LLM
 
 Connect Claude, GPT, Cursor, or any local Ollama model. Zero lock-in. The server exposes every tool individually — search, read, write, export.
+
+---
+
+### Hybrid retrieval — finding E without ML
+
+Pure cosine on French is good but not precise (exact-topic sources sometimes miss top-3). EgoVault ships a deterministic hybrid: **cosine + BM25 (SQLite FTS5) fused via RRF**. Zero new dependency, opt-in via `system.yaml curate.use_hybrid_retrieval`. On real data: exact-topic sources promoted into top-3 when the query keywords match — see `docs/user-guide/06-search-and-curate.md`.
+
+---
+
+### Local-first note generation — F5
+
+Generate notes fully offline with Ollama (recommended: `qwen2.5:7b-instruct`, fallback `qwen2.5:3b-instruct` for tight RAM). Same retry/validation contract as the cloud LLM path. Tags auto-slugified (NFKD → ASCII → kebab) so accented French outputs never fail validation. See `docs/user-guide/04-providers.md`.
 
 ---
 

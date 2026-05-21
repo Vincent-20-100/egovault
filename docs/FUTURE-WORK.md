@@ -77,8 +77,12 @@ Hosted Next.js deployment for multi-device access. Requires auth (currently no a
 ### Metadata enrichment
 Enrich chunks with source metadata (source_type, date, tags, URL) before embedding. Improves retrieval relevance by giving the vector search more contextual signal. Currently chunks contain raw text only.
 
-### Hybrid search (Dense + Sparse / BM25)
-Combine dense vector search (current) with sparse keyword search (BM25). Dense search excels at semantic similarity; sparse search captures exact matches (proper nouns, acronyms, technical terms) that embeddings may miss. Libraries: `rank-bm25`, `tantivy` (Rust-based), or SQLite FTS5 (built-in).
+### Hybrid search (Dense + Sparse / BM25) — DONE 2026-05-21
+Shipped: SQLite FTS5 (built-in) for BM25 + sqlite-vec for cosine, fused via
+**RRF (Reciprocal Rank Fusion, k=60)** in `infrastructure/db.py::_rrf_fuse`.
+New functions `search_chunks_hybrid` / `search_notes_hybrid`; opt-in via
+`system.yaml` `curate.use_hybrid_retrieval`. Zero new Python deps.
+Audit: `.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`.
 
 ### Relevance filtering
 Post-retrieval filtering based on a configurable similarity threshold. Currently all top-K results are returned regardless of distance. A threshold would filter out low-confidence matches, reducing noise in search results.
