@@ -20,11 +20,16 @@ LLM provider SHIPPED** (brainstorm→spec→reviewed→plan→subagent-driven TD
 9 commits `a8e9d47..b766930`, suite 491/0/1skip, ship-ready).
 
 **NEXT (pick up here):**
-1. **Calibrate / real note-gen test** — with F5 done, generate notes locally
-   on the `_corpus-test-20260517` corpus (set `user.yaml` `llm.provider:
-   ollama`, `model: qwen2.5:7b-instruct`, `ollama pull` it first) → finally
-   exercise curate() **tier-2** (notes layer) on real data; tune
-   `escalation_max_distance` (finding E: cosine ranking imprecise on FR).
+1. ~~Real note-gen test~~ — **DONE 2026-05-20** (`.meta/audits/2026-05-20-real-notegen-test-results.md`):
+   22/25 notes (88%), curate() tier-2 confirmed win (all top-1 distances
+   −0.10–0.13 vs chunks, exact-topic now rank 1, zero chunk escalation,
+   `escalation_max_distance=0.5` well-calibrated). **3 failures = same
+   deterministic root cause:** Qwen 7B generates accented French tags
+   (`systèmes`) → `NoteContentInput` tag validator rejects (ASCII-only rule).
+   → **Highest-leverage concrete next step:** small TDD slice to
+   **auto-transliterate accented tags** in `_generate_ollama` (and
+   `_generate_anthropic` for parity) before validation → should push success
+   rate to ~100% on this corpus.
 2. **Search-quality track** (finding E) — embedding model / reranking /
    chunking. Separate from F5.
 3. **curate() tier 1** (LLM synthesis) — now unblocked (local LLM exists).
