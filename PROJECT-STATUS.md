@@ -20,16 +20,22 @@ LLM provider SHIPPED** (brainstorm→spec→reviewed→plan→subagent-driven TD
 9 commits `a8e9d47..b766930`, suite 491/0/1skip, ship-ready).
 
 **NEXT (pick up here):**
-1. ~~Real note-gen test~~ — **DONE 2026-05-20** (`.meta/audits/2026-05-20-real-notegen-test-results.md`):
-   22/25 notes (88%), curate() tier-2 confirmed win (all top-1 distances
-   −0.10–0.13 vs chunks, exact-topic now rank 1, zero chunk escalation,
-   `escalation_max_distance=0.5` well-calibrated). **3 failures = same
-   deterministic root cause:** Qwen 7B generates accented French tags
-   (`systèmes`) → `NoteContentInput` tag validator rejects (ASCII-only rule).
-   → **Highest-leverage concrete next step:** small TDD slice to
-   **auto-transliterate accented tags** in `_generate_ollama` (and
-   `_generate_anthropic` for parity) before validation → should push success
-   rate to ~100% on this corpus.
+1. ~~Real note-gen test~~ — **DONE 2026-05-20**, +
+   ~~tag-translit fix~~ — **DONE 2026-05-21** (`93ee644`):
+   `_normalize_tags()` slugifies (NFKD → ASCII → lowercase → kebab) before
+   validation in both providers; 2 TDD tests (ollama + claude parity).
+   Empirical re-run of the 3 originally-failed sources: **3/3 ok**. Corpus
+   now at **25/25 notes (100%)**. Suite 498/0/1skip.
+2. **Experiment #1 — RRF(BM25 via SQLite FTS5, cosine) on chunks tier.**
+   Reframed: less urgent than initially thought (notes-tier already
+   compensates well — see `2026-05-20-real-notegen-test-results.md`), but
+   still actionable for raw RAG fallback quality. Deterministic, tier-0, no
+   new dep. See `synthesis-retrieval-sota-2026-05-19.md`.
+3. **curate() tier-1 redesign brainstorm** (open Q #7) — now with 25 real FR
+   notes as the test bed, can compare hybrid (BM25+cosine) vs LLM-reasoned
+   structural retrieval in concrete terms.
+4. **Chantier B** — provider management (openai, `providers.mode`, wizard,
+   OpenRouter). F5 was slice A only.
 2. **Search-quality track** (finding E) — embedding model / reranking /
    chunking. Separate from F5.
 3. **curate() tier 1** (LLM synthesis) — now unblocked (local LLM exists).
