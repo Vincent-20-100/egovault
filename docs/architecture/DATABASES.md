@@ -20,6 +20,10 @@ db_metadata              (embedding config at index creation time)
 Vector tables (sqlite-vec):
 chunks_vec   ← one embedding per chunk  (source-level RAG)
 notes_vec    ← one embedding per note   (note-level semantic search)
+
+Full-text tables (FTS5, BM25 — hybrid retrieval):
+chunks_fts   ← (uid, content)            BM25 over chunk text
+notes_fts    ← (uid, title, docstring)   BM25 over note title + summary
 ```
 
 **Source lifecycle** (`status` column in `sources`):
@@ -153,6 +157,27 @@ CREATE VIRTUAL TABLE notes_vec USING vec0(
 -- but NOT to chunks_vec (sqlite-vec limitation).
 -- Normal deletion: finalize_source.py handles explicit sync.
 -- Bulk cleanup: scripts/maintenance/sync_vectors.py
+
+-- ============================================================
+-- FTS5 FULL-TEXT TABLES — BM25 leg of hybrid retrieval (RRF)
+-- Tokenizer: unicode61 + remove_diacritics 2 (FR-friendly: 'systèmes'
+-- and 'systemes' match the same token).
+-- Synced with chunks/notes via write-path hooks in db.py
+-- (insert_chunks/insert_note/update_note/delete_chunks_for_source/
+--  hard_delete_note). init_db backfills idempotently from existing rows.
+-- ============================================================
+CREATE VIRTUAL TABLE chunks_fts USING fts5(
+    uid UNINDEXED,
+    content,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE VIRTUAL TABLE notes_fts USING fts5(
+    uid UNINDEXED,
+    title,
+    docstring,
+    tokenize='unicode61 remove_diacritics 2'
+);
 
 -- ============================================================
 -- DB METADATA — tracks embedding model config
