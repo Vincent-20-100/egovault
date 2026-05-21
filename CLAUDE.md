@@ -64,6 +64,7 @@ These behaviors are hard-wired. Do them without being asked.
 5. **Session end** (user signals stop) — update `PROJECT-STATUS.md` + rewrite `SESSION-CONTEXT.md`, commit+push before confirming.
 6. **Always** — apply rules from `.meta/GUIDELINES.md`. Read it at session start.
 7. **Never** — make autonomous decisions on topics listed in "Open questions" in `SESSION-CONTEXT.md`.
+8. **Doc-maintenance is non-negotiable** — any change with user-visible impact MUST update the relevant chapter(s) in `docs/user-guide/` in the **same commit / PR**. This includes: new config flag, new CLI command, new MCP tool, new provider, new source type, schema change visible to users, breaking change. The `docs/user-guide/` is load-bearing — letting it drift turns it into a lie. If your change has no user-visible impact (refactor, internal helper, test-only), say so explicitly in the commit message instead of skipping silently. See `docs/user-guide/README.md` for the chapter map.
 
 ---
 
@@ -102,6 +103,7 @@ Specs and plans go in `.meta/`, not `docs/superpowers/`:
 | Document | Role |
 |----------|------|
 | `.meta/GUIDELINES.md` | Rules G1-G13, conventions, architecture boundaries |
+| `docs/user-guide/` | **User-facing manual** (12 chapters: concepts, install, config, providers, ingest, search, notes, CLI, MCP, Obsidian, maintenance, troubleshooting). **Must be updated on every user-visible change** — see automatism #8. |
 | `docs/architecture/ARCHITECTURE.md` | Technical architecture, glossary |
 | `docs/architecture/DATABASES.md` | DB schema (must match `infrastructure/db.py`) |
 | `PROJECT-STATUS.md` | Live project state — next action, debt, roadmap |
