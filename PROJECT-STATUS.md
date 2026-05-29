@@ -4,7 +4,7 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-05-17
+**Last updated:** 2026-05-29
 **Last session branch:** `main`
 
 ---
@@ -28,13 +28,18 @@ maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
 
 **NEXT (the recommended next session's first move):**
 
-1. **Brainstorm `curate()` tier-1 redesign** (open question #7) — informed by:
-   - 25 real FR notes as test bed
-   - Empirical RRF results (`.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`)
-   - The 3-way SOTA synthesis (`.meta/references/research/synthesis-retrieval-sota-2026-05-19.md`)
-     — structural navigation (claude-obsidian), LLM-reasoned-tree (PageIndex),
-     hybrid recall (TencentDB). The original "tier-1 = LLM synthesis of cosine
-     top-K" framing should be challenged before any plan is written.
+1. **Execute the curate() tier-1 base plan** — `.meta/plans/2026-05-29-curate-tier1-librarian-base.md`
+   (7 tasks, TDD, subagent-driven recommended). Open question #7 is now RESOLVED:
+   re-brainstormed → spec (`.meta/specs/2026-05-29-curate-tier1-librarian-base-spec.md`)
+   → plan, both committed (`0177202`, `4a1adf2`). Design decided:
+   - **Base** = librarian sub-agent + `/ask-vault` slash command shipped as a Claude Code
+     **plugin**, using the host's own LLM (no API key / local model).
+   - **Selection method** = recall-first hybrid RRF (wide net, both tiers, untruncated);
+     precision is delegated to the sub-agent's reasoning. Structural tier-0 deferred.
+   - **Output contract** `{answer, used_source_uids}` — stable across future layers.
+   - **Tracked debt:** MCP sampling is the elegant end-state but UNSUPPORTED by Claude
+     Code/Desktop today (verified 2026-05-29, anthropics/claude-code#1785) — migrate when
+     clients ship it. The Python change is one `generous` mode on `curate()`.
 
 **Other candidates (no urgency signal):**
 - **Chantier B — provider management** (open Q 10.4): openai provider,
@@ -198,6 +203,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 | Date | Branch | What was done |
 |------|--------|---------------|
+| 2026-05-29 | `main` | **curate() tier-1 base — brainstorm + spec + plan** (open question #7 resolved). Decided: base = librarian sub-agent + `/ask-vault` slash command shipped as a Claude Code plugin, using the host LLM (no API key). Selection method = recall-first hybrid RRF + wide net, precision delegated to the sub-agent. Output contract `{answer, used_source_uids}`. Verified MCP sampling is unsupported by Claude Code/Desktop today → tracked as debt (migrate later). Spec `0177202`, plan `4a1adf2`. No code yet — next session executes the 7-task plan. |
 | 2026-05-21 | `main` | **curate() opt-in hybrid adoption** (`8911fda`) — `CurateConfig.use_hybrid_retrieval: bool = False` + `system.yaml` flag + `VaultDB.search_*_hybrid` exposed + `tools/vault/curate.py` branches on the flag. 1 TDD routing test. Suite 511/0/1skip. Then **full user-guide delivered**: `docs/user-guide/` 12 chapters (~2300 lines: concepts, install, config, providers, ingest, search-curate, notes, CLI, MCP, Obsidian, maintenance, troubleshooting) + Phase-1 synch of GETTING-STARTED/ARCHITECTURE/FUTURE-WORK/README. CLAUDE.md automatism **#8** added: doc-maintenance is non-negotiable on user-visible changes. 5 commits `ac5377b..9e92a64`. |
 | 2026-05-21 | `main` | **RRF hybrid retrieval shipped** (experiment #1) — FTS5 mirror tables (`chunks_fts`/`notes_fts`, unicode61+remove_diacritics 2), `_rrf_fuse` helper, `search_chunks_hybrid`/`search_notes_hybrid`. 6 commits TDD (~85 lines prod + 13 tests, 0 new Python deps, FTS5 from SQLite stdlib). DB sync hooks on insert/update/delete; idempotent `init_db` backfill. Empirical eyeball on 4 thematic queries: 1 big win (Q2 finding-E case — exact-topic note promoted to rank 2 via BM25), 1 smaller win, 1 reorder, 5 neutral, **0 regression**. Suite 510/0/1skip. Audit: `.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`. Next: small slice to wire curate(). |
 | 2026-05-20 | `main` | **Real local note-gen + tag-translit fix** — 25/25 notes (100%) on corpus; tag-slugify in both providers (NFKD→ASCII→lowercase→kebab); 2 TDD parity tests. |

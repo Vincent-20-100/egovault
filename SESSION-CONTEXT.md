@@ -5,7 +5,7 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-05-17
+**Last updated:** 2026-05-29
 **Last session:** `main` (direct commits)
 
 ---
@@ -161,6 +161,8 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 | Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority brainstorm |
 | Search quality (reranking) | `.meta/specs/future/2026-03-28-reranking-design.md` | After real-world testing |
 | Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
+| **Migrate librarian to MCP sampling** | spec `2026-05-29-curate-tier1-librarian-base` §10 | When Claude Code/Desktop advertise the sampling capability — replaces subagent/slash with transparent server-side isolation |
+| **curate() tier-1 server-side LLM (ollama/API)** | spec §12 (out of scope of base) | Next spec — needed for the frontend/human path (no host agent to delegate to) |
 
 ---
 
@@ -186,11 +188,14 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    `providers.mode`, install wizard, OpenRouter) — ref audit 10.4.
    See `.meta/audits/2026-05-17-real-ingest-test-results.md`.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
-7. **curate() retrieval redesign (NEW, from 2026-05-19 tech-watch)** — 3
-   independent SOTA projects reject pure cosine (synthesis card
-   `.meta/references/research/synthesis-retrieval-sota-2026-05-19.md`). The
-   deferred "curate() tier-1 = LLM synthesis of cosine top-K" must be
-   re-brainstormed against hybrid (BM25+cosine RRF) + structural/tree
-   retrieval BEFORE it is planned. Concrete first step (search-quality
-   track, no brainstorm needed, no new dep): **RRF(BM25 via SQLite FTS5,
-   cosine)** tested on the finding-E corpus.
+7. ~~**curate() retrieval redesign**~~ — **RESOLVED 2026-05-29**. Re-brainstormed
+   (open question #7) → spec + plan written and committed
+   (`.meta/specs|plans/2026-05-29-curate-tier1-librarian-base*`, `0177202`/`4a1adf2`).
+   Decisions: **base = librarian sub-agent + `/ask-vault` slash command shipped as a
+   Claude Code plugin**, using the host's own LLM (no API key / local model — verified
+   MCP sampling is UNSUPPORTED by Claude Code/Desktop today, tracked as debt).
+   **Selection method = recall-first hybrid RRF + wide net (both tiers, untruncated);
+   precision delegated to the sub-agent's reasoning** (the PageIndex "LLM reasons over
+   the pile" half, without building a structural index). Structural tier-0 deferred.
+   Output contract `{answer, used_source_uids}`, stable across future layers. The only
+   Python change is a `generous` mode on `curate()`. Next session = execute the 7-task plan.
