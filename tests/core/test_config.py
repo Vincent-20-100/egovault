@@ -167,13 +167,13 @@ def test_taxonomy_shortcut(tmp_path):
     assert settings.taxonomy is settings.system.taxonomy
 
 
-def test_curate_config_defaults():
-    from core.config import load_settings
+def test_recall_config_defaults():
+    from core.config import RecallConfig
 
-    s = load_settings()
-    assert s.system.curate.escalation_min_notes == 3
-    assert s.system.curate.escalation_max_distance == 0.5
-    assert s.system.curate.synthesis_max_chars_per_item == 800
+    cfg = RecallConfig()
+    assert cfg.escalation_min_notes == 3
+    assert cfg.escalation_max_distance == 0.5
+    assert cfg.synthesis_max_chars_per_item == 800
 
 
 def test_providers_config_ollama_tuning_defaults():

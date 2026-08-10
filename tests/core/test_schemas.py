@@ -122,11 +122,11 @@ def test_taxonomy_skipped_without_context():
     assert note.note_type == "totally-unknown"
 
 
-def test_curated_context_defaults():
-    from core.schemas import CuratedSource, CuratedContext
+def test_recall_context_defaults():
+    from core.schemas import RecallSource, RecallContext
 
-    src = CuratedSource(tier="note", uid="n1", title="T", content="C", distance=0.1)
-    ctx = CuratedContext(synthesis="s", sources=[src], query="q")
+    src = RecallSource(tier="note", uid="n1", title="T", content="C", distance=0.1)
+    ctx = RecallContext(synthesis="s", sources=[src], query="q")
     assert ctx.confidence is None
     assert ctx.sources[0].tier == "note"
     assert ctx.sources[0].source_uid is None
