@@ -5,8 +5,8 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-05-29
-**Last session:** `main` (direct commits)
+**Last updated:** 2026-08-10
+**Last session:** `claude/document-review-inspiration-t1i0vr`
 
 ---
 
@@ -32,21 +32,21 @@ Instead of dumping top-K chunks into the conversation:
 
 ```
 User ↔ Conversational LLM (via MCP, clean context window)
-              ↓ calls curate("question about X")
-        curate() tool inside EgoVault:
+              ↓ calls recall("question about X")
+        recall() tool inside EgoVault:
               ├── search_notes() → deterministic
               ├── search_chunks() → deterministic
               ├── ctx.get_completion(prompt) → isolated LLM call (separate context)
-              └── return CuratedContext (synthesized, minimal)
+              └── return RecallContext (synthesized, minimal)
 ```
 
 **Key decision:** The librarian is NOT an autonomous agent or separate project. It's a
-**smart tool** (`curate()`) that uses one isolated LLM call as a subroutine — same pattern
+**smart tool** (`recall()`) that uses one isolated LLM call as a subroutine — same pattern
 as `generate_note_from_source`. Testable, mockable, deterministic-except-one-call.
 
 ### Tiered — works without LLM
 
-| Tier | What curate() does | Dependency |
+| Tier | What recall() does | Dependency |
 |------|-------------------|------------|
 | 0 | Search + rank + truncate → sorted raw results | Nothing (deterministic) |
 | 1 | Tier 0 + LLM synthesis | LLM local or API key |
@@ -138,7 +138,11 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
     imports. Use `--all-extras` and the env is fully functional. Backup freeze:
     `Documents/_venv-freeze-backup-20260519.txt` (deletable). save-progress
     skill still missing its preflight script — separate MINOR debt.
-15. **Cosine distance is undefined for the zero vector** — sqlite-vec returns
+15. **curate→recall rename DONE 2026-08-10** — `curate()` is now `recall()` everywhere
+    (tool, MCP, CLI, schemas `RecallContext`/`RecallSource`, config class `RecallConfig`,
+    YAML key `recall:`, test files). "Librarian" is retired from code identifiers; it
+    remains the conceptual label for the tier-1 LLM synthesis agent (future `ask_vault`).
+16. **Cosine distance is undefined for the zero vector** — sqlite-vec returns
     `NULL` distance → `SearchResult.distance: float` ValidationError. Never use a
     zero embedding in tests (`make_embedding(0.0)`); real embeddings are never zero.
 
@@ -152,17 +156,17 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 | ~~**MCP Claude Desktop setup**~~ | ~~SESSION-CONTEXT.md~~ | **DONE** — `claude_desktop_config.json` configured, `docs/mcp/CLIENT-SETUP.md` created |
 | ~~**MCP Claude Code setup**~~ | ~~`docs/mcp/CLIENT-SETUP.md`~~ | **DONE** — versioned `.mcp.json` at repo root. Claude Code does NOT read `mcpServers` from settings.json; uses `.mcp.json` (project) or `claude mcp add -s user`. Active after restart. |
 | **Real-world testing** | SESSION-CONTEXT.md | **NEXT PRIORITY** — validate fundamentals with real data |
-| ~~**Knowledge compiler (`curate()` tool)**~~ | ~~`docs/VISION-KNOWLEDGE-COMPILER.md`~~ | **DONE 2026-05-16 — tier 0 shipped** |
-| **curate() tier 1 (LLM synthesis)** | plan §Self-Review / VISION | After F5 — needs generic `complete` Protocol on VaultContext; fills `confidence`, upgrades `synthesis` |
-| **curate() API `/curate` endpoint** | plan §5 | Deferred — only MCP+CLI surfaces in tier 0 |
+| ~~**Knowledge compiler (`recall()` tool)**~~ | ~~`docs/VISION-KNOWLEDGE-COMPILER.md`~~ | **DONE 2026-05-16 — tier 0 shipped** |
+| **recall() tier 1 (LLM synthesis)** | plan §Self-Review / VISION | After F5 — needs generic `complete` Protocol on VaultContext; fills `confidence`, upgrades `synthesis` |
+| **recall() API `/recall` endpoint** | plan §5 | Deferred — only MCP+CLI surfaces in tier 0 |
 | **Calibrate `escalation_max_distance`** | `config/system.yaml` (=0.5) | During real-world testing — default is a guess |
-| Pre-packaged librarian agent (AGENTS.md) | `docs/FUTURE-WORK.md` | After curate() exists |
+| Pre-packaged librarian agent (AGENTS.md) | `docs/FUTURE-WORK.md` | After recall() exists |
 | Large source synthesis | `.meta/specs/2026-04-06-large-source-synthesis-spec.md` | After real testing |
 | Multi-source workflow | `.meta/specs/2026-04-06-notebooklm-synapthema-ideas.md` §1 | High priority brainstorm |
 | Search quality (reranking) | `.meta/specs/future/2026-03-28-reranking-design.md` | After real-world testing |
 | Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
 | **Migrate librarian to MCP sampling** | spec `2026-05-29-curate-tier1-librarian-base` §10 | When Claude Code/Desktop advertise the sampling capability — replaces subagent/slash with transparent server-side isolation |
-| **curate() tier-1 server-side LLM (ollama/API)** | spec §12 (out of scope of base) | Next spec — needed for the frontend/human path (no host agent to delegate to) |
+| **recall() tier-1 server-side LLM (ollama/API)** | spec §12 (out of scope of base) | Next spec — needed for the frontend/human path (no host agent to delegate to) |
 
 ---
 
@@ -172,8 +176,8 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 2. ~~**OpenTimestamps setup**~~ — **RESOLVED**: v0.X.0 tags only, script enforces pattern, user must run from machine.
 3. ~~**Real-world testing plan**~~ — STARTED 2026-05-15 (YouTube subtitles). Surfaced
    F1–F5 (see audit). Remaining: PDF/web sources, queue test — blocked on F2/F5 decisions.
-4. ~~**curate() design**~~ — **RESOLVED for tier 0 (implemented 2026-05-16,
-   validated on live vault 2026-05-17)**. curate() ran end-to-end on real
+4. ~~**recall() design**~~ — **RESOLVED for tier 0 (implemented 2026-05-16,
+   validated on live vault 2026-05-17)**. recall() ran end-to-end on real
    embedded data (0 notes → chunk escalation, cosine distances discriminant).
    Findings A/B/C logged in `.meta/scratch/2026-05-17-prereinit-findings.md`
    (CLI UTF-8 mojibake, source.title None, hook brittleness FIXED). Only
@@ -188,7 +192,7 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    `providers.mode`, install wizard, OpenRouter) — ref audit 10.4.
    See `.meta/audits/2026-05-17-real-ingest-test-results.md`.
 5. **AGENTS.md format** — follow agentify convention? Custom format? What agent definitions?
-7. ~~**curate() retrieval redesign**~~ — **RESOLVED 2026-05-29**. Re-brainstormed
+7. ~~**recall() retrieval redesign**~~ — **RESOLVED 2026-05-29**. Re-brainstormed
    (open question #7) → spec + plan written and committed
    (`.meta/specs|plans/2026-05-29-curate-tier1-librarian-base*`, `0177202`/`4a1adf2`).
    Decisions: **base = librarian sub-agent + `/ask-vault` slash command shipped as a
@@ -198,4 +202,4 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    precision delegated to the sub-agent's reasoning** (the PageIndex "LLM reasons over
    the pile" half, without building a structural index). Structural tier-0 deferred.
    Output contract `{answer, used_source_uids}`, stable across future layers. The only
-   Python change is a `generous` mode on `curate()`. Next session = execute the 7-task plan.
+   Python change is a `generous` mode on `recall()`. Next session = execute the 7-task plan.

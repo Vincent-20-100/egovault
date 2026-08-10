@@ -1,4 +1,4 @@
-# Spec — curate() tier-1 base: "Librarian sub-context" (no API key)
+# Spec — recall() tier-1 base: "Librarian sub-context" (no API key)
 
 **Date:** 2026-05-29
 **Status:** Draft (brainstorm validated, pending user review)
@@ -11,8 +11,8 @@ out of scope (separate, later specs) but the output contract is designed to fit 
 
 ## 1. Problem & intent
 
-`curate()` today stops at tier 0: deterministic retrieval (notes -> chunks escalation),
-returns an assembled `CuratedContext` with no synthesis. The desired tier-1 behavior:
+`recall()` today stops at tier 0: deterministic retrieval (notes -> chunks escalation),
+returns an assembled `RecallContext` with no synthesis. The desired tier-1 behavior:
 
 > Give a fresh-context agent the question + a generous pile of retrieved sources +
 > a system prompt. Let it triage, keep only what's relevant, synthesize the answer,
@@ -65,7 +65,7 @@ User asks a vault question (main conversation, host LLM)
   -> /egovault:ask-vault "<q>"        (explicit, guaranteed)   OR
      host auto-delegates to librarian subagent   (heuristic)
   -> FRESH SUB-CONTEXT:
-       curate(query, generous mode) -> large pile {notes+chunks, UIDs, full content}
+       recall(query, generous mode) -> large pile {notes+chunks, UIDs, full content}
        LLM triages + synthesizes
   -> returns to main conversation ONLY: { answer, used_source_uids }
      (the pile never enters the main context)
@@ -76,7 +76,7 @@ User asks a vault question (main conversation, host LLM)
 This is the substrate: if retrieval surfaces noise, the librarian synthesizes noise.
 The key reframe is that **the librarian changes what retrieval optimizes for**.
 
-- In tier-0 pure, `curate()` returns context directly, so it must be **precise** (noise
+- In tier-0 pure, `recall()` returns context directly, so it must be **precise** (noise
   hurts).
 - Here, **the sub-agent provides precision** — it triages the pile, keeps the relevant,
   discards the rest. So the deterministic retrieval layer's job becomes **recall**: never
@@ -99,7 +99,7 @@ Concretely, the "generous mode" (§6.3) = **hybrid RRF + wide net**: notes *and*
 together (no sparse-notes escalation gate), high limit, untruncated content.
 
 **Decision:** the generous mode **forces hybrid retrieval**, independent of the global
-`curate.use_hybrid_retrieval` flag (default `false`). Rationale: recall is the explicit
+`recall.use_hybrid_retrieval` flag (default `false`). Rationale: recall is the explicit
 design goal of the librarian and the experiment measured 0 regression; the global flag
 governs the *conservative deterministic tier-0* default — a different consumer with a
 different objective. Two consumers, two defaults.
@@ -118,12 +118,12 @@ the sub-context scales with pile size). Exact default set in the plan.
 
 ### 6.2 Librarian behavior (prompt; shared by subagent + slash command)
 - Input: the user's query.
-- Steps: call `curate(query, generous)`; read the pile; triage; synthesize an answer
+- Steps: call `recall(query, generous=True)`; read the pile; triage; synthesize an answer
   grounded in the sources; cite ONLY the UIDs actually used.
 - Output: the §3 contract. If the pile is empty/irrelevant: say so plainly, do not invent.
 - Tags/citations follow existing vault conventions (UIDs are verifiable).
 
-### 6.3 `curate()` generous-retrieval mode (the ONLY Python change)
+### 6.3 `recall()` generous-retrieval mode (the ONLY Python change)
 - Add a parameter for sub-context consumption that implements §5: force hybrid RRF,
   return both notes and chunks (bypass the sparse-notes escalation gate), high tunable
   `limit`, untruncated content (skip `synthesis_max_chars_per_item`).
@@ -134,11 +134,11 @@ the sub-context scales with pile size). Exact default set in the plan.
 - Empty / low-relevance retrieval -> librarian answers "rien de pertinent dans le vault",
   never hallucinates.
 - Non-Claude-Code clients (no subagent/slash support) -> the base is simply unavailable;
-  `curate` tier-0 still works (assembled context, no isolation/synthesis). The documented
+  `recall` tier-0 still works (assembled context, no isolation/synthesis). The documented
   path for those clients is the future server-side tier-1.
 
 ## 8. Testing
-- `curate()` generous mode: normal unit tests (forces hybrid, both tiers returned,
+- `recall()` generous mode: normal unit tests (forces hybrid, both tiers returned,
   truncation off, limit respected, ordering).
 - Plugin files: a smoke test asserting `plugin.json` / agent / command files are
   well-formed and parseable.
@@ -154,7 +154,7 @@ the sub-context scales with pile size). Exact default set in the plan.
 - `SESSION-CONTEXT.md`: note the sampling-migration as an active deferred item.
 
 ## 10. Migration path -> sampling (future)
-When a client advertises the sampling capability: `curate()` (or a thin wrapper) checks
+When a client advertises the sampling capability: `recall()` (or a thin wrapper) checks
 `client_capabilities.sampling`; if present, perform the synthesis server-side via
 `ctx.sample(system_prompt, query, pile)` and return the §3 contract directly — the
 host no longer needs the subagent/slash. The contract does not change, so consumers are
@@ -163,12 +163,12 @@ unaffected. Same hook will host the server-side ollama/API layer for non-MCP con
 
 ## 11. Documentation (automatism #8)
 - `docs/user-guide/` MCP chapter: plugin install + the librarian pattern + when isolation
-  applies. Search/curate chapter: mention generous mode + the recall-first selection method.
+  applies. Search/recall chapter: mention generous mode + the recall-first selection method.
 - Commit notes whether each change is user-visible.
 
 ## 12. Out of scope (do NOT build here)
 - Server-side `ctx.complete()` LLM synthesis (ollama/API) — next spec; serves frontend.
 - MCP sampling implementation — future, gated on client support.
 - Structural tier-0 (claude-obsidian `index`/`hot` precedence) — separate, larger redesign.
-- `/curate` API endpoint, frontend.
+- `/recall` API endpoint, frontend.
 - Any change to tier-0 retrieval semantics beyond adding the generous mode.

@@ -5,7 +5,7 @@
 When the EgoVault MCP server is connected, you have access to the user's personal
 knowledge vault. **Use it proactively:**
 
-- **Before answering a knowledge question** — call `curate()` first. It searches
+- **Before answering a knowledge question** — call `recall()` first. It searches
   compiled notes, escalates to raw chunks only when notes are sparse, and returns a
   single assembled context with verifiable source UIDs. Use `search_notes` only when
   you need verbatim quoting of a specific note.
@@ -15,7 +15,7 @@ knowledge vault. **Use it proactively:**
 ## Workflow order
 
 1. **Ingest**: `ingest_youtube` / `ingest_web` / `ingest_audio` / `ingest_pdf` / `ingest_text`
-2. **Curate**: `curate` (Librarian — preferred retrieval; notes→chunks, curated context)
+2. **Recall**: `recall` (preferred retrieval; notes→chunks, tiered context)
 3. **Search**: `search_notes` (raw semantic search — only for verbatim quoting)
 4. **Generate**: `generate_note_from_source` (source must be at `rag_ready` status)
 5. **Approve**: notes start as `draft` — user must approve before finalization
