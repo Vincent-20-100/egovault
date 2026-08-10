@@ -81,7 +81,7 @@ Enrich chunks with source metadata (source_type, date, tags, URL) before embeddi
 Shipped: SQLite FTS5 (built-in) for BM25 + sqlite-vec for cosine, fused via
 **RRF (Reciprocal Rank Fusion, k=60)** in `infrastructure/db.py::_rrf_fuse`.
 New functions `search_chunks_hybrid` / `search_notes_hybrid`; opt-in via
-`system.yaml` `curate.use_hybrid_retrieval`. Zero new Python deps.
+`system.yaml` `recall.use_hybrid_retrieval`. Zero new Python deps.
 Audit: `.meta/audits/2026-05-21-rrf-hybrid-experiment-results.md`.
 
 ### Relevance filtering
@@ -171,12 +171,12 @@ User ↔ Conversational agent (no DB access, clean context window)
 - Conversational agent context window stays clean — only relevant material enters
 - RAG precision is preserved (exact quotes, specific facts) but noise is filtered out
 - Librarian can compile multi-source syntheses that don't exist as notes yet
-- Each layer has exactly one job: converse, curate, or store
+- Each layer has exactly one job: converse, recall, or store
 
 **What this changes for EgoVault:**
 - `search` tool becomes an internal tool for the librarian, not a user-facing endpoint
-- New tool: `curate(query, conversation_context) → CuratedContext`
-- The curated context may contain: note excerpts, chunk quotes, on-the-fly synthesis
+- `recall(query, conversation_context) → RecallContext` is the tiered retrieval entry point
+- The recalled context may contain: note excerpts, chunk quotes, on-the-fly synthesis
 - User-facing search becomes "ask the librarian" not "query the vector DB"
 
 ### Implementation decision — Librarian as smart tool, not autonomous agent
@@ -185,11 +185,11 @@ The librarian is NOT a separate project or an internal agent loop. It's a **tool
 one LLM call as a subroutine**, exactly like `generate_note_from_source` already does:
 
 ```python
-def curate(query: str, ctx: VaultContext) -> CuratedContext:
+def ask_vault(query: str, ctx: VaultContext) -> RecallContext:
     notes = search_notes(query, ctx, top_k=5)       # deterministic
     chunks = search_chunks(query, ctx, top_k=10)     # deterministic
     synthesis = ctx.get_completion(curation_prompt)   # isolated LLM call, separate context
-    return CuratedContext(synthesis=synthesis, sources=cited_sources)
+    return RecallContext(synthesis=synthesis, sources=cited_sources)
 ```
 
 The LLM call has its own **isolated context** — it doesn't see the conversation, only
@@ -197,10 +197,10 @@ the query + search results. This keeps it testable, mockable, and deterministic-
 
 ### Tiered approach — works without LLM too
 
-| Tier | What `curate()` does | Dependency |
+| Tier | What `recall()` does | Dependency |
 |------|---------------------|------------|
 | 0 | Search + rank by similarity score + truncate top-K → return sorted raw results | **Nothing** (pure deterministic) |
-| 1 | Tier 0 + LLM synthesis (select, deduplicate, summarize) | LLM local or API key |
+| 1 | Tier 0 + LLM synthesis (select, deduplicate, summarize) — the Librarian | LLM local or API key |
 
 Tier 0 means EgoVault is **fully functional without any LLM**. A Claude Code Premium user
 with no local LLM gets pre-filtered results; the conversational LLM compensates by doing
@@ -214,7 +214,7 @@ never a prerequisite.
 For users with Claude Code or any MCP client, provide a ready-to-use agent prompt:
 
 ```
-.claude/rules/vault-usage.md  ← "when user asks a knowledge question, call curate() first"
+.claude/rules/vault-usage.md  ← "when user asks a knowledge question, call recall() first"
 AGENTS.md                     ← librarian agent definition, ready to use
 ```
 

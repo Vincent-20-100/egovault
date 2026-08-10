@@ -74,9 +74,9 @@ Each term has exactly one definition. Never use interchangeably.
 | `generation_template` | Named prompt template used to generate a note body. Defines LLM instructions + Markdown structure. Not editable via frontmatter or by the LLM. Modifiable only via a human-triggered regeneration workflow. NULL for manually written notes. |
 | `rating` | Integer 1–5 set exclusively by the user. Intentionally open semantics (importance, quality, priority — the user decides). Never inferred by the LLM. |
 | `run_id` | UUID4 identifying a workflow execution or MCP session. Propagated via `contextvars`. |
-| `curate()` | Librarian tier 0 — deterministic notes→chunks orchestration returning `CuratedContext`. No LLM. Tier 1 (LLM synthesis) deferred. |
+| `recall()` | Tiered retrieval (tier 0) — deterministic notes→chunks orchestration returning `RecallContext`. No LLM. Implements what the architecture calls the Librarian pattern; tier 1 (LLM synthesis) is the planned upgrade. |
 | `RRF` | Reciprocal Rank Fusion: combines two ranked lists (cosine + BM25) into one via score = Σ 1/(k + rank). Shipped 2026-05-21 in `infrastructure/db.py::_rrf_fuse` (k=60 default). |
-| `hybrid retrieval` | curate()/search opting into cosine + BM25 (FTS5) fused via RRF. Toggled by `system.yaml` `curate.use_hybrid_retrieval` (default false). Targets finding E (FR cosine imprecision). |
+| `hybrid retrieval` | recall()/search opting into cosine + BM25 (FTS5) fused via RRF. Toggled by `system.yaml` `recall.use_hybrid_retrieval` (default false). Targets finding E (FR cosine imprecision). |
 | `FTS5` | SQLite native full-text search engine (BM25 by default). Mirror tables `chunks_fts`/`notes_fts` synced via write-path hooks; tokenizer `unicode61 remove_diacritics 2` (FR-friendly). |
 
 ---
@@ -135,7 +135,7 @@ egovault/                          ← PUBLIC git repo
 │   │   ├── update_note.py         ← uid + partial update → NoteResult
 │   │   ├── generate_note_from_source.py ← source_uid → NoteResult (LLM-generated draft)
 │   │   ├── search.py              ← query → list[SearchResult]
-│   │   ├── curate.py              ← query → CuratedContext (Librarian tier 0)
+│   │   ├── recall.py              ← query → RecallContext (tiered retrieval, tier 0)
 │   │   ├── finalize_source.py     ← marks source as processed
 │   │   ├── delete_note.py         ← soft or hard delete a note
 │   │   ├── delete_source.py       ← soft or hard delete a source + its chunks
@@ -505,7 +505,7 @@ Optional dependency: `uv sync --extra reranker`.
 
 **Status:** the cross-encoder reranker above remains future work. A *lexical
 companion* — RRF(BM25, cosine) — was shipped 2026-05-21 as a separate slice
-(no ML dep, deterministic, opt-in via `curate.use_hybrid_retrieval`). It
+(no ML dep, deterministic, opt-in via `recall.use_hybrid_retrieval`). It
 covers a different failure mode (exact-keyword recall) than cross-encoder
 reranking (deep relevance scoring) — both can coexist later. See
 `infrastructure/db.py::search_chunks_hybrid` / `search_notes_hybrid` and

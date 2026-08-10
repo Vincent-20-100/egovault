@@ -51,7 +51,7 @@ designed alongside the data model, not bolted on.
 A complete toolkit for personal knowledge:
 - Ingest: YouTube, audio, PDF, web pages, plain text (email, Slack next)
 - Process: chunk, embed, generate structured notes via LLM
-- Retrieve: semantic search over chunks and notes; curate() for prioritized context
+- Retrieve: semantic search over chunks and notes; recall() for prioritized context
 - Manage: create, update, delete, restore notes and sources
 - Export: Obsidian markdown with frontmatter and tags
 

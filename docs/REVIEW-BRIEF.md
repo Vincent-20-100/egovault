@@ -24,7 +24,7 @@ The long-term vision: evolve from a RAG system into a **knowledge compiler** —
 | Ingest pipeline | Done | youtube, audio, video, pdf, web, text. 8 extractors via registry. |
 | Chunking + embedding | Done | ~800 token chunks, L2-normalized cosine embeddings in sqlite-vec. |
 | `generate_note_from_source()` | Done | LLM generates a draft note from source. Ollama + Claude. |
-| `curate()` tier 0 | Done | Deterministic: search notes → escalate to chunks → return sorted raw results. No synthesis. |
+| `recall()` tier 0 | Done | Deterministic: search notes → escalate to chunks → return sorted raw results. No synthesis. |
 | RRF hybrid retrieval | Done | FTS5 BM25 + cosine via Reciprocal Rank Fusion. Opt-in flag, default **false**. |
 | MCP server | Done | 22+ tools exposed to Claude/MCP clients. |
 | FastAPI API | Done | 8 routers, 22 endpoints. |
@@ -37,7 +37,7 @@ The long-term vision: evolve from a RAG system into a **knowledge compiler** —
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `curate()` tier 1 (Librarian) | Plan written, not implemented | Sub-agent delegation + `/ask-vault` command. MCP sampling deferred (unsupported by Claude Code/Desktop today). |
+| `ask_vault()` tier 1 (Librarian) | Plan written, not implemented | Sub-agent delegation + `/ask-vault` command. MCP sampling deferred (unsupported by Claude Code/Desktop today). |
 | Frontend | Spec ready | Next.js. Not started. |
 | Cross-encoder reranking | Spec ready | RRF shipped as a lighter alternative. Cross-encoder still deferred. |
 | Semantic cache | Spec ready | Not implemented. |
@@ -71,7 +71,7 @@ Layer 2 — notes_vec    (compiled knowledge, dense, reliable)
 Layer 1 — chunks_vec   (raw material, precise, verbatim, noisy)
 ```
 
-The vision: search notes first; fall back to chunks only when notes are sparse. Implemented in `curate()` tier 0. The escalation threshold (`escalation_max_distance = 0.5`) is a **guess** — never calibrated on real data.
+The vision: search notes first; fall back to chunks only when notes are sparse. Implemented in `recall()` tier 0. The escalation threshold (`escalation_max_distance = 0.5`) is a **guess** — never calibrated on real data.
 
 ### 3.3 Code architecture (hexagonal)
 
@@ -90,8 +90,8 @@ infrastructure/         ← VaultDB, providers, build_context() — imports core
 ```
 User ↔ Conversational LLM (Claude via MCP, clean context)
               │
-              ▼ calls curate(query, generous=True)
-        curate() — recall-first wide net: hybrid RRF, both notes + chunks, untruncated
+              ▼ calls recall(query, generous=True)
+        recall() — recall-first wide net: hybrid RRF, both notes + chunks, untruncated
               │
               ▼ returns raw pile to a librarian subagent
         librarian subagent (isolated Claude Code subagent or /ask-vault command)
@@ -110,7 +110,7 @@ User ↔ Conversational LLM (Claude via MCP, clean context)
 |--------|-----------|-------------------|
 | SQLite + sqlite-vec over a vector DB | Local-only, zero infra, single file backup | Does not scale past ~1M vectors. Acceptable for personal PKM. |
 | Two embedding spaces (notes + chunks) | Notes are denser, more reliable; chunks are precise, verbatim | Notes quality depends entirely on LLM generation quality. Unverified at scale. |
-| `curate()` as the preferred entry point | Hides RAG complexity, returns signal not noise | Currently tier 0 = sorted raw results. The "signal" claim is aspirational. |
+| `recall()` as the preferred entry point | Hides RAG complexity, returns signal not noise | Currently tier 0 = sorted raw results. The "signal" claim is aspirational. |
 | RRF hybrid opt-in (default false) | Conservative — only 1 real win in initial experiment, 0 regressions | May be leaving recall gains on the table for FR-language content. |
 | Ollama-first (local, keyless) | No API cost, no data sent externally | Ollama model quality is lower than Claude/GPT-4. Note quality varies. |
 | Obsidian as the UI | Zero frontend work, already battle-tested by user | Bidirectional sync not implemented. DB is source of truth; Obsidian is export only. |
@@ -124,7 +124,7 @@ The vision describes three tiers of knowledge (raw chunks → compiled notes →
 
 - **Tier 1** (chunks): implemented and working.
 - **Tier 2** (notes): implemented but quality is LLM-dependent and untested at scale. Notes are currently one-per-source, never multi-source.
-- **Tier 3** (curated synthesis): `curate()` tier 0 returns a sorted list — not a synthesis. Tier 1 (actual synthesis) is not built. The "Librarian" is a plan with a workaround dependency.
+- **Tier 3** (curated synthesis): `recall()` tier 0 returns a sorted list — not a synthesis. Tier 1 (actual synthesis) is not built. The "Librarian" is a plan with a workaround dependency.
 
 The claim "stop retrieving, start compiling" is the north star, not the current state. The system is today a **well-structured RAG** with Obsidian export and an MCP interface.
 
@@ -133,7 +133,7 @@ The claim "stop retrieving, start compiling" is the north star, not the current 
 ## 6. What has never been tested
 
 - **Semantic quality at scale**: 25 sources tested in real conditions (2026-05-17). No benchmark. The evaluation framework exists as stubs only (TEST-C2 debt acknowledged).
-- **curate() retrieval quality**: escalation threshold (0.5) is unvalidated. No recall/precision metrics on real queries.
+- **recall() retrieval quality**: escalation threshold (0.5) is unvalidated. No recall/precision metrics on real queries.
 - **Note generation quality**: Ollama qwen2.5:7b-instruct produces notes, but their quality relative to Claude or GPT-4 is unknown and unmeasured.
 - **RRF hybrid benefit at scale**: validated on 4 queries with 25 sources. Not a meaningful sample.
 - **The Librarian pattern**: the `/ask-vault` subagent plan has never been executed. The design assumes a Claude Code context with a capable host LLM.
@@ -143,19 +143,19 @@ The claim "stop retrieving, start compiling" is the north star, not the current 
 ## 7. Roadmap (current order) and its rationale
 
 ```
-1. curate() tier 1 — Librarian base (plan written, ready to execute)
+1. ask_vault() tier 1 — Librarian base (plan written, ready to execute)
    → Adds isolated synthesis; uses host LLM via subagent delegation.
    → Workaround for missing MCP sampling.
 
 2. Semantic clustering (vault_map)  [brainstorm only, no spec]
    → HDBSCAN on note/chunk embeddings → cluster tags → gap analysis.
-   → Would also improve curate() pre-filtering.
+   → Would also improve recall() pre-filtering.
 
 3. Search quality (reranking)  [spec ready, not prioritized]
    → Cross-encoder after RRF. Deferred because RRF covered the main gap.
 
 4. Large source synthesis  [spec written, no plan]
-   → Map-reduce for long documents. Blocked by curate() maturity.
+   → Map-reduce for long documents. Blocked by recall() maturity.
 
 5. Frontend  [spec ready]
    → Next.js. Low urgency while Obsidian + MCP cover the UI need.
@@ -173,13 +173,13 @@ The claim "stop retrieving, start compiling" is the north star, not the current 
 
 1. **Is the two-layer architecture the right bet?** Notes quality depends on LLM generation. If generated notes are mediocre, Layer 2 adds noise rather than signal. There is no mechanism to detect or flag low-quality notes.
 
-2. **curate() as "the preferred entry point" — is this justified?** Tier 0 returns sorted raw results with no deduplication or synthesis. A simple `search()` call is functionally equivalent. The differentiation only exists in tier 1, which is not built.
+2. **recall() as "the preferred entry point" — is this justified?** Tier 0 returns sorted raw results with no deduplication or synthesis. A simple `search()` call is functionally equivalent. The differentiation only exists in tier 1, which is not built.
 
 3. **The Librarian workaround**: the subagent delegation plan (Claude Code plugin + `/ask-vault`) assumes the user has Claude Code. Users with other MCP clients (Claude Desktop, custom) get no Librarian. This creates an implicit platform dependency that is not stated in the vision.
 
 4. **One note per source**: the "densification" thesis requires notes to accumulate and synthesize across sources. The current model creates exactly one note per source, which never merges with others. The thesis is structurally blocked.
 
-5. **Calibration problem**: `escalation_max_distance = 0.5` is the most important parameter in curate() and it is a pure guess. Wrong values mean either: always returning notes (missing relevant chunks) or always escalating to chunks (defeating the two-layer point).
+5. **Calibration problem**: `escalation_max_distance = 0.5` is the most important parameter in recall() and it is a pure guess. Wrong values mean either: always returning notes (missing relevant chunks) or always escalating to chunks (defeating the two-layer point).
 
 6. **The evaluation gap**: 511 tests pass, but they are all mocked at the LLM/embedding boundary. There is no test that validates semantic relevance. The suite gives confidence in plumbing, not in quality.
 
@@ -191,7 +191,7 @@ The claim "stop retrieving, start compiling" is the north star, not the current 
 
 ## 9. What a review should challenge
 
-- Is the curate()/Librarian pattern actually solving the right problem, or is it complexity added to compensate for inadequate retrieval?
+- Is the recall()/Librarian pattern actually solving the right problem, or is it complexity added to compensate for inadequate retrieval?
 - Does the "two-layer" thesis hold if note quality is unverified?
 - Is the roadmap order correct? Should evaluation come before feature work?
 - Is the workaround Librarian (subagent delegation) worth shipping before MCP sampling exists?

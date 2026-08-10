@@ -226,12 +226,12 @@ For better precision on French content with exact-keyword queries, enable the
 hybrid retrieval mode in `config/system.yaml`:
 
 ```yaml
-curate:
+recall:
   use_hybrid_retrieval: true   # cosine + BM25 (FTS5) fused via RRF
 ```
 
 This complements pure cosine semantic search with lexical (keyword) recall —
-see `docs/user-guide/06-search-and-curate.md` for when and why.
+see `docs/user-guide/06-search-and-recall.md` for when and why.
 
 ---
 
@@ -285,7 +285,7 @@ Ollama only handles the embedding vectors (turning text into searchable numbers)
 | `No module named 'feedparser'` / `'trafilatura'` after `uv sync` | Use `uv sync --all-extras` (see §2 note) |
 | Local note generation fails: `tag must contain only ASCII characters` | Already auto-fixed since 2026-05-21 (slugify in provider); update your install |
 | Note generation slow / RAM swap | Use `qwen2.5:3b-instruct` instead of 7b (set in `user.yaml`) — see `04-providers.md` |
-| Search results imprecise on French | Enable `curate.use_hybrid_retrieval: true` in `system.yaml` — see `06-search-and-curate.md` |
+| Search results imprecise on French | Enable `recall.use_hybrid_retrieval: true` in `system.yaml` — see `06-search-and-recall.md` |
 | Console shows mojibake (`é` → `Ã©`) | Display-only on Windows. Stored bytes are clean UTF-8. Verify with `python -X utf8`. |
 
 For deeper troubleshooting see `docs/user-guide/12-troubleshooting.md`.
@@ -299,6 +299,6 @@ For deeper troubleshooting see `docs/user-guide/12-troubleshooting.md`.
 - **Configure your provider** — local Ollama, cloud (Anthropic), or hybrid →
   `docs/user-guide/04-providers.md`
 - **Tune retrieval** — escalation thresholds, hybrid RRF →
-  `docs/user-guide/06-search-and-curate.md`
+  `docs/user-guide/06-search-and-recall.md`
 - **Full reference** — `docs/user-guide/` covers concepts, configuration, CLI,
   MCP, Obsidian, maintenance, troubleshooting in detail.

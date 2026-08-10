@@ -57,7 +57,7 @@ User ↔ Conversational agent (clean context, never touches DB)
               │
               │ "I need info about X"
               ▼
-        curate(query, conversation_summary)
+        recall(query, conversation_summary)
               │
               ├── 1. Search compiled notes (tier 2, fast)
               ├── 2. If insufficient → search RAG chunks (tier 1, precise)
@@ -66,14 +66,14 @@ User ↔ Conversational agent (clean context, never touches DB)
               ├── 5. Isolated LLM call: select + synthesize (separate context)
               │
               ▼
-        Returns to conversational: CuratedContext
+        Returns to conversational: RecallContext
               ├── synthesis: synthesized text, minimal
               ├── sources: citations with UIDs (verifiable)
               └── confidence: score based on concordant sources
 ```
 
 **Why a tool, not an agent:** An agent decides WHAT to do. A tool does what it's asked
-WITH intelligence. `curate()` always receives the same instruction (search + synthesize),
+WITH intelligence. `recall()` always receives the same instruction (search + synthesize),
 only the input changes. No decision loop needed.
 
 **Why an isolated LLM call:** The curation prompt is separate from the conversation.
@@ -83,7 +83,7 @@ It sees only the query + search results. No cross-pollution, unit-testable, mock
 
 ## Tiered: works without LLM
 
-| Tier | What `curate()` does | Dependency |
+| Tier | What `recall()` does | Dependency |
 |------|---------------------|------------|
 | 0 | Search notes + chunks → rank by similarity → truncate → return sorted raw results | **Nothing** (pure deterministic) |
 | 1 | Tier 0 + LLM selects, deduplicates, synthesizes | LLM local or API key |
@@ -102,7 +102,7 @@ LLM is an accelerator, never a prerequisite.
 For users with Claude Code or any MCP client:
 
 ```
-.claude/rules/vault-usage.md  → "when user asks a knowledge question, call curate() first"
+.claude/rules/vault-usage.md  → "when user asks a knowledge question, call recall() first"
 AGENTS.md                     → librarian agent definition, ready to use
 ```
 
@@ -125,8 +125,8 @@ Opens the door to other pre-packaged agents (summarizer, note-linker, etc.).
 
 ## Incremental implementation path
 
-1. **`curate()` tier 0** — search + rank + truncate (deterministic, zero new dependency) — **✅ implemented 2026-05-16** (MCP + CLI surfaces)
-2. **`curate()` tier 1** — add LLM synthesis call
+1. **`recall()` tier 0** — search + rank + truncate (deterministic, zero new dependency) — **✅ implemented 2026-05-16** (MCP + CLI surfaces)
+2. **`ask_vault()` tier 1** — add LLM synthesis call (the Librarian agent)
 3. **`compile()`** — multi-source synthesis persisted as note
 4. **AGENTS.md** — pre-packaged librarian for MCP clients
 5. **Confidence scores** — each fact carries a score that strengthens or decays
