@@ -231,14 +231,14 @@ def init_db(
     # Startup validation — warn on a stale pre-cosine (L2) vec table. The
     # IF NOT EXISTS above is a no-op on an old DB, so embeddings would be
     # cosine-normalized while the index still scores L2 → silent mis-ranking
-    # and meaningless curate() thresholds. Re-embedding is user-initiated.
+    # and meaningless recall() thresholds. Re-embedding is user-initiated.
     vec_ddl = conn.execute(
         "SELECT sql FROM sqlite_master WHERE name = 'chunks_vec'"
     ).fetchone()
     if vec_ddl is not None and "distance_metric=cosine" not in (vec_ddl[0] or ""):
         _logger.warning(
             "chunks_vec uses the legacy L2 metric (no distance_metric=cosine). "
-            "Embeddings are cosine-normalized — search ranking and curate() "
+            "Embeddings are cosine-normalized — search ranking and recall() "
             "thresholds are unreliable. Run scripts/reembed.py to rebuild."
         )
 
@@ -550,7 +550,7 @@ def search_notes(
 
 
 # Sentinel for BM25-only hits: max cosine distance ([0,2] cosine range), so the
-# downstream curate threshold (e.g. 0.5) treats them as "not cosine-relevant"
+# downstream recall() threshold (e.g. 0.5) treats them as "not cosine-relevant"
 # while RRF still surfaces them via lexical signal.
 _BM25_ONLY_DISTANCE = 2.0
 
@@ -577,7 +577,7 @@ def search_chunks_hybrid(
 ) -> list[SearchResult]:
     """Cosine + BM25 (FTS5) fused via RRF. Returns up to `limit` SearchResults.
 
-    BM25-only hits get distance = _BM25_ONLY_DISTANCE so curate's cosine
+    BM25-only hits get distance = _BM25_ONLY_DISTANCE so recall()'s cosine
     threshold treats them as lexical recall (not cosine-relevant)."""
     cosine_results = search_chunks(db_path, query_embedding, filters, limit)
     cosine_uids = [r.chunk_uid for r in cosine_results]

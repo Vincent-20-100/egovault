@@ -193,7 +193,7 @@ class SearchFilters(BaseModel):
     date_to: str | None = None
 
 
-class CuratedSource(BaseModel):
+class RecallSource(BaseModel):
     tier: Literal["note", "chunk"]
     uid: str
     source_uid: str | None = None
@@ -202,9 +202,9 @@ class CuratedSource(BaseModel):
     distance: float
 
 
-class CuratedContext(BaseModel):
+class RecallContext(BaseModel):
     synthesis: str
-    sources: list[CuratedSource]
+    sources: list[RecallSource]
     confidence: float | None = None
     query: str
 

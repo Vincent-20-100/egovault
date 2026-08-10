@@ -53,7 +53,7 @@ class WebConfig(BaseModel):
     max_redirects: int = 5
 
 
-class CurateConfig(BaseModel):
+class RecallConfig(BaseModel):
     escalation_min_notes: int = 3
     escalation_max_distance: float = 0.5
     synthesis_max_chars_per_item: int = 800
@@ -66,7 +66,7 @@ class SystemConfig(BaseModel):
     llm: LLMSystemConfig
     upload: UploadConfig = UploadConfig()
     web: WebConfig = WebConfig()
-    curate: CurateConfig = CurateConfig()
+    recall: RecallConfig = RecallConfig()
     taxonomy: TaxonomyConfig
 
 

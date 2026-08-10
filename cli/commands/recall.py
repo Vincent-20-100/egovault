@@ -1,5 +1,5 @@
 """
-Curate command — Librarian tier 0 retrieval.
+Recall command — tiered retrieval over the vault.
 
 Routing layer only. No business logic.
 """
@@ -10,7 +10,7 @@ import typer
 
 from cli.output import print_error
 
-app = typer.Typer(help="Librarian retrieval over the vault.")
+app = typer.Typer(help="Tiered retrieval over the vault.")
 
 
 def _build_ctx():
@@ -19,17 +19,17 @@ def _build_ctx():
     return build_context(load_settings())
 
 
-def _run_curate(query: str, ctx, limit: int):
-    from tools.vault.curate import curate
-    return curate(query, ctx, limit=limit)
+def _run_recall(query: str, ctx, limit: int):
+    from tools.vault.recall import recall
+    return recall(query, ctx, limit=limit)
 
 
 @app.command()
-def curate_cmd(
+def recall_cmd(
     query: Annotated[str, typer.Argument(help="Knowledge question")],
     limit: Annotated[int, typer.Option("--limit", help="Max sources")] = 5,
 ) -> None:
-    """Librarian tier 0 retrieval over the vault."""
+    """Tiered retrieval over the vault: notes first, chunks if sparse."""
     if not query.strip():
         print_error("Query must not be empty.", "empty_query", False, False)
         raise typer.Exit(1)
@@ -42,9 +42,9 @@ def curate_cmd(
         raise typer.Exit(1)
 
     try:
-        result = _run_curate(query, ctx, limit)
+        result = _run_recall(query, ctx, limit)
     except Exception as e:
-        print_error("Curate failed.", "curate_error", False, False, str(e))
+        print_error("Recall failed.", "recall_error", False, False, str(e))
         raise typer.Exit(1)
 
     if not result.sources:
