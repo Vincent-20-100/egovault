@@ -84,12 +84,12 @@ web:
   max_redirects: 5
 ```
 
-### `curate`
+### `recall`
 
-The Librarian / retrieval orchestrator. **Where you tune search quality.**
+Tiered retrieval orchestrator. **Where you tune search quality.**
 
 ```yaml
-curate:
+recall:
   escalation_min_notes: 3              # < N relevant notes → escalate to chunks
   escalation_max_distance: 0.5         # "relevant" cosine threshold (calibrated on FR corpus)
   synthesis_max_chars_per_item: 800    # truncate content per source in the assembled synthesis
@@ -103,7 +103,7 @@ curate:
 - **`use_hybrid_retrieval = true`** enables BM25 lexical recall alongside
   cosine, fused via Reciprocal Rank Fusion. Recommended **on** when your queries
   contain exact keywords (proper nouns, technical terms) — see
-  [06-search-and-curate.md](06-search-and-curate.md) for the full mechanism and
+  [06-search-and-recall.md](06-search-and-recall.md) for the full mechanism and
   empirical results.
 
 ### `taxonomy`
@@ -247,7 +247,7 @@ llm:       { provider: ollama, model: qwen2.5:7b-instruct }   # any value; not i
 
 Note generation via the EgoVault internal path is unavailable here unless you
 configure a real provider — but Claude via MCP can still call `search`,
-`curate`, `create_note` (writing notes Claude composed), `ingest_*`.
+`recall`, `create_note` (writing notes Claude composed), `ingest_*`.
 
 ### Persona C: cloud LLM (Anthropic API key)
 

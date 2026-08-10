@@ -59,8 +59,8 @@ egovault ingest <target> [--title TITLE]
 
 ### `search`
 
-Raw semantic search (no escalation, no fusion). For curated results, use
-`curate`.
+Raw semantic search (no escalation, no fusion). For tiered recall, use
+`recall`.
 
 ```bash
 egovault search "<query>" [--mode notes|chunks] [--limit 10] [--filters JSON]
@@ -73,13 +73,13 @@ egovault search "<query>" [--mode notes|chunks] [--limit 10] [--filters JSON]
 | `--limit` | Max results | 10 |
 | `--filters` | JSON `SearchFilters` literal | none |
 
-### `curate`
+### `recall`
 
-Librarian retrieval (tier 0 today; tier 1 in the future). Respects
-`escalation_*` and `use_hybrid_retrieval`. See [06-search-and-curate.md](06-search-and-curate.md).
+Tiered retrieval (tier 0 today; tier 1 in the future). Respects
+`escalation_*` and `use_hybrid_retrieval`. See [06-search-and-recall.md](06-search-and-recall.md).
 
 ```bash
-egovault curate "<query>" [--limit 5] [--filters JSON]
+egovault recall "<query>" [--limit 5] [--filters JSON]
 ```
 
 ### `purge`

@@ -38,7 +38,7 @@ but tags/templates indicate "draft." Once approved:
 - The note's `status` flips to `active`
 - The taxonomy fields (`note_type`, `source_type`) are validated against
   `system.yaml` `taxonomy:` (this is when invalid types raise — see below)
-- The note becomes part of the corpus that `curate()` returns
+- The note becomes part of the corpus that `recall()` returns
 
 ### Why the draft gate exists
 

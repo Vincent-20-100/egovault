@@ -8,12 +8,12 @@
 
 | # | Chapter | What it covers |
 |---|---|---|
-| 01 | [Concepts](01-concepts.md) | Sources, chunks, notes, tags, the two-tier RAG-vs-compiled model, the Librarian (`curate()`) |
+| 01 | [Concepts](01-concepts.md) | Sources, chunks, notes, tags, the two-tier RAG-vs-compiled model, tiered recall (`recall()`) |
 | 02 | [Installation](02-installation.md) | Prerequisites, venv, `uv sync --all-extras`, `init_user_dir`, sanity check |
 | 03 | [Configuration](03-configuration.md) | Full reference of the three yaml files — every flag explained |
 | 04 | [Providers](04-providers.md) | LLM and embedding personas (local Ollama / cloud / hybrid / MCP-only), model recommendations |
 | 05 | [Ingest](05-ingest.md) | YouTube, audio, PDF, text, web — pipeline stages, large-format gate, queue patterns |
-| 06 | [Search and curate](06-search-and-curate.md) | Tier-0/1/2 retrieval, escalation, **hybrid (RRF + BM25)**, when to enable |
+| 06 | [Search and recall](06-search-and-recall.md) | Tier-0/1/2 retrieval, escalation, **hybrid (RRF + BM25)**, when to enable |
 | 07 | [Notes](07-notes.md) | Generation, draft → active approval, templates, tag rules, lifecycle |
 | 08 | [CLI reference](08-cli.md) | Every `egovault` command with options and examples |
 | 09 | [MCP integration](09-mcp.md) | Claude Desktop, Claude Code, exposed tools, safety gates |

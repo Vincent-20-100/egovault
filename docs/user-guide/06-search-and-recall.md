@@ -1,4 +1,4 @@
-# 06 — Search and curate
+# 06 — Search and recall
 
 This is the chapter you'll reread most.
 
@@ -6,7 +6,7 @@ This is the chapter you'll reread most.
 
 | Tier | What it returns | LLM needed? | Status |
 |---|---|:-:|---|
-| **0 — deterministic Librarian** | sorted raw results from notes + chunks, with truncation | no | shipped (`curate()`) |
+| **0 — deterministic tiered retrieval** | sorted raw results from notes + chunks, with truncation | no | shipped (`recall()`) |
 | **1 — LLM synthesis** | tier-0 + LLM dedupes/selects/synthesizes a coherent text | yes | open redesign (Q #7) |
 | **2 — agentic** | full agent loop, multi-call reasoning | yes | not on roadmap |
 
@@ -14,16 +14,16 @@ Today, when you say "search" you mean tier-0 + optional hybrid retrieval. The
 deferred tier-1 brainstorm (open question 7 in SESSION-CONTEXT) is being
 informed by the 2026-05-19 SOTA synthesis (`docs/.../research/synthesis-retrieval-sota-2026-05-19.md`).
 
-## What `curate()` does (tier 0)
+## What `recall()` does (tier 0)
 
 ```
-curate(query, filters?, limit=5) →
+recall(query, filters?, limit=5) →
    1. embed query (via ctx.embed)
    2. retrieve notes (top-K via cosine, optionally + BM25 fused via RRF)
    3. count "relevant" notes (distance < escalation_max_distance)
    4. if < escalation_min_notes  →  retrieve chunks too (same query)
    5. merge: notes first, chunks second; truncate each item's content
-   6. return CuratedContext(synthesis, sources, confidence=None, query)
+   6. return RecallContext(synthesis, sources, confidence=None, query)
 ```
 
 The default behavior is **notes-first**: chunks only fill in when the notes
@@ -34,7 +34,7 @@ compiled knowledge beats raw chunks when it exists.
 
 ```yaml
 # system.yaml
-curate:
+recall:
   escalation_min_notes: 3              # if < N notes pass the distance gate, escalate
   escalation_max_distance: 0.5         # cosine distance threshold for "relevant"
 ```
@@ -85,11 +85,11 @@ BOTH explodes upward.
 
 ```yaml
 # system.yaml
-curate:
+recall:
   use_hybrid_retrieval: true
 ```
 
-`curate()` then calls `search_notes_hybrid` and `search_chunks_hybrid` instead
+`recall()` then calls `search_notes_hybrid` and `search_chunks_hybrid` instead
 of the pure-cosine variants. Same return type — but BM25-only results carry
 `distance = 2.0` (sentinel) to signal "lexical recall, not cosine-relevant"
 without breaking the cosine-threshold logic in `escalation_max_distance`.
@@ -120,7 +120,7 @@ On the 25-note real corpus, 4 thematic queries:
 The flag is **fully reversible** — flip back to `false` and you're on cosine
 alone. Plan to default it to `true` after more queries confirm no regression.
 
-## Raw search vs `curate()`
+## Raw search vs `recall()`
 
 Two CLI commands cover different needs:
 
@@ -129,13 +129,13 @@ Two CLI commands cover different needs:
 egovault search "votre requête" --mode notes  --limit 10
 egovault search "votre requête" --mode chunks --limit 10
 
-# Librarian retrieval — returns a curated synthesis + sources
-egovault curate "votre requête"
+# Tiered recall — returns a ranked context + sources
+egovault recall "votre requête"
 ```
 
 - Use `search` when you want a quick verbatim lookup (proper nouns, exact
-  quotes you'll cite). It does NOT escalate, does NOT respect the curate flags.
-- Use `curate` when you want "the best knowledge I have on X" — it respects
+  quotes you'll cite). It does NOT escalate, does NOT respect the recall flags.
+- Use `recall` when you want "the best knowledge I have on X" — it respects
   every flag above.
 
 ## MCP usage
@@ -143,10 +143,10 @@ egovault curate "votre requête"
 Via MCP, the same logic exposes two tools:
 
 - `search(query, mode, filters, limit)` — direct search
-- `curate(query, filters, limit)` — the recommended entry point for LLM clients
+- `recall(query, filters, limit)` — the recommended entry point for LLM clients
 
 The vault-usage rule (`.claude/rules/vault-usage.md`) tells MCP clients to
-prefer `curate` first, `search` only when verbatim quoting is needed.
+prefer `recall` first, `search` only when verbatim quoting is needed.
 
 ## Filters
 

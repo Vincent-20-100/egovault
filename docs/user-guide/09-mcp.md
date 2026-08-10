@@ -108,7 +108,7 @@ Snapshot of the 22+ tools (see `mcp/server.py` for the authoritative list):
 ### Retrieval
 
 - `search(query, mode="chunks"|"notes", filters=None)` — raw top-K
-- `curate(query, filters=None, limit=5)` — **Librarian** (the preferred entry point)
+- `recall(query, filters=None, limit=5)` — **preferred entry point** (tiered retrieval)
 
 ### Notes
 
@@ -140,7 +140,7 @@ These appear **only when `allow_destructive_ops: true`** in `user.yaml`:
 `.claude/rules/vault-usage.md` is shipped to instruct the LLM how to behave
 when EgoVault is connected. Key directives:
 
-- Before answering a knowledge question → call `curate()` first
+- Before answering a knowledge question → call `recall()` first
 - Use `search` only for verbatim quoting
 - Tag conventions: kebab-case, French, no accents
 - After a rich conversation → propose to ingest the URL or create a note

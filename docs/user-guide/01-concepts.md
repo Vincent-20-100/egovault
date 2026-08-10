@@ -60,7 +60,7 @@ into prompt, forget"). It runs **two tiers in parallel**:
 
 ```
                        ┌──── Tier 1: RAG on chunks ──── precise verbatim, raw transcripts
-your query ──► curate()│
+your query ──► recall()│
                        └──── Tier 2: Compiled notes ── dense, human-titled, cross-source synthesis
 ```
 
@@ -71,20 +71,20 @@ your query ──► curate()│
   reusable, validated knowledge units. They embed and rank far better than
   fragmented chunks (proven on real corpus: top-1 cosine distances ~0.10–0.13
   lower at tier 2 vs tier 1, see `.meta/audits/2026-05-20-real-notegen-test-results.md`).
-- `curate()` orchestrates both. By default it tries notes first, escalates to
-  chunks only if notes are insufficient (see [06-search-and-curate.md](06-search-and-curate.md)).
+- `recall()` orchestrates both. By default it tries notes first, escalates to
+  chunks only if notes are insufficient (see [06-search-and-recall.md](06-search-and-recall.md)).
 
 This is *not* generic RAG — it's a deliberate move toward an **accumulating,
 densifying** knowledge store. See `docs/VISION-KNOWLEDGE-COMPILER.md` for the
 full thesis.
 
-## The Librarian — `curate()`
+## Tiered retrieval — `recall()`
 
 A small, **deterministic** tool that exposes the two-tier model to the rest of
 the system (CLI, MCP, future API):
 
 ```
-curate(query, filters?, limit?) -> CuratedContext
+recall(query, filters?, limit?) -> RecallContext
                                     ├── synthesis  : str   (assembled block of top results)
                                     ├── sources    : list  (each with tier, uid, title, content, distance)
                                     ├── confidence : float | None  (None at tier 0 — no LLM)

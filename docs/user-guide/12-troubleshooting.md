@@ -100,20 +100,20 @@ Enable hybrid retrieval:
 
 ```yaml
 # system.yaml
-curate:
+recall:
   use_hybrid_retrieval: true
 ```
 
 This adds BM25 (FTS5) lexical recall alongside cosine via RRF. See
-[06-search-and-curate.md](06-search-and-curate.md) for the mechanism.
+[06-search-and-recall.md](06-search-and-recall.md) for the mechanism.
 
-### `curate()` always escalates to chunks even though notes exist
+### `recall()` always escalates to chunks even though notes exist
 
-Check `system.yaml` `curate.escalation_max_distance`. On the validated FR
+Check `system.yaml` `recall.escalation_max_distance`. On the validated FR
 corpus, relevant notes land 0.27–0.40, so the default `0.5` is fine. If your
 embeddings produce larger distances, raise it (e.g. to `0.7`).
 
-### `curate()` returns notes with `distance=2.0`
+### `recall()` returns notes with `distance=2.0`
 
 That's the **BM25-only sentinel** introduced with hybrid retrieval — the doc
 matched lexically but not semantically. It's a feature, not a bug:
