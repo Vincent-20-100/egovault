@@ -51,6 +51,15 @@ maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
   DB-M1 atomic `purge_source`, DB-M2 error wrapping, DB-M3 connection-leak
   (try/finally, ~50 funcs), DB-M4 search ignores filters, SCRIPT-M1 reembed
   safety, TEST-C2 no real semantic e2e test, TEST-M1 missing test files.
+- **yt-dlp subtitle fallback** (2026-08-13) — add an intermediate level to
+  `fetch_subtitles`: after `youtube_transcript_api` fails, try
+  `yt-dlp --write-subs --skip-download` before resorting to audio + Whisper.
+  Covers videos where the transcript API is blocked but `.vtt` subs exist.
+  Zero Whisper, zero audio download.
+- **`ingest_video` generic source** (2026-08-13) — extend `ingest_youtube` to
+  accept any yt-dlp-supported URL (~1800 sites: Vimeo, Twitter/X, Twitch VODs,
+  Dailymotion, PeerTube…). Same pipeline; remove the YouTube-only URL validator
+  or make it opt-in. Requires brainstorm on URL validation policy.
 
 See `docs/user-guide/` for the user manual (12 chapters).
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Knowledge Compiler vision.
