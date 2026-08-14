@@ -148,6 +148,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | ~~beautifulsoup4 + ruff undeclared in pyproject~~ | ~~MAJOR~~ | **RESOLVED 2026-05-16** — `beautifulsoup4` was already declared+committed (web-ingestion-V1, `0fab5b3`); only `ruff` was missing. Added to dev group (`chore` commit). pytest collects 476 tests, bs4 4.14.3 installed. |
 | **save-progress skill missing preflight script** | MINOR | `scripts/save_progress_preflight.py` absent; skill's `uv run` fallback prunes the venv. Create script or fix skill. |
 | **96 files unformatted (ruff format)** | MINOR | Pre-existing; `ruff format` not enforced. Run a formatting pass separately. |
+| **`create_note` draft/active approval lifecycle has no real transitions** | MAJOR | **OPEN — NOT fixed, patched by hand.** `create_note` defaults `status="active"` (schema: `active`=human-approved). Its own docstring workflow presumes the human approved the content *before* the call — but nothing enforces that: there is no `status` param to let a caller mark a note unapproved, and no tool (`update_note` doesn't expose `status`; no other) can move a note `draft`→`active` or `active`→`draft`. Found 2026-08-14: an autonomous sub-agent created 4 notes via `create_note` with no human review step; they landed `active` (falsely "approved"). Worked around by direct SQL `UPDATE notes SET status='draft'` on the 4 rows — a stopgap, not a fix. Needs its own brainstorm→spec: `create_note status` param, `update_note` status field/approve-tool, and correcting `create_note`'s docstring + `.claude/rules/vault-usage.md` ("notes start as draft") which is only true for `generate_note_from_source`. |
 
 ---
 
@@ -190,7 +191,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 10. ~~**Monitoring (run tracking)**~~ — **DONE**
 11. ~~**Knowledge Compiler vision**~~ — **DONE** (docs/VISION-KNOWLEDGE-COMPILER.md)
 12. ~~**OpenTimestamps setup**~~ — **DONE** (script + docs, user must push tags + stamp)
-13. **Large source synthesis** — spec written, needs plan + impl
+13. **Large source synthesis** — spec written, needs plan + impl. **Principle clarified 2026-08-14** (see SESSION-CONTEXT.md): 1 source → N notes by semantic nucleus, not 1 note per source — invalidates the ad hoc single-note note-creation prompt used in this session's end-to-end test
 14. **Search quality (reranking)** — needs brainstorm
 15. ~~**Onboarding / DX (Getting Started guide)**~~ — **DONE** (docs/GETTING-STARTED.md)
 16. **Evaluation framework** — needs brainstorm

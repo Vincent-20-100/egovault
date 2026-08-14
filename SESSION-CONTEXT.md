@@ -94,6 +94,25 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 - **Template reuse:** same template per sub-generation → merge/dedup final
 - **Presets:** `provider_mode` (local/api) × `quality_preset` (quick/balanced/quality)
 
+**Principle clarified 2026-08-14 (Vincent, from the first end-to-end note-creation test):**
+Chunks and notes must be told apart by what cuts them. A source's chunks are cut
+**mechanically** (fixed-size windows over a big corpus) — a chunk's embedding is
+necessarily a fragment, not a coherent idea. A note is cut **semantically** — one note
+= one theme/concept/semantic nucleus, produced by an LLM (or a human, or both) *reading
+across* the chunked mess to regroup by meaning. That's the entire point of the notes
+layer: turn positional fragments into meaning-addressed vectors.
+**Corollary: 1 source → N notes is the norm for anything multi-topic, not 1 source →
+1 note.** `embed_note()` produces exactly one vector per note (title+docstring+body
+concatenated, no internal chunking — confirmed in code and DB, 2026-08-14). So making a
+note *longer* to cover more ground doesn't add resolution, it blurs the single vector by
+averaging across topics — the same failure mode as an under-chunked source, just at the
+note layer. **The fix for "notes feel too short" is never a longer note/prompt — it's
+splitting into more notes, each still one coherent nucleus.**
+This directly invalidates the 2026-08-14 ad hoc note-creation sub-agent prompt (one note
+per source, regardless of source breadth) and should be the north-star constraint when
+this spec is picked up: the cascade's map-reduce should map to **N notes by theme**, not
+reduce to **one note**.
+
 ---
 
 ## Traps to avoid
@@ -163,6 +182,8 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 | Crash recovery (`recover_source`) | Archive spec §16 | After large source synthesis |
 | **Migrate librarian to MCP sampling** | spec `2026-05-29-curate-tier1-librarian-base` §10 | When Claude Code/Desktop advertise the sampling capability — replaces subagent/slash with transparent server-side isolation |
 | **curate() tier-1 server-side LLM (ollama/API)** | spec §12 (out of scope of base) | Next spec — needed for the frontend/human path (no host agent to delegate to) |
+| **Note approval lifecycle (`create_note`/`update_note` status)** | PROJECT-STATUS.md § Known technical debt | Explicitly flagged by Vincent as a real problem, not to be left as the SQL patch — needs its own brainstorm before any other note-workflow change |
+| **Note-space clustering + LLM-named emergent themes** | Raised 2026-08-14 during the note-segmentation brainstorm, explicitly deferred by Vincent as "postérieur" | After `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` ships. Idea: cluster on the *notes* vector space (not chunks) to surface cross-source emergent themes, name clusters via LLM, and maintain the resulting non-vector proximity links (beyond uid/source/tags) via a deterministic script. Needs its own brainstorm — not scoped here. |
 
 ---
 
@@ -199,3 +220,12 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    the pile" half, without building a structural index). Structural tier-0 deferred.
    Output contract `{answer, used_source_uids}`, stable across future layers. The only
    Python change is a `generous` mode on `curate()`. Next session = execute the 7-task plan.
+8. **`create_note` approval lifecycle** — first real end-to-end test (2026-08-14: text/web/
+   youtube-subtitles/PDF ingest, sub-agent note creation) surfaced that `create_note`'s
+   `status="active"` default has no safety net: nothing stops an agent that skipped human
+   review from producing "approved" notes, and no tool exposes `draft`↔`active` transitions
+   at all (not even for `generate_note_from_source`'s drafts). 4 notes were force-flipped to
+   `draft` via direct SQL as an explicit stopgap — Vincent was clear this is a band-aid, not
+   a resolution, and wants it brainstormed properly (not silently designed inline). Candidate
+   directions: `status` param on `create_note` (default `draft`?), `status` field on
+   `update_note`, doc fixes. Needs a dedicated brainstorm session before touching code.
