@@ -85,9 +85,24 @@ Chaque candidat = un segment final (post-fusion), persisté dans la table `note_
   - **Fallback :** `"chunks {start_idx}-{end_idx} ({premiers_mots}...)"`.
 - `status` (TEXT) : `queued` | `converted` | `skipped`
 
-### 2.5 Lecture d'un candidat — pas de duplication
+### 2.5 Traçabilité, Localisateurs et Lecture d'un Candidat
 
 Le texte à lire pour rédiger la note est **concaténé à la demande** depuis les chunks référencés (immuables après ingestion → zéro risque de désynchronisation). Aucun fichier intermédiaire dupliqué sur le disque.
+
+**Indicateurs d'ordre et localisateurs de passage :**
+Lors de la lecture d'un candidat (`get_note_candidate(uid)`), le texte est préfixé d'un en-tête de repérage contextuel :
+```markdown
+[SOURCE: {source_slug} | CHUNKS: {start_pos}-{end_pos} | LOCATOR: {timestamps_ou_pages_ou_lignes}]
+---
+{texte_concatene_des_chunks}
+```
+- **Pour l'audio/vidéo :** Intervalle de temps (ex: `00:14:23 - 00:22:15`).
+- **Pour les livres/PDFs :** Intervalle de pages (ex: `p. 42-55`).
+- **Pour le texte brut/web :** Lignes du markdown original (ex: `L120-L245`).
+
+**Traçabilité bidirectionnelle Note ↔ Chunks :**
+- La table `notes` enregistre la colonne `candidate_uid` (clé étrangère optionnelle vers `note_candidates`).
+- L'outil `get_note(uid)` renvoie ainsi non seulement la note, mais aussi les `chunk_uids` sources et le localisateur de passage, permettant à un humain ou un agent de forer instantanément (*drill-down*) vers le verbatim exact.
 
 ---
 
@@ -98,9 +113,9 @@ Le texte à lire pour rédiger la note est **concaténé à la demande** depuis 
 | Composant | Rôle |
 |---|---|
 | `tools/text/segment.py` | Topic segmentation + fusion budgétée sur les chunks d'une source $\to$ `list[CandidateSegment]` |
-| `infrastructure/db.py::note_candidates` (table) | `uid, source_uid, chunk_uids, sequence_index, label, status` |
+| `infrastructure/db.py::note_candidates` (table) | `uid, source_uid, chunk_uids, sequence_index, label, locator, status` |
 | `mcp` tool `list_note_candidates(source_uid=None, status='queued')` | Parcourir la file des candidats |
-| `mcp` tool `get_note_candidate(uid)` | Concatène et retourne le texte intégral du candidat |
+| `mcp` tool `get_note_candidate(uid)` | Concatène et retourne le texte intégral du candidat avec localisateurs |
 | `mcp` tool `skip_note_candidate(uid)` | Marque un candidat comme `skipped` (ex: transition ou intro ignorée) |
 
 ### 3.2 Composants Modifiés
@@ -108,10 +123,10 @@ Le texte à lire pour rédiger la note est **concaténé à la demande** depuis 
 | Composant | Modification |
 |---|---|
 | `workflows/ingest.py` | Déclenche la segmentation dès qu'une source atteint `rag_ready` et peuple `note_candidates` |
-| `tools/vault/create_note.py` | Accepte un `candidate_uid` optionnel (marque le candidat `converted`) et un `review_status` (`'unreviewed'` si agent, `'reviewed'` si humain) |
-| `infrastructure/db.py` | Ajout de la table `note_candidates`, colonne `review_status` sur `notes`, méthodes CRUD associées |
+| `tools/vault/create_note.py` | Accepte un `candidate_uid` optionnel (persiste le lien sur la note et marque le candidat `converted`) et un `review_status` (`'unreviewed'` si agent, `'reviewed'` si humain) |
+| `infrastructure/db.py` | Ajout de la table `note_candidates`, colonnes `candidate_uid` et `review_status` sur `notes`, méthodes CRUD associées |
 | `core/config.py` & `config/system.yaml` | Section `note_segmentation` |
-| `docs/architecture/DATABASES.md` | Documenter `note_candidates` et `notes.review_status` |
+| `docs/architecture/DATABASES.md` | Documenter `note_candidates`, `notes.candidate_uid` et `notes.review_status` |
 | `docs/user-guide/` | Expliquer le flux candidat $\to$ note dans le chapitre notes |
 
 ---

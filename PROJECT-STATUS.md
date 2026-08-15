@@ -28,20 +28,16 @@ maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
 
 **NEXT (the recommended next session's first move):**
 
-1. **Execute the curate() tier-1 base plan** — `.meta/plans/2026-05-29-curate-tier1-librarian-base.md`
-   (7 tasks, TDD, subagent-driven recommended). Open question #7 is now RESOLVED:
-   re-brainstormed → spec (`.meta/specs/2026-05-29-curate-tier1-librarian-base-spec.md`)
-   → plan, both committed (`0177202`, `4a1adf2`). Design decided:
-   - **Base** = librarian sub-agent + `/ask-vault` slash command shipped as a Claude Code
-     **plugin**, using the host's own LLM (no API key / local model).
-   - **Selection method** = recall-first hybrid RRF (wide net, both tiers, untruncated);
-     precision is delegated to the sub-agent's reasoning. Structural tier-0 deferred.
-   - **Output contract** `{answer, used_source_uids}` — stable across future layers.
-   - **Tracked debt:** MCP sampling is the elegant end-state but UNSUPPORTED by Claude
-     Code/Desktop today (verified 2026-05-29, anthropics/claude-code#1785) — migrate when
-     clients ship it. The Python change is one `generous` mode on `curate()`.
+1. **Write implementation plan for Note Creation by Semantic Nucleus** — `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md`
+   - Topic segmentation on consecutive chunk cosine similarity drops (Tier 0).
+   - Budgeted fusion (`min_chunks_per_note`, `max_notes_per_source`).
+   - `note_candidates` table (`queued`, `converted`, `skipped`) with deterministic labeling (first markdown `#` heading) and passage locators (timestamps/pages/lines).
+   - Provenance drill-down: Note $\to$ Candidate $\to$ Chunks with locators.
+   - Note review lifecycle: `notes.review_status` (`unreviewed`, `reviewed`).
+   - New MCP tools: `list_note_candidates`, `get_note_candidate`, `skip_note_candidate`.
 
 **Other candidates (no urgency signal):**
+- **Visual & Complex Document Ingestion** (`.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md`): Lean multimodal image slicing & layout-aware PDF parsing (OpenDataLoader / Unlimited-OCR).
 - **Chantier B — provider management** (open Q 10.4): openai provider,
   `providers.mode`, setup wizard, OpenRouter, hot-swap. F5 was slice A only.
 - **Search-quality track extras** (finding E remaining): embedding-model
@@ -53,7 +49,7 @@ maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
   safety, TEST-C2 no real semantic e2e test, TEST-M1 missing test files.
 
 See `docs/user-guide/` for the user manual (12 chapters).
-See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Knowledge Compiler vision.
+See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Cognitive Architecture vision.
 See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
 See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
@@ -65,10 +61,8 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 |----------|-------|--------|
 | `.meta/specs/2026-03-31-development-workflow.md` | Process | Active |
 | `.meta/specs/2026-03-31-project-audit-spec.md` | Audit | Active |
-| `.meta/specs/2026-05-29-curate-tier1-librarian-base-spec.md` | Spec / Plan | Validated, ready to execute |
-| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Draft, ready for refinement/plan |
-| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Draft, ready for review |
-| `.meta/plans/2026-05-29-curate-tier1-librarian-base.md` | Plan | Ready to execute |
+| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Plan-Ready (validated) |
+| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Draft (ready for review) |
 
 ## Vision documents
 

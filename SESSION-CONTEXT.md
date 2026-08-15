@@ -29,37 +29,24 @@ This vision grounds EgoVault in **cognitive neuroscience** (memory consolidation
 - Vectorizing *distilled notes* indexes pure conceptual centroids. With looser cosine thresholds, `curate()` retrieves multidisciplinary models (e.g. Antifragility + OODA Loop + Game Theory) for creative synthesis and true intellectual personalization.
 - See `docs/VISION-KNOWLEDGE-COMPILER.md` and `.meta/references/research/cognitive-architecture-neuroscience-sota-2026-08-15.md`.
 
-### The Librarian Pattern
+### Dual-Space Retrieval & Provenance (Replaces Complex Librarian)
 
-Instead of dumping top-K chunks into the conversation:
+We radically simplified the retrieval layer (2026-08-15):
+- **No complex "Librarian subagent" or slash command plugin:** The consumer LLM (Claude, Cursor, Next.js) already has reasoning capabilities. EgoVault provides clean, structured, high-signal data.
+- **Two explicit search spaces:**
+  1. `search_notes` : Semantic + BM25 hybrid search on compiled conceptual notes (`notes_vec` + `notes_fts`).
+  2. `search_chunks` : Semantic + BM25 hybrid search on raw source chunks (`chunks_vec` + `chunks_fts`).
+- **Full Traceability & Provenance Drill-Down:**
+  - Notes link to candidates (`notes.candidate_uid`) and their source chunks (`chunk_uids`).
+  - Passage locators: Timestamps for audio/video (`00:14:23-00:22:15`), Page numbers for books/PDFs (`p. 42-55`), Line numbers for text (`L120-L245`).
+  - Calling `get_note(uid)` exposes the exact source chunks and locators for instant verbatim drill-down.
 
-```
-User ↔ Conversational LLM (via MCP, clean context window)
-              ↓ calls curate("question about X")
-        curate() tool inside EgoVault:
-              ├── search_notes() → deterministic
-              ├── search_chunks() → deterministic
-              ├── ctx.get_completion(prompt) → isolated LLM call (separate context)
-              └── return CuratedContext (synthesized, minimal)
-```
+### Background Knowledge Gardening (Deferred to "Mode Veille")
 
-**Key decision:** The librarian is NOT an autonomous agent or separate project. It's a
-**smart tool** (`curate()`) that uses one isolated LLM call as a subroutine — same pattern
-as `generate_note_from_source`. Testable, mockable, deterministic-except-one-call.
-
-### Tiered — works without LLM
-
-| Tier | What curate() does | Dependency |
-|------|-------------------|------------|
-| 0 | Search + rank + truncate → sorted raw results | Nothing (deterministic) |
-| 1 | Tier 0 + LLM synthesis | LLM local or API key |
-
-**Principle:** Every feature has a tier 0 deterministic baseline. LLM = accelerator, not prerequisite.
-
-### Pre-packaged agent for MCP clients
-
-For Claude Code users: provide `.claude/rules/vault-usage.md` + `AGENTS.md` so the user's
-own LLM becomes the librarian via prompt. Zero extra infrastructure.
+- **Offline / Idle Knowledge Maintenance:**
+  - Cluster `notes_vec` to suggest/insert `[[wikilinks]]` between related notes.
+  - Tag curation (synonym detection & normalization).
+  - Can incorporate a lightweight local/API mini-agent to suggest generative synthesis and process `queued` note candidates in batch.
 
 ---
 
