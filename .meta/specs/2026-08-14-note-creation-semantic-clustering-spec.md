@@ -96,13 +96,34 @@ Lors de la lecture d'un candidat (`get_note_candidate(uid)`), le texte est préf
 ---
 {texte_concatene_des_chunks}
 ```
-- **Pour l'audio/vidéo :** Intervalle de temps (ex: `00:14:23 - 00:22:15`).
+- **Pour l'audio/vidéo :** Intervalle de temps (ex: `00:14:23 - 00:22:15`, calculé par `min(start)` $\to$ `max(end)`).
 - **Pour les livres/PDFs :** Intervalle de pages (ex: `p. 42-55`).
 - **Pour le texte brut/web :** Lignes du markdown original (ex: `L120-L245`).
 
-**Traçabilité bidirectionnelle Note ↔ Chunks :**
+**Traçabilité bidirectionnelle Note ↔ Chunks (La chaîne de preuve) :**
 - La table `notes` enregistre la colonne `candidate_uid` (clé étrangère optionnelle vers `note_candidates`).
-- L'outil `get_note(uid)` renvoie ainsi non seulement la note, mais aussi les `chunk_uids` sources et le localisateur de passage, permettant à un humain ou un agent de forer instantanément (*drill-down*) vers le verbatim exact.
+- Dans le **YAML Frontmatter Obsidian** de la note générée :
+  ```yaml
+  ---
+  uid: note_20260815_antifragile_convexity
+  source: src_taleb_antifragile
+  locator: "00:14:20 - 00:22:05"
+  chunks: [chk_12, chk_13, chk_14]
+  ---
+  ```
+- Les outils `get_note(uid)` et `search_notes(...)` renvoient un bloc structuré `provenance` :
+  ```json
+  {
+    "uid": "note_xyz",
+    "title": "L'asymétrie de payoff et l'antifragilité",
+    "provenance": {
+      "source_uid": "src_taleb_antifragile",
+      "chunk_uids": ["chk_12", "chk_13", "chk_14"],
+      "locator": "00:14:20 - 00:22:05"
+    }
+  }
+  ```
+- L'outil MCP **`get_chunks(chunk_uids=[...])`** permet à l'humain ou à l'agent de forer instantanément (*drill-down*) vers le verbatim exact sans relire toute la source.
 
 ---
 
@@ -117,6 +138,7 @@ Lors de la lecture d'un candidat (`get_note_candidate(uid)`), le texte est préf
 | `mcp` tool `list_note_candidates(source_uid=None, status='queued')` | Parcourir la file des candidats |
 | `mcp` tool `get_note_candidate(uid)` | Concatène et retourne le texte intégral du candidat avec localisateurs |
 | `mcp` tool `skip_note_candidate(uid)` | Marque un candidat comme `skipped` (ex: transition ou intro ignorée) |
+| `mcp` tool `get_chunks(chunk_uids: list[str])` | Récupère directement les chunks bruts complets par UIDs pour inspection/drill-down |
 
 ### 3.2 Composants Modifiés
 
