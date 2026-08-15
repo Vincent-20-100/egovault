@@ -1,142 +1,138 @@
-# EgoVault — Vision: Knowledge Compiler + Librarian Agent
+# EgoVault — Vision: Knowledge Compiler & Cognitive Architecture
 
-**Date:** 2026-04-16
-**Status:** Vision document — validated by user, not yet specced for implementation.
-**Inspired by:** Andrej Karpathy's LLM Wiki pattern, agentify project, context engineering.
-
----
-
-## The problem with RAG
-
-RAG is **stateless and noisy**:
-
-1. **No memory** — every search starts from scratch, no capitalization
-2. **No judgment** — ranking is purely mathematical (cosine similarity), no understanding of intent
-3. **Context pollution** — the conversational LLM receives noise it must sort through itself,
-   consuming its context window and degrading response quality
-
-## The thesis: context is compiled, not retrieved
-
-Knowledge densifies over time — raw observations become structured notes, which become
-cross-source syntheses. Like human memory: repetition strengthens, time without use weakens.
-
-**Stop retrieving. Start compiling.**
+**Date:** 2026-04-16 (Updated: 2026-08-15)
+**Status:** Core Vision Document
+**Inspired by:** Cognitive Neuroscience (Memory Consolidation, Spreading Activation), Andrej Karpathy's LLM Wiki pattern, SOTA Agent Memory systems (GraphRAG, TencentDB-Agent-Memory, Letta/MemGPT).
 
 ---
 
-## Architecture: 3 knowledge tiers
+## 1. The Core Problem with Naive RAG
+
+Classic RAG systems operate on a naive mental model: *"Split text into arbitrary 800-token chunks, embed verbatim words, retrieve top-K by cosine distance, dump into LLM prompt."*
+
+This approach fails for high-level intellectual work for three fundamental reasons:
+
+1. **Verbatim Myopia & Vocabulary Mismatch:** A conférencier can discuss *"asymmetric bets with capped downside and infinite upside"* for 30 minutes without ever uttering the word *"antifragility"*. A chunk search on *"antifragilité"* will miss the passage or return poor rank.
+2. **Context Pollution & Attention Degradation:** Flooding a conversational LLM with 20,000 tokens of conversational fluff, verbal disfluencies, and fragmented sentences triggers the well-documented *lost-in-the-middle* degradation and consumes unnecessary reasoning budget.
+3. **No Conceptual Compounding:** Every search restarts from zero. The system never learns, abstracts, or compresses knowledge into durable models.
+
+---
+
+## 2. The Cognitive Foundation: The Neuroscience Parallel
+
+Human biology solved long-term knowledge retention and associative reasoning millions of years ago. EgoVault directly mirrors the **two-stage cognitive memory model**:
 
 ```
-Tier 3 — Compiled context (what the conversational LLM receives)
+RAW STREAM (YouTube, PDF, Audio, Books, Web)
+              │
+              ▼
+[1. Hippocampal Episodic Store] ──────► Chunks (Tier 1)
+   - High volume, raw verbatim,         - Raw transcripts in SQLite + chunks_vec
+   - Chronological, sensorily noisy      - Precise for exact quotes & numbers
+              │
+              ▼
+   [CONSOLIDATION / SLEEP REPLAY] ────► Topic Segmentation + LLM Synthesis
+   - Noise filtering & invariant extraction
+              │
+              ▼
+[2. Neocortical Semantic Network] ────► Notes (Tier 2)
+   - High conceptual density            - Markdown in Obsidian + notes_vec
+   - Interconnected mental models       - Wikilinks [[...]] & tags
+              │
+              ▼
+   [SPREADING ACTIVATION] ────────────► Librarian curate() + Multi-Hop
+   - Prefrontal Working Memory (4-7 items) receives CuratedContext (Tier 3)
+```
+
+### A. Hippocampus vs Neocortex (Chunks vs Notes)
+- **Hippocampus (Tier 1 Chunks):** Stores the raw episodic recording of what was read/heard. High volume, detailed, but unindexed by high-level meaning.
+- **Sleep Replay / Consolidation (Knowledge Compilation):** Offline distillation that extracts the underlying thesis, structures the arguments, and registers new concepts.
+- **Neocortex (Tier 2 Notes):** The permanent semantic web where knowledge lives as clean, abstracted mental models.
+
+### B. Working Memory Limits & Active Associative Recall
+- A human never holds 1,000 books in active consciousness. Working memory maintains only 4 to 7 active concepts at a time.
+- True "personalization" of an AI is not achieved by stuffing all lifetime reading into a giant prompt. It is achieved through **instant associative recall** of the exact 2 to 3 distilled mental models relevant to the query.
+
+### C. Spreading Activation (Collins & Loftus)
+- In human memory, activating a concept node (*"Risk"*) automatically pre-activates adjacent nodes (*"Optionality"*, *"Antifragility"*, *"Skin in the game"*).
+- In EgoVault, retrieving a note activates its conceptual neighbors via wikilinks `[[concept]]` and shared tags, powering lateral thinking and serendipity.
+
+---
+
+## 3. Why Vectorizing *Concepts* (Notes) Beats Vectorizing *Chunks*
+
+| Dimension | Tier 1: Raw Chunk Vectorization | Tier 2: Conceptual Note Vectorization |
+|---|---|---|
+| **Content** | Oral speech, repetition, anecdotes, filler words | Distilled thesis, canonical vocabulary, clear headings |
+| **Vector Sharpness** | Diffuse, noisy, subject to phrasing variance | Sharp, dense, concentrated at the concept's centroid |
+| **Retrieval Power** | Literal match (finds where a word was said) | **Conceptual resonance** (finds related mental models) |
+| **Lateral Thinking** | Myopic: brings 10 repetitive chunks of the same topic | **Serendipitous:** brings 3 distinct models across domains |
+| **Token Budget** | High (~15,000 tokens of raw text) | Ultra-frugal (~1,200 tokens of pure signal) |
+
+**The Lateral Thinking Breakthrough:**  
+When vectorizing distilled notes, we can loosen the semantic search threshold. Instead of returning 15 chunks repeating the exact same tactical advice, the system surfaces cross-disciplinary principles (e.g., combining a note on *Darwinian Evolution*, a note on *Boyd's OODA Loop*, and a note on *Taleb's Convexity*). The LLM can then reason across domains rather than parroting transcripts.
+
+---
+
+## 4. Architecture: 3 Knowledge Tiers
+
+```
+Tier 3 — Compiled Context (What the Conversational LLM receives)
     On-the-fly syntheses, note excerpts, sourced citations.
-    Minimal, relevant, ready to consume. Never noise.
+    Minimal, high-signal, ready to consume. Never noise.
 
-Tier 2 — Compiled notes (validated knowledge)
-    Structured notes, human-validated, cross-source.
-    Dense, reliable, searchable by embedding.
-    Densify over time (multi-source → synthesis).
+Tier 2 — Compiled Notes (The Neocortical Vault)
+    Structured Markdown notes, human-validated, cross-source.
+    Dense, reliable, searchable via notes_vec + notes_fts.
+    Human-navigable in Obsidian, agent-accessible via MCP.
 
-Tier 1 — Raw source chunks (raw material)
+Tier 1 — Raw Source Chunks (The Hippocampal Evidence Layer)
     Embedded chunks from original sources (YouTube, PDF, web, text).
-    Precise, verbatim, good for exact citations.
-    High volume, potential noise.
+    Precise, verbatim, immutable evidence.
+    Searchable via chunks_vec + chunks_fts (Hybrid RRF).
 ```
-
-**RAG is not dead — it changes tier.** It stays at tier 1 as raw material.
-But it no longer feeds the conversation directly.
 
 ---
 
-## The Librarian: a smart tool, not an autonomous agent
+## 5. The Librarian (`curate()`): The Cognitive Retrieval Engine
 
-The librarian bridges the tiers. It is a **deterministic tool with one isolated LLM call
-as a subroutine** — same pattern as `generate_note_from_source`.
+The Librarian is a **deterministic tool with an isolated LLM call as a subroutine** (same pattern as `generate_note_from_source`):
 
 ```
-User ↔ Conversational agent (clean context, never touches DB)
+User ↔ Conversational Agent (Claude via MCP, clean context)
               │
-              │ "I need info about X"
+              │ "How should I structure my decision under uncertainty?"
               ▼
-        curate(query, conversation_summary)
+        curate(query)
               │
-              ├── 1. Search compiled notes (tier 2, fast)
-              ├── 2. If insufficient → search RAG chunks (tier 1, precise)
-              ├── 3. Can run MULTIPLE queries, cross-reference, deduplicate
-              ├── 4. Detect contradictions between sources
-              ├── 5. Isolated LLM call: select + synthesize (separate context)
+              ├── 1. Search compiled notes (Tier 2, conceptual resonance)
+              ├── 2. Spreading activation: fetch linked notes ([[wikilinks]], tags)
+              ├── 3. If exact facts/quotes needed → search RAG chunks (Tier 1)
+              ├── 4. Isolated LLM synthesis call (separate context window)
               │
               ▼
-        Returns to conversational: CuratedContext
-              ├── synthesis: synthesized text, minimal
-              ├── sources: citations with UIDs (verifiable)
-              └── confidence: score based on concordant sources
+        Returns CuratedContext:
+              ├── synthesis: dense, cross-source structured answer
+              ├── sources: citations with immutable UIDs (evidence trace)
+              └── confidence: score based on evidence consensus
 ```
 
-**Why a tool, not an agent:** An agent decides WHAT to do. A tool does what it's asked
-WITH intelligence. `curate()` always receives the same instruction (search + synthesize),
-only the input changes. No decision loop needed.
+---
 
-**Why an isolated LLM call:** The curation prompt is separate from the conversation.
-It sees only the query + search results. No cross-pollution, unit-testable, mockable.
+## 6. EgoVault vs The Ecosystem
+
+| System | Target Audience | Storage & Architecture | Retrieval Philosophy |
+|---|---|---|---|
+| **Microsoft GraphRAG** | Enterprise / Analyst | Heavy graph DB + LLM clustering pipelines | Global community summaries; expensive ingest |
+| **Letta (MemGPT) / TencentDB** | Autonomous Agent only | Memory pyramids in DB (opaque to user) | Autonomous agent self-edits memory |
+| **Obsidian + Copilot / Smart Conn.** | Human only | Local Markdown notes | Naive chunk RAG on user files; no multi-source media ingest |
+| **EgoVault** | **Hybrid: Human (Obsidian) + Agent (MCP)** | **Local-first: SQLite (`vault.db`) + Plain Markdown (`.md`)** | **Cognitive Knowledge Compiler: Tiered consolidation, conceptual vectors, deterministic Tier-0 baseline** |
 
 ---
 
-## Tiered: works without LLM
+## 7. The Guiding Principles
 
-| Tier | What `curate()` does | Dependency |
-|------|---------------------|------------|
-| 0 | Search notes + chunks → rank by similarity → truncate → return sorted raw results | **Nothing** (pure deterministic) |
-| 1 | Tier 0 + LLM selects, deduplicates, synthesizes | LLM local or API key |
-
-A Claude Code user without a local LLM: tier 0 works. The conversational LLM (Claude
-via MCP) compensates by doing its own synthesis from the raw results. Less elegant but
-functional.
-
-**Universal project principle:** every feature has a tier 0 deterministic baseline.
-LLM is an accelerator, never a prerequisite.
-
----
-
-## Pre-packaged librarian for MCP clients
-
-For users with Claude Code or any MCP client:
-
-```
-.claude/rules/vault-usage.md  → "when user asks a knowledge question, call curate() first"
-AGENTS.md                     → librarian agent definition, ready to use
-```
-
-The user's own LLM **becomes** the librarian via the prompt. Zero extra infrastructure.
-Opens the door to other pre-packaged agents (summarizer, note-linker, etc.).
-
----
-
-## What this changes for EgoVault
-
-| Before (classic RAG) | After (Knowledge Compiler) |
-|----------------------|---------------------------|
-| query → chunks → context | query → librarian → compiled context |
-| User receives noise | User receives signal |
-| Every search starts from scratch | Notes densify over time |
-| Conversational LLM does everything | Conversational converses, librarian searches |
-| Works for 10 sources | Scales to 1000 sources via compilation |
-
----
-
-## Incremental implementation path
-
-1. **`curate()` tier 0** — search + rank + truncate (deterministic, zero new dependency) — **✅ implemented 2026-05-16** (MCP + CLI surfaces)
-2. **`curate()` tier 1** — add LLM synthesis call
-3. **`compile()`** — multi-source synthesis persisted as note
-4. **AGENTS.md** — pre-packaged librarian for MCP clients
-5. **Confidence scores** — each fact carries a score that strengthens or decays
-
-Each step is independently deliverable and adds value.
-
----
-
-## What this does NOT mean
-
-- Not replacing RAG — moving it to tier 1 and adding smarter layers above
-- Not requiring a rewrite — incremental, builds on existing tools
-- Not blocking current work — this is the north star, not a prerequisite
+1. **Dual Citizenship:** Every piece of compiled knowledge must be **readable and editable by a human in Obsidian** AND **queryable by an LLM agent via MCP**.
+2. **Deterministic Baseline (Tier 0 First):** Every feature must work reliably without an LLM (FTS5 + cosine + RRF). The LLM is an accelerator, never a fragile single point of failure.
+3. **Local-First & Sovereign:** Your second brain belongs in a single SQLite database and a Git-tracked folder of Markdown files. Zero cloud lock-in.
+4. **Compile, Don't Just Retrieve:** High-entropy input must be transformed into low-entropy, dense, permanent knowledge assets.

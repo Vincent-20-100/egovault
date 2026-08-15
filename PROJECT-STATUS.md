@@ -63,28 +63,30 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 | Document | Phase | Status |
 |----------|-------|--------|
-| `specs/2026-03-31-development-workflow.md` | Active | The process we follow |
-| `specs/2026-03-31-project-audit-spec.md` | Active | Reusable audit method |
-| `specs/2026-04-03-metadev-protocol-adoption-spec.md` | Implemented | Done |
+| `.meta/specs/2026-03-31-development-workflow.md` | Process | Active |
+| `.meta/specs/2026-03-31-project-audit-spec.md` | Audit | Active |
+| `.meta/specs/2026-05-29-curate-tier1-librarian-base-spec.md` | Spec / Plan | Validated, ready to execute |
+| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Draft, ready for refinement/plan |
+| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Draft, ready for review |
+| `.meta/plans/2026-05-29-curate-tier1-librarian-base.md` | Plan | Ready to execute |
 
 ## Vision documents
 
 | Document | Topic |
 |----------|-------|
-| `docs/VISION-KNOWLEDGE-COMPILER.md` | Knowledge Compiler + Librarian Agent pattern — the north star |
+| `docs/VISION-KNOWLEDGE-COMPILER.md` | Cognitive Architecture & Knowledge Compiler — North Star |
 | `docs/TIMESTAMPS.md` | OpenTimestamps verification guide |
 
-## Future specs (validated, not yet implemented)
+## Future specs (validated backlog)
 
 | Document | Topic |
 |----------|-------|
-| `specs/future/2026-03-28-evaluation-design.md` | RAG benchmark |
-| `specs/future/2026-03-28-semantic-cache-design.md` | Query caching |
-| `specs/future/2026-03-28-reranking-design.md` | Search reranking |
-| `specs/future/2026-03-28-frontend-design.md` | Next.js frontend |
-| `specs/2026-04-06-large-source-synthesis-spec.md` | Large source note generation (cascade, presets) |
-| ~~`specs/future/2026-03-28-monitoring-design.md`~~ | ~~Monitoring~~ → **implemented & archived** |
-| ~~`specs/future/2026-03-29-security-design.md`~~ | ~~Security Phase 2~~ → **archived** |
+| `.meta/specs/future/2026-03-28-evaluation-design.md` | RAG benchmark |
+| `.meta/specs/future/2026-03-28-semantic-cache-design.md` | Query caching |
+| `.meta/specs/future/2026-03-28-reranking-design.md` | Search reranking (Cross-encoder) |
+| `.meta/specs/future/2026-03-28-frontend-design.md` | Next.js frontend |
+| `.meta/archive/specs/` | All implemented and superseded specs |
+| `.meta/archive/plans/` | All implemented and archived plans |
 
 ## Last audit
 
@@ -149,6 +151,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 | **save-progress skill missing preflight script** | MINOR | `scripts/save_progress_preflight.py` absent; skill's `uv run` fallback prunes the venv. Create script or fix skill. |
 | **96 files unformatted (ruff format)** | MINOR | Pre-existing; `ruff format` not enforced. Run a formatting pass separately. |
 | **`create_note` draft/active approval lifecycle has no real transitions** | MAJOR | **OPEN — NOT fixed, patched by hand.** `create_note` defaults `status="active"` (schema: `active`=human-approved). Its own docstring workflow presumes the human approved the content *before* the call — but nothing enforces that: there is no `status` param to let a caller mark a note unapproved, and no tool (`update_note` doesn't expose `status`; no other) can move a note `draft`→`active` or `active`→`draft`. Found 2026-08-14: an autonomous sub-agent created 4 notes via `create_note` with no human review step; they landed `active` (falsely "approved"). Worked around by direct SQL `UPDATE notes SET status='draft'` on the 4 rows — a stopgap, not a fix. Needs its own brainstorm→spec: `create_note status` param, `update_note` status field/approve-tool, and correcting `create_note`'s docstring + `.claude/rules/vault-usage.md` ("notes start as draft") which is only true for `generate_note_from_source`. |
+| **README & pitch overhaul: Cognitive Architecture & Conceptual Vectorization** | MINOR | Overhaul `README.md` and intro docs to elevate the cognitive neuroscience parallel (hippocampus episodic buffer $\to$ sleep consolidation $\to$ neocortex semantic network $\to$ spreading activation) and the conceptual vectorization thesis (why vectorizing notes beats chunk RAG for LLM lateral reasoning) to the core product pitch. |
 
 ---
 

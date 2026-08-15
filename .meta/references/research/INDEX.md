@@ -1,3 +1,7 @@
 # Research Index
 
-_No cards yet. Run `/tech-watch` to populate._
+- [`cognitive-architecture-neuroscience-sota-2026-08-15.md`](cognitive-architecture-neuroscience-sota-2026-08-15.md): Cognitive architecture, neuroscience memory parallels (hippocampus vs neocortex consolidation, spreading activation), and 2024–2026 SOTA agent memory systems (GraphRAG, Letta/MemGPT, TencentDB, PageIndex).
+- [`synthesis-retrieval-sota-2026-05-19.md`](synthesis-retrieval-sota-2026-05-19.md): Synthesis of SOTA retrieval systems rejecting pure cosine (RRF, structural precedence, tree reasoning).
+- [`deep-claude-obsidian-2026-05-19.md`](deep-claude-obsidian-2026-05-19.md): Deep dive on claude-obsidian (structural precedence, compounding wiki).
+- [`deep-pageindex-2026-05-19.md`](deep-pageindex-2026-05-19.md): Deep dive on PageIndex (hierarchical tree reasoning).
+- [`deep-tencentdb-agent-memory-2026-05-19.md`](deep-tencentdb-agent-memory-2026-05-19.md): Deep dive on TencentDB-Agent-Memory (4-tier progressive semantic pyramid, SQLite+sqlite-vec, hybrid RRF).

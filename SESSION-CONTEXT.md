@@ -5,26 +5,29 @@
 > A new LLM context must read this file to understand WHY decisions were made,
 > not just WHAT was decided.
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-08-15
 **Last session:** `main` (direct commits)
 
 ---
 
-## Current strategic direction: Knowledge Compiler + Librarian Agent
+## Current strategic direction: Cognitive Architecture & Knowledge Compiler
 
-This session produced a **product vision shift** inspired by Andrej Karpathy's LLM Wiki
-pattern and the agentify project. The core insight:
+This vision grounds EgoVault in **cognitive neuroscience** (memory consolidation, spreading activation) and converges with 2024–2026 SOTA agent memory systems (GraphRAG, TencentDB-Agent-Memory, Letta/MemGPT):
 
-**RAG retrieves then forgets. A knowledge compiler accumulates and densifies.**
+**RAG retrieves then forgets. A cognitive knowledge compiler consolidates, densifies, and connects.**
 
-EgoVault should evolve from a RAG system to a **two-layer knowledge system** with an
-intelligent retrieval agent. This is documented in detail in `docs/FUTURE-WORK.md`
-(section "Architecture pivot — Knowledge compiler + Agent retrieval").
+### The Cognitive Neuroscience Mapping
 
-### The Two-Layer Architecture
+1. **Hippocampal Episodic Buffer (Tier 1 Chunks):** Raw, chronological, sensory recording of ingestion (YouTube, PDF, web). High volume, verbatim evidence.
+2. **Sleep Replay & Consolidation (Compiler Pipeline):** Topic segmentation + LLM distillation. Extracts invariant theses and removes oral noise.
+3. **Neocortical Semantic Network (Tier 2 Notes):** Clean, interconnected Markdown notes in Obsidian (`notes_vec` + `notes_fts` + wikilinks).
+4. **Working Memory & Spreading Activation (Tier 3 Curated Context):** Prefrontal working memory has 4–7 slots. Instead of flooding context, `curate()` triggers conceptual associative recall (notes + linked wikilinks/tags) to give the conversational LLM high-density mental models.
 
-- **Layer 1 (keep):** RAG on raw source chunks. Precise, verbatim, good for exact facts.
-- **Layer 2 (new):** Compiled knowledge on notes. Dense, human-validated, cross-source synthesis.
+### The Breakthrough: Conceptual Vectorization & Lateral Thinking
+
+- Vectorizing *raw chunks* produces myopic literal search (bringing 10 repetitive verbatim snippets).
+- Vectorizing *distilled notes* indexes pure conceptual centroids. With looser cosine thresholds, `curate()` retrieves multidisciplinary models (e.g. Antifragility + OODA Loop + Game Theory) for creative synthesis and true intellectual personalization.
+- See `docs/VISION-KNOWLEDGE-COMPILER.md` and `.meta/references/research/cognitive-architecture-neuroscience-sota-2026-08-15.md`.
 
 ### The Librarian Pattern
 
