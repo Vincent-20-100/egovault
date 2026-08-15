@@ -5,6 +5,9 @@
 .meta/scratch/
 !.meta/scratch/.gitkeep
 
+# Notebook embedding cache — regenerable, not committed
+notebooks/.cache/
+
 # Git worktrees
 .worktrees/
 
