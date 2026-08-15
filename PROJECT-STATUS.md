@@ -15,8 +15,6 @@
    - PyMuPDF4LLM structural layout parser & RapidOCR ONNX engine.
    - High-definition figure extraction & Markdown table parsing.
    - Multimodal PDF & OCR interactive inspection notebook (`notebooks/03_multimodal_pdf_and_ocr_inspection.ipynb`).
-2. **Execute Interactive Visual Notebooks Suite** — `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md`
-   - Implement `notebooks/01_topic_segmentation_visualizer.ipynb`, `notebooks/02_dual_vector_space_topology.ipynb`, `notebooks/04_end_to_end_cognitive_explorer.ipynb`.
 
 See `docs/user-guide/` for the user manual (12 chapters).
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Cognitive Architecture vision.
@@ -32,12 +30,12 @@ See `SESSION-CONTEXT.md` for detailed reasoning and active decisions.
 | `AGENTS.md` | Universal Constitution | Active (Living Standard) |
 | `.meta/WORKFLOW.md` | Development Process | Active (Living Standard) |
 | `.meta/AUDIT-SPEC.md` | Audit Protocol | Active (Living Standard) |
-| `.meta/plans/2026-08-15-golden-configuration-and-cleanup.md` | Milestone 0 | Shipped (518 passed / 0 failed) |
-| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Implemented & Validated |
-| `.meta/plans/2026-08-15-note-creation-semantic-clustering-plan.md` | Phase 1 | Shipped (539 passed / 0 failed) |
+| `.meta/plans/2026-08-15-golden-configuration-and-cleanup.md` | Milestone 0 | Shipped (v0.4.0) (518 passed / 0 failed) |
+| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Shipped (v0.4.0) |
+| `.meta/plans/2026-08-15-note-creation-semantic-clustering-plan.md` | Phase 1 | Shipped (v0.4.0) (539 passed / 0 failed) |
+| `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md` | DevTools & R&D | Shipped (v0.4.0) (Notebooks 01, 02, 04) |
 | `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Spec-Ready (Validated) |
 | `.meta/plans/2026-08-15-visual-and-document-ingestion-plan.md` | Phase 2 | Plan-Ready (Validated) |
-| `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md` | Visualization & DevTools | Spec-Ready (Validated) |
 
 ## Vision documents
 
