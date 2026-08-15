@@ -4,7 +4,7 @@ Rebuild the vector tables from stored text.
 
 Required after changing the embedding model or the distance metric: existing
 `chunks_vec`/`notes_vec` are dropped and repopulated by re-embedding
-`chunks.content` and `notes.docstring`. Source text is never re-fetched.
+`chunks.content` and notes (`title + docstring + body`). Source text is never re-fetched.
 
 Usage:
     python scripts/reembed.py
@@ -30,7 +30,7 @@ def reembed() -> tuple[int, int]:
     conn.commit()
     conn.close()
 
-    # init_db recreates the vec tables — now with distance_metric=cosine.
+    # init_db recreates the vec tables with distance_metric=cosine.
     init_db(
         db_path,
         dims=settings.system.embedding.dims,
@@ -41,14 +41,19 @@ def reembed() -> tuple[int, int]:
     conn = get_vault_connection(db_path)
     chunk_rows = conn.execute("SELECT uid, content FROM chunks").fetchall()
     note_rows = conn.execute(
-        "SELECT uid, docstring FROM notes WHERE docstring IS NOT NULL AND docstring != ''"
+        "SELECT uid, title, docstring, body FROM notes WHERE status != 'deleted'"
     ).fetchall()
     conn.close()
 
     for uid, content in chunk_rows:
-        ctx.db.insert_chunk_embeddings(uid, ctx.embed(content))
-    for uid, docstring in note_rows:
-        ctx.db.insert_note_embedding(uid, ctx.embed(docstring))
+        if content:
+            ctx.db.insert_chunk_embeddings(uid, ctx.embed(content))
+
+    for uid, title, docstring, body in note_rows:
+        # Match embed_note.py canonical text concatenation
+        text = "\n\n".join(filter(None, [title, docstring, body]))
+        if text.strip():
+            ctx.db.insert_note_embedding(uid, ctx.embed(text))
 
     return len(chunk_rows), len(note_rows)
 

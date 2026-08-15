@@ -1,19 +1,19 @@
 """
 Document export tool — generates print-ready Typst source from a note.
 
-Input  : note uid
+Input  : note uid + VaultContext
 Output : ExportResult (path to .typ file)
 No DB write.
 
 Defensive defaults follow the typst-clean skill (Typst 0.14.x):
 font fallback chain, explicit lang, breakable raw/figure, readable spacing.
 """
-
-from pathlib import Path
+from __future__ import annotations
 
 from core.context import VaultContext
 from core.schemas import ExportResult
 from core.logging import loggable
+from core.errors import NotFoundError
 
 
 _ESCAPE_CHARS = ("\\", "#", "$", "@", "*", "[", "]", "<", "`")
@@ -78,17 +78,21 @@ def _note_to_typst(note, lang: str, font: str) -> str:
 def export_typst(
     note_uid: str,
     ctx: VaultContext,
-    lang: str = "fr",
-    font: str = "Times New Roman",
+    lang: str | None = None,
+    font: str | None = None,
 ) -> ExportResult:
     """Export a note to a print-ready Typst document."""
     note = ctx.db.get_note(note_uid)
     if note is None:
-        raise ValueError(f"Note not found: {note_uid}")
+        raise NotFoundError("Note", note_uid)
+
+    typst_cfg = ctx.settings.user.export.typst
+    resolved_lang = lang or typst_cfg.language
+    resolved_font = font or typst_cfg.font
 
     output_dir = ctx.media_path / note.slug
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{note.slug}.typ"
-    output_path.write_text(_note_to_typst(note, lang=lang, font=font), encoding="utf-8")
+    output_path.write_text(_note_to_typst(note, lang=resolved_lang, font=resolved_font), encoding="utf-8")
 
     return ExportResult(output_path=str(output_path), format="typst")

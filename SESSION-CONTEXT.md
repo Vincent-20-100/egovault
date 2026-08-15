@@ -66,6 +66,39 @@ git add .timestamps/ && git commit -m "chore: add OTS proofs for v0.1.0, v0.2.0,
 
 Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
 
+## Milestone 0 & Phase 1 — Completed & Shipped (2026-08-15)
+
+1. **Milestone 0 (Golden Configuration & Error Architecture V2):**
+   - 3-tier configuration (`system.yaml`, `user.yaml`, `install.yaml`) with zero magic numbers (Rule G3).
+   - Centralized `EgoVaultError` hierarchy in `core/errors.py` with machine codes, user messages, and actionable hints.
+   - Dynamic thread pools, CORS origins, and context injection.
+   - 518/518 unit tests passed.
+
+2. **Phase 1 (Semantic Nucleus Segmentation & Note Lifecycle):**
+   - **TextTiling Topic Segmentation (`tools/text/segment.py`):** Consecutive cosine drop detection, plateau midpoint resolution, adaptive depth thresholding $\mu_d + k \cdot \sigma_d$, sub-floor segment merging, and hard cap `max_chunks_per_candidate = 12`.
+   - **Candidate Concurrency & Database Layer (`infrastructure/db.py` & `infrastructure/vault_db.py`):** `note_candidates` queue, `candidate_uid` & `review_status` on `notes`, differentiated TTL locking (300s agents / 3600s humans), lock renewal/stealing, and atomic single-transaction conversion `create_note_from_candidate`.
+   - **Candidate Tools & Ingestion Hook (`workflows/ingest.py`, `tools/vault/`):** 1 Source $\to$ N Notes segmentation pipeline hook, `list_note_candidates`, `claim_note_candidate`, `create_note_from_candidate`, `skip_note_candidate`, `get_chunks`.
+   - **Review Status & Curate Confidence (`tools/vault/curate.py`):** Confidence scoring dynamically weighted by note validation status (`reviewed` = 1.0, `unreviewed` = 0.7).
+   - **Routing Layers (API & MCP):** `/candidates` REST endpoints + MCP tools (`list_note_candidates`, `claim_note_candidate`, `create_note_from_candidate`, `skip_note_candidate`, `get_chunks`, `review_note`).
+   - **Interactive Visual Notebooks Suite Spec (`.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md`):** Complete design for 4 visual notebooks including an end-to-end cognitive memory explorer.
+   - **Global Verification:** Full regression suite passed with **539 passed, 1 skipped, 0 failed**.
+
+---
+
+## Next steps (for the next session)
+
+1. **Phase 2 (Visual & Complex Document Ingestion):**
+   - Implement PyMuPDF4LLM structural layout parser for academic and complex PDFs.
+   - Implement RapidOCR ONNX engine for Windows/Mac/Linux.
+   - High-definition figure extraction to `media/` and Markdown table parsing.
+   - Non-destructive PDF re-ingestion script.
+   - Notebook 03: `03_multimodal_pdf_and_ocr_inspection.ipynb`.
+
+2. **Interactive Visual Notebooks Implementation:**
+   - Notebook 01: `01_topic_segmentation_visualizer.ipynb`
+   - Notebook 02: `02_dual_vector_space_topology.ipynb`
+   - Notebook 04: `04_end_to_end_cognitive_explorer.ipynb`
+
 ---
 
 ## Architecture decisions still active

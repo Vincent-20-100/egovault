@@ -16,6 +16,7 @@ def _to_list_item(note) -> NoteListItem:
         uid=note.uid, slug=note.slug, title=note.title,
         note_type=note.note_type, rating=note.rating,
         tags=note.tags, date_created=note.date_created,
+        review_status=getattr(note, "review_status", "unreviewed"),
     )
 
 
@@ -27,6 +28,8 @@ def _to_detail(note) -> NoteDetail:
         tags=note.tags, date_created=note.date_created,
         date_modified=note.date_modified,
         status=note.status,
+        review_status=getattr(note, "review_status", "unreviewed"),
+        candidate_uid=getattr(note, "candidate_uid", None),
     )
 
 
@@ -49,6 +52,18 @@ def get_note_by_uid(uid: str, request: Request):
     if note is None:
         raise HTTPException(status_code=404, detail=f"Note '{uid}' not found")
     return _to_detail(note)
+
+
+@router.post("/{uid}/review", response_model=NoteDetail)
+def review_note(uid: str, request: Request, review_status: str = "reviewed"):
+    ctx = request.app.state.ctx
+    note = ctx.db.get_note(uid)
+    if note is None:
+        raise HTTPException(status_code=404, detail=f"Note '{uid}' not found")
+    from tools.vault.update_note import update_note
+    update_note(uid, {"review_status": review_status}, ctx)
+    updated = ctx.db.get_note(uid)
+    return _to_detail(updated)
 
 
 @router.patch("/{uid}", response_model=NoteDetail)

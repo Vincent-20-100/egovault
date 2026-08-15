@@ -18,8 +18,16 @@ llm:
   #   low-RAM fallback: qwen2.5:3b-instruct
   provider: claude           # claude | openai | ollama
   model: claude-sonnet-4-6
+  auto_generate_note: false  # automatically draft note after source ingestion
 
 vault:
   content_language: fr                    # language for notes, tags, slugs
   obsidian_sync: true                     # enable vault→DB sync watcher
   default_generation_template: standard   # template used when none is specified at ingest
+
+export:
+  typst:
+    font: "Liberation Serif"              # default document font
+    heading_font: "Liberation Sans"       # default heading font
+    code_font: "DejaVu Sans Mono"         # default monospaced code font
+    language: "fr"                        # default typst paper language

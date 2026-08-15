@@ -25,15 +25,15 @@ logger = logging.getLogger(__name__)
 
 def _extract_youtube(target: str, ctx: VaultContext) -> tuple[str, dict]:
     from tools.media.fetch_subtitles import fetch_subtitles
-    result = fetch_subtitles(target)
+    result = fetch_subtitles(target, ctx=ctx)
     return result.text, {"language": result.language, "source": result.source}
 
 
 def _extract_audio(target: str, ctx: VaultContext) -> tuple[str, dict]:
     from tools.media.compress import compress_audio
     from tools.media.transcribe import transcribe
-    compressed = compress_audio(target)
-    result = transcribe(compressed.output_path)
+    compressed = compress_audio(target, ctx=ctx)
+    result = transcribe(compressed.output_path, ctx=ctx)
     return result.text, {"language": result.language}
 
 
@@ -161,33 +161,45 @@ def ingest(
         ctx.db.update_source_status(source_uid, "text_ready")
 
         # Step 2: Chunk + embed
-        token_count = len(text.split())
-        threshold = ctx.settings.system.llm.large_format_threshold_tokens
-
         ctx.db.update_source_status(source_uid, "embedding")
         chunks = chunk_text(text, ctx.settings.system)
         ctx.db.insert_chunks(source_uid, chunks)
+        embeddings = []
         for chunk in chunks:
-            embedding = embed_text(chunk.content, ctx)
-            ctx.db.insert_chunk_embeddings(chunk.uid, embedding)
+            emb = embed_text(chunk.content, ctx)
+            ctx.db.insert_chunk_embeddings(chunk.uid, emb)
+            embeddings.append(emb)
+
+        # Step 3: Segment source into note_candidates (1 Source -> N Notes)
+        from tools.text.segment import segment_chunks
+        from core.schemas import NoteCandidate
+        from datetime import datetime, timezone
+
+        candidate_segments = segment_chunks(chunks, embeddings, ctx.settings)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        candidates = [
+            NoteCandidate(
+                uid=generate_uid(),
+                source_uid=source_uid,
+                sequence_index=seg.sequence_index,
+                chunk_uids=seg.chunk_uids,
+                label=seg.label,
+                locator=seg.locator,
+                status="queued",
+                model_version=ctx.settings.system.embedding.model,
+                created_at=now_iso,
+            )
+            for seg in candidate_segments
+        ]
+        ctx.db.insert_note_candidates(candidates)
 
         ctx.db.update_source_status(source_uid, "rag_ready")
 
-        # Step 3: Optional note generation
+        # Step 4: Optional note generation
         should_generate = (
             auto_generate_note if auto_generate_note is not None
             else ctx.settings.user.llm.auto_generate_note
         )
-
-        if token_count > threshold:
-            if should_generate:
-                logger.info("Source exceeds token threshold, skipping note generation")
-            close_workflow_run(ctx.system_db_path, run_id, "success")
-            raise LargeFormatError(
-                source_uid=source_uid,
-                token_count=token_count,
-                threshold=threshold,
-            )
 
         if should_generate:
             if ctx.generate is None:

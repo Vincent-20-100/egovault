@@ -1,10 +1,10 @@
 """
-Librarian tool — tier 0 (deterministic).
+Librarian tool — Curate prefrontal working memory context.
 
 Orchestrates the two-tier search (compiled notes → raw chunks) into a single
-stable CuratedContext. No LLM: synthesis is a minimal assembled block,
-confidence is None. Tier 1 will upgrade only synthesis quality and confidence.
+high-density CuratedContext with confidence weighting based on note review status.
 """
+from __future__ import annotations
 
 from core.context import VaultContext
 from core.schemas import SearchFilters, CuratedSource, CuratedContext
@@ -19,7 +19,7 @@ def curate(
     filters: SearchFilters | None = None,
     limit: int = 5,
 ) -> CuratedContext:
-    """Deterministic Librarian: search notes, escalate to chunks if sparse, assemble."""
+    """Curate working memory context: search notes, escalate to chunks if sparse, assemble."""
     cfg = ctx.settings.system.curate
     query_embedding = ctx.embed(query)
 
@@ -54,9 +54,37 @@ def curate(
         f"[{s.tier}:{s.uid}] {s.title}\n{s.content[:cap]}" for s in sources
     )
 
+    # Calculate confidence score weighted by note review_status
+    confidence: float | None = None
+    if sources:
+        conf_cfg = getattr(cfg, "confidence", None)
+        rev_weight = conf_cfg.reviewed_note_weight if conf_cfg else 1.0
+        unrev_weight = conf_cfg.unreviewed_note_weight if conf_cfg else 0.7
+        chunk_weight = 0.5
+
+        weighted_sim_sum = 0.0
+        weight_sum = 0.0
+
+        for s in sources:
+            sim = max(0.0, 1.0 - s.distance)
+            if s.tier == "note":
+                try:
+                    note = ctx.db.get_note(s.uid)
+                except Exception:
+                    note = None
+                w = rev_weight if (note and getattr(note, "review_status", None) == "reviewed") else unrev_weight
+            else:
+                w = chunk_weight
+
+            weighted_sim_sum += w * sim
+            weight_sum += w
+
+        if weight_sum > 0:
+            confidence = round(weighted_sim_sum / weight_sum, 3)
+
     return CuratedContext(
         synthesis=synthesis,
         sources=sources,
-        confidence=None,
+        confidence=confidence,
         query=query,
     )

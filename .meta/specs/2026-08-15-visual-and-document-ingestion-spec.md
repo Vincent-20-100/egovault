@@ -1,129 +1,154 @@
-# Spec: Ingestion de Documents Visuels, Images et PDF Complexes (Lean Multimodal)
+# Spec: Visual, Image, and Complex Document Ingestion (Lean Multimodal)
 
-**Date :** 2026-08-15  
-**Statut :** Draft — Prêt pour revue  
-**Dépendances :** Unified ingest (`workflows/ingest.py`), VaultContext, `tools/media/`  
-**Vision associée :** `docs/VISION-KNOWLEDGE-COMPILER.md` (Architecture cognitive, Tier 0/1)
-
----
-
-## 1. Contexte & Problématique
-
-Actuellement, l'ingestion de documents dans EgoVault présente trois limitations majeures :
-
-1. **Les images isolées ne sont pas supportées** (schémas d'architecture, infographies, captures d'écran, photos de tableau blanc).
-2. **L'extracteur PDF actuel (`pypdf`) est simpliste :**
-   - Il détruit l'ordre de lecture des documents multi-colonnes.
-   - Il transforme les tableaux en bouillie de texte.
-   - Il ignore totalement les figures, graphiques et schémas.
-3. **Les PDF scannés (pages sous forme d'images sans couche texte) échouent** (`EmptyContentError`).
-
-### Le Piège du "Tout-VLM à l'ingestion" (Écarté)
-Vouloir exécuter un modèle de vision (VLM) sur chaque image pour générer une description textuelle à l'ingestion est inefficace :
-- **Coût de compute prohibitif :** Ralentit l'ingestion et consomme de la VRAM / des tokens API sur des centaines d'images potentiellement inutiles.
-- **Perte d'information :** Un résumé textuel automatique dégrade la complexité d'un schéma ou d'un graphique technique.
-
-### La Décision d'Architecture : Le modèle "Lean Pointer" (Lazy Evaluation)
-1. **À l'ingestion (Tier 0 — 100 % déterministe & gratuit) :**
-   - Découper et stocker les images de haute qualité dans `egovault-user/data/media/{slug}/`.
-   - Insérer des pointeurs Markdown propres dans le transcript source et les chunks :  
-     `![Figure 3: Légende native extraite du PDF](media/{slug}/fig_03.png)`.
-   - Vectoriser le texte et les légendes environnantes (zéro inférence VLM).
-2. **À la consommation (Tier 1 — À la demande) :**
-   - **Pour l'humain dans Obsidian :** Visualisation directe de l'image haute définition incrustée dans les notes ou sources.
-   - **Pour l'agent LLM via MCP :** L'agent dispose d'un outil MCP `get_media(path)` lui permettant de charger et d'inspecter l'image nativement *uniquement si sa réflexion le nécessite*.
+**Date:** 2026-08-15 (Updated: 2026-08-15 — Post-Review Hardened & Zero-Hardcode)  
+**Status:** Validated — Plan-Ready  
+**Dependencies:** Unified ingest (`workflows/ingest.py`), VaultContext, `tools/media/`  
+**Related Vision:** `docs/VISION-KNOWLEDGE-COMPILER.md` (Cognitive Architecture, Tier 0 & Tier 1)
 
 ---
 
-## 2. Architecture & Pipeline d'Ingestion
+## 1. Context & Problem Statement
+
+Currently, document ingestion in EgoVault has three major limitations:
+
+1. **Isolated images are not supported** (architecture diagrams, infographics, screenshots, whiteboard photos).
+2. **Current PDF extractor (`pypdf`) is simplistic:**
+   - Destroys reading order on multi-column documents.
+   - Turns tables into unformatted text soup.
+   - Ignores all figures, graphs, and diagrams.
+3. **Scanned PDFs (pages as images without text layer) fail** (`EmptyContentError`).
+
+### The "Full-VLM at Ingestion" Anti-Pattern (Rejected)
+Running a Vision-Language Model (VLM) on every image to generate textual descriptions at ingestion is inefficient:
+- **Prohibitive compute cost:** Drastically slows down ingestion and consumes VRAM / API tokens on hundreds of potentially trivial images.
+- **Information degradation:** Automated textual summaries lose the technical nuance of complex charts and architecture schematics.
+
+### Architecture Decision: The "Lean Pointer" Model (Lazy Evaluation)
+1. **At Ingestion (Tier 0 — 100% Deterministic & Free):**
+   - Slice and store high-resolution images under `egovault-user/data/media/{slug}/`.
+   - Insert clean Markdown pointers in source transcripts and chunks:  
+     `![Figure 3: Native extracted caption](media/{slug}/fig_03.png)`.
+   - Vectorize text and surrounding captions (zero VLM inference).
+2. **At Consumption (Tier 1 — On Demand):**
+   - **For Humans in Obsidian:** Direct visualization of high-definition images embedded in notes or sources.
+   - **For LLM Agents via MCP:** The agent uses an explicit MCP tool `get_media(path)` to inspect images natively *only when its reasoning requires it*.
+
+---
+
+## 2. Ingestion Pipeline & Business Rules
 
 ```
-SOURCE VISUELLE (PDF complexe, Image isolée, Scan)
+VISUAL SOURCE (Complex PDF, Isolated Image, Scanned Document)
                      │
                      ▼
-          [Sonde Heuristique Rapide (5ms)]
+          [Fast Heuristic Probe (5ms)]
                      │
      ┌───────────────┼────────────────────────┐
      │               │                        │
-[PDF Numérique]  [PDF Scanné (<50 char/p)] [Image Isolée]
+[Digital PDF]    [Scanned PDF (<50 char/p)] [Isolated Image]
      │               │                        │
      ▼               ▼                        ▼
-OpenDataLoader  Unlimited-OCR            Stockage binaire
-/ PyMuPDF4LLM   / PaddleOCR              + Métadonnées
+PyMuPDF4LLM /   RapidOCR (ONNX CPU)      Binary Storage
+OpenDataLoader                                + Metadata
      │               │                        │
      └───────────────┬────────────────────────┘
                      ▼
-          [Extraction Structurée]
-   - Texte Markdown avec titres (#, ##)
-   - Tableaux Markdown (| col1 | col2 |)
-   - Figures découpées dans data/media/{slug}/
-   - Liens insérés : ![Légende](media/{slug}/fig_xx.png)
+          [Filtering & Deduplication]
+   - MD5 hash per image (exclude if > 2 pages)
+   - Min dimension filter (>= 250px)
+   - Caption fallback: Enclosing section header
                      │
                      ▼
-        [Transcript Source (Layer 1)]
+          [Structured Extraction]
+   - Markdown text with headings (#, ##)
+   - Markdown tables (| col1 | col2 |)
+   - Figures sliced into data/media/{slug}/
+   - Pointers inserted: ![Caption](media/{slug}/fig_xx.png)
                      │
                      ▼
-        Chunking ──► Embeddings Chunks ──► rag_ready
+        [Source Transcript (Tier 1)]
+                     │
+                     ▼
+        Chunking ──► Chunk Embeddings ──► rag_ready
 ```
 
 ---
 
-## 3. Détail des Stratégies par Type de Source
+## 3. Strategy Details & Edge Case Resolutions
 
-### 3.1 PDF Numérique avec Mise en Page Complexe (Tier 0.5 — CPU)
-- **Moteur :** `opendataloader-pdf` (mode hybride déterministe) ou `pymupdf4llm`.
-- **Comportement :**
-  - Reconstruit l'ordre de lecture des articles scientifiques / livres multi-colonnes.
-  - Convertit les tableaux natifs en tableaux Markdown.
-  - Isole les images vectorielles et raster supérieures au seuil de taille (`min_image_size: 250x250px` pour ignorer les puces, logos et icônes).
-  - Associe chaque image à son bloc de légende (`Figure X: ...`) trouvé à proximité dans la géométrie du PDF.
+### 3.1 Digital PDF with Complex Layout (Tier 0.5 — CPU)
+- **Engine:** `pymupdf4llm` or `opendataloader-pdf` (deterministic layout mode).
+- **Behavior:**
+  - Reconstructs multi-column reading order.
+  - Converts native tables into structured Markdown tables.
+  - Slices vector and raster images exceeding `config.ingest.pdf.min_image_dimension` (default: 250px).
 
-### 3.2 PDF Scanné / Image Pure (Tier 1 — OCR)
-- **Détection automatique :** Si `nombre_caractères / nombre_pages < 50`.
-- **Moteur :** `Unlimited-OCR` (Baidu / R-SWA, faible mémoire VRAM) ou `rapidocr` / Tesseract en fallback CPU.
-- **Sortie :** Transcription continue en Markdown structuré.
+### 3.2 Uncaptioned Diagrams & Figures (Semantic Fallback)
+- **Problem:** Many slide decks and whitepapers contain uncaptioned diagrams lacking `Figure X:` labels. Without text, they would be invisible to semantic search.
+- **Deterministic Rule:** If no native caption is found in the visual bounding box, the parser injects the **enclosing Markdown section header** into the pointer:
+  `![Diagram in: ## 3.2 Data Flow Architecture](media/{slug}/fig_03.png)`.
+  This injects semantic keywords into the chunk for BM25 and cosine search without VLM costs.
 
-### 3.3 Image Isolée (Infographie, Schéma, Capture d'écran)
-- **Comportement :**
-  - L'image originale est copiée dans `egovault-user/data/media/{slug}/source_image.<ext>`.
-  - Le transcript initial est créé avec les métadonnées de base (nom de fichier, dimensions, date).
-  - Un pointeur standard `![Titre / Slug](media/{slug}/source_image.<ext>)` est généré.
-  - *Optionnel (si `vlm_captioning: true`) :* Génération asynchrone d'une docstring descriptive via VLM local (Ollama `qwen2.5-vl`) ou API.
+### 3.3 Deduplication of Repeated Images (Logos & Headers)
+- **Problem:** Header banners, corporate logos, and template icons repeat on every page of a PDF, cluttering `media/`.
+- **Deterministic Rule:** Compute MD5 hash of each extracted image. If the same hash appears on more than `max_repeated_image_count` pages (default: 2), the image is classified as a template artifact and discarded.
 
----
+### 3.4 Scanned PDF / Pure Image Document (Tier 1 — Robust CPU OCR)
+- **Automatic Detection:** Triggered if $\frac{\text{total\_characters}}{\text{page\_count}} < \text{scanned\_char\_threshold}$ (default: 50).
+- **Engine:** **`rapidocr-onnxruntime`** (Pure ONNX Runtime, zero C++ compilation, Windows x64 CPU compatible, cold start $< 200\text{ ms}$, weight $< 15\text{ MB}$).
+- **Fallback:** `pytesseract` if explicitly configured in `config/user.yaml`.
 
-## 4. Outils à Créer et Modifier
-
-### 4.1 Nouveaux Composants
-
-| Composant | Rôle |
-|---|---|
-| `tools/media/parse_document.py` | Parseur structurel PDF (OpenDataLoader/PyMuPDF) extrayant Markdown + images découpées |
-| `tools/media/ocr_document.py` | Moteur OCR pour documents scannés sans couche texte |
-| `tools/media/get_media.py` | Outil de lecture binaire / base64 d'un média local pour les surfaces MCP et API |
-
-### 4.2 Composants Modifiés
-
-| Composant | Modification |
-|---|---|
-| `workflows/ingest.py` | Ajout des extracteurs `"image"` et refonte de `"pdf"` / `"livre"` avec routage heuristique |
-| `core/schemas.py` | Ajout optionnel d'un modèle `ExtractedMedia(path, width, height, caption)` |
-| `mcp/server.py` | Exposition du tool MCP `get_media(source_uid, file_path)` pour inspection par l'agent |
-| `config/system.yaml` | Nouvelle section de configuration `ingest.pdf` et `ingest.image` |
+### 3.5 Isolated Images (Infographics, Diagrams, Screenshots)
+- Stored in `egovault-user/data/media/{slug}/source_image.<ext>`.
+- Generates a metadata transcript and standard Markdown pointer.
 
 ---
 
-## 5. Configuration (`config/system.yaml`)
+## 4. Locator Transition & Migration Path
+
+- **Phase 1 (Legacy pypdf):** Existing PDF sources use line-based locators (`L120-L245`).
+- **Phase 2 (Visual Ingestion):** New PDF ingestions produce page-precise locators (`p. 42-55`).
+- **Migration Script:** `scripts/maintenance/reingest_pdf_sources.py` allows re-extracting legacy PDF sources to generate sliced figures and page numbers.
+
+---
+
+## 5. Components & Contracts
+
+### 5.1 New Components
+
+| Component | Role |
+|---|---|
+| `tools/media/parse_document.py` | Structural PDF parser (PyMuPDF4LLM) extracting Markdown + sliced images + tables |
+| `tools/media/ocr_document.py` | OCR engine via RapidOCR ONNX for scanned documents |
+| `tools/media/get_media.py` | Secure binary/base64 media reader for MCP and API surfaces |
+
+### 5.2 Modified Components
+
+| Component | Modification |
+|---|---|
+| `workflows/ingest.py` | Heuristic routing: digital PDF vs scanned PDF vs isolated image |
+| `mcp/server.py` | Expose `get_media(file_path: str)` with strict path containment (`security.py`) |
+| `core/config.py` & `config/system.yaml` | Add comprehensive `ingest.pdf` and `ingest.ocr` configuration |
+
+---
+
+## 6. Comprehensive Configuration (`config/system.yaml`)
 
 ```yaml
-# Configuration de l'ingestion visuelle et documents
 ingest:
   pdf:
     strategy: auto                  # auto | fast_native | layout | ocr
-    scanned_char_threshold: 50      # seuil de détection scan (caractères par page)
-    extract_images: true            # découpe et sauvegarde les figures significatives
-    min_image_dimension: 250        # largeur et hauteur min en pixels (filtre le bruit)
+    scanned_char_threshold: 50      # OCR trigger threshold (characters per page)
+    extract_images: true            # Slice and persist significant figures
+    min_image_dimension: 250        # Minimum width/height in pixels
+    max_repeated_image_count: 2     # MD5 deduplication threshold for headers/logos
   
+  ocr:
+    engine: rapidocr                # rapidocr | pytesseract
+    languages:
+      - fr
+      - en
+
   image:
     supported_extensions:
       - .png
@@ -131,21 +156,5 @@ ingest:
       - .jpeg
       - .webp
       - .svg
-    vlm_captioning: false           # false = Lean Pointer (défaut) ; true = appel VLM à l'ingestion
+    vlm_captioning: false           # false = Lean Pointer (default); true = VLM inference at ingest
 ```
-
----
-
-## 6. Interaction avec la Couche Notes (Tier 2)
-
-- **Dans les Chunks (Tier 1) :** Les liens vers les images `![Caption](path)` restent présents dans le texte brut chunké pour que la recherche sémantique capture la légende.
-- **Dans les Notes de Synthèse (Tier 2) :** L'agent rédacteur de note n'est **pas obligé** de recopier toutes les images. Il ne cite l'image `![[fig_xx.png]]` que si celle-ci représente un modèle mental ou un schéma clé synthétisé.
-
----
-
-## 7. Plan de Test & Validation
-
-1. **Test unitaire Layout PDF :** Ingestion d'un PDF à 2 colonnes avec 1 tableau et 1 graphique $\to$ Vérifier que l'ordre de lecture est respecté et que l'image est enregistrée dans `media/`.
-2. **Test unitaire Scan PDF :** Ingestion d'un PDF composé de 3 pages scannées (0 texte natif) $\to$ Vérifier le basculement automatique en OCR et la génération du transcript.
-3. **Test unitaire Image Isolée :** Ingestion d'un fichier `.png` $\to$ Vérifier la création de la source `image` et l'accessibilité du binaire via `get_media`.
-4. **Test de non-régression :** Vérifier que les sources simples (texte, web, audio, youtube) continuent de fonctionner à 100 %.

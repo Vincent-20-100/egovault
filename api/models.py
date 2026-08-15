@@ -70,6 +70,7 @@ class NoteListItem(BaseModel):
     rating: int | None
     tags: list[str]
     date_created: str
+    review_status: str = "unreviewed"
 
 
 class NoteDetail(BaseModel):
@@ -84,12 +85,55 @@ class NoteDetail(BaseModel):
     date_created: str
     date_modified: str
     status: str = "active"
+    review_status: str = "unreviewed"
+    candidate_uid: str | None = None
 
 
 class NotePatch(BaseModel):
     rating: int | None = Field(None, ge=1, le=5)
     tags: list[str] | None = None
     status: str | None = None
+    review_status: str | None = None
+
+
+# ============================================================
+# CANDIDATES & CHUNKS
+# ============================================================
+
+class CandidateResponse(BaseModel):
+    uid: str
+    source_uid: str
+    sequence_index: int
+    chunk_uids: list[str]
+    label: str
+    locator: str | None = None
+    status: str
+    claimed_by: str | None = None
+    claimed_at: str | None = None
+    converted_note_uid: str | None = None
+    model_version: str
+    created_at: str
+
+
+class ClaimCandidateRequest(BaseModel):
+    session_id: str = "api_client"
+    is_human: bool = False
+
+
+class ConvertCandidateRequest(BaseModel):
+    title: str = Field(min_length=3, max_length=200)
+    docstring: str = Field(max_length=300)
+    body: str = Field(min_length=10)
+    tags: list[str] = Field(default_factory=lambda: ["untagged"])
+    session_id: str = "api_client"
+    note_type: str = "synthese"
+
+
+class ChunkResponse(BaseModel):
+    uid: str
+    position: int
+    content: str
+    token_count: int
 
 
 # ============================================================

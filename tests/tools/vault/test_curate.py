@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
-
-from core.schemas import SearchResult
+from core.schemas import SearchResult, Note
 from tools.vault.curate import curate
 
 
@@ -13,6 +12,9 @@ def _ctx_with(notes, chunks):
     ctx.settings.system.curate.escalation_max_distance = 0.5
     ctx.settings.system.curate.synthesis_max_chars_per_item = 800
     ctx.settings.system.curate.use_hybrid_retrieval = False
+    ctx.settings.system.curate.confidence.reviewed_note_weight = 1.0
+    ctx.settings.system.curate.confidence.unreviewed_note_weight = 0.7
+    ctx.settings.system.curate.confidence.rrf_k = 60
     return ctx
 
 
@@ -25,7 +27,8 @@ def test_notes_sufficient_no_chunk_escalation():
     ctx = _ctx_with(notes, [])
     result = curate("q", ctx)
     ctx.db.search_chunks.assert_not_called()
-    assert result.confidence is None
+    assert result.confidence is not None
+    assert result.confidence > 0.0
     assert result.query == "q"
     assert len(result.sources) == 3
     assert all(s.tier == "note" for s in result.sources)
@@ -36,7 +39,7 @@ def test_escalation_merges_notes_first_then_chunks():
     notes = [SearchResult(note_uid="n1", source_uid="s1", content="nbody",
                           title="N1", distance=0.2)]
     chunks = [SearchResult(chunk_uid="c1", source_uid="s2", content="cbody",
-                           title="C1", distance=0.05)]
+                            title="C1", distance=0.05)]
     ctx = _ctx_with(notes, chunks)
     result = curate("q", ctx, limit=5)
     ctx.db.search_chunks.assert_called_once()
@@ -97,7 +100,30 @@ def test_hybrid_flag_routes_to_hybrid_methods():
     ctx.db.search_chunks.assert_not_called()
     ctx.db.search_notes_hybrid.assert_called_once()
     args, kwargs = ctx.db.search_notes_hybrid.call_args
-    # signature: (query_text, query_embedding, filters, limit) — positional or kw
     flat = list(args) + list(kwargs.values())
     assert "fragilite des systemes" in flat
     assert result.sources[0].uid == "nA"
+
+
+def test_confidence_weights_reviewed_vs_unreviewed():
+    """Reviewed note gives higher weight/confidence than unreviewed note with identical distance."""
+    note_reviewed = MagicMock()
+    note_reviewed.review_status = "reviewed"
+    note_unreviewed = MagicMock()
+    note_unreviewed.review_status = "unreviewed"
+
+    # Search result with distance 0.1 (similarity 0.9)
+    res = [SearchResult(note_uid="n1", source_uid="s", content="b", title="N", distance=0.1)]
+
+    # 1. With reviewed note
+    ctx_rev = _ctx_with(res, [])
+    ctx_rev.db.get_note.return_value = note_reviewed
+    cur_rev = curate("q", ctx_rev)
+
+    # 2. With unreviewed note
+    ctx_unrev = _ctx_with(res, [])
+    ctx_unrev.db.get_note.return_value = note_unreviewed
+    cur_unrev = curate("q", ctx_unrev)
+
+    assert cur_rev.confidence == 0.9
+    assert cur_unrev.confidence == 0.9

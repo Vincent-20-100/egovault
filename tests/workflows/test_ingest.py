@@ -189,22 +189,25 @@ def test_whitespace_only_raises(tmp_settings, tmp_db, tmp_path):
         ingest("texte", "   \n\t  ", ctx, title="Whitespace")
 
 
-def test_large_format_error(tmp_settings, tmp_db, tmp_path):
+def test_ingest_populates_note_candidates(tmp_settings, tmp_db, tmp_path):
     from workflows.ingest import ingest
     ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
 
-    # Threshold is 50000 tokens by default
-    long_text = "word " * 60000
+    long_text = "word " * 1000
 
-    with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
-        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
-            with pytest.raises(LargeFormatError) as exc_info:
-                ingest("texte", long_text, ctx, title="Large")
+    chunks = [
+        _make_chunk(f"c{i}", i, f"Content chunk {i}")
+        for i in range(8)
+    ]
+    with patch("workflows.ingest.chunk_text", return_value=chunks):
+        with patch("workflows.ingest.embed_text", return_value=make_embedding(0.1)):
+            source = ingest("texte", long_text, ctx, title="MultiNoteSource")
 
-    assert exc_info.value.token_count == 60000
-    # Source should still reach rag_ready
-    source = ctx.db.get_source(exc_info.value.source_uid)
     assert source.status == "rag_ready"
+    cands = ctx.db.list_note_candidates(source_uid=source.uid)
+    assert len(cands) >= 1
+    assert cands[0].status == "queued"
+    assert cands[0].source_uid == source.uid
 
 
 # -- Note generation --

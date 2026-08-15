@@ -4,37 +4,81 @@
 # ============================================================
 
 chunking:
-  size: 800          # tokens per chunk
-  overlap: 80        # sliding window (10% of size)
+  size: 300          # words/tokens per chunk (SOTA for dense vector embeddings)
+  overlap: 40        # sliding window overlap (~13% overlap)
 
 embedding:
   dims: 768              # dimension of embedding vectors — single source of truth
   provider: ollama       # embedding provider (ollama | openai)
   model: nomic-embed-text
 
-llm:
-  max_retries: 2     # Pydantic validation retries before human-in-the-loop
-  large_format_threshold_tokens: 50000
-                     # Sources exceeding this threshold are indexed for RAG
-                     # but note generation is blocked. See large format policy in spec.
-
-upload:
-  max_audio_mb: 500  # max audio/video file size for ingest (MB)
-  max_pdf_mb: 100    # max PDF file size for ingest (MB)
-  max_text_chars: 500000   # ~125k words
-
-web:
-  extraction_tier: 0             # 0 = builtin (bs4), 1 = trafilatura
-  max_response_mb: 10            # max HTTP response size
-  timeout_seconds: 30            # fetch timeout
-  min_fetch_interval_seconds: 2  # global rate limit between fetches
-  max_redirects: 5               # max redirect chain length
+note_segmentation:
+  sensitivity_k: 1.2                  # Z-score multiplier for TextTiling depth threshold (calibrated)
+  min_similarity_floor: 0.35          # Hard floor triggering boundary regardless of variance
+  min_chunks_per_note: 3              # Soft target floor for greedy merging
+  max_notes_per_source: 30            # Soft target ceiling for notes per source
+  max_chunks_per_candidate: 12        # Hard ceiling for candidate size (~9600 tokens max)
+  agent_claim_ttl_seconds: 300        # TTL lock expiration for automated agent sessions (5 min)
+  human_claim_ttl_seconds: 3600       # TTL lock expiration for human interactive sessions (1 hour)
 
 curate:
   escalation_min_notes: 3        # < N relevant notes → escalate to chunks
   escalation_max_distance: 0.5   # "relevant" threshold — TO CALIBRATE in real-world test
   synthesis_max_chars_per_item: 800
   use_hybrid_retrieval: false    # true = cosine + BM25/FTS5 fused via RRF (exp #1, 2026-05-21)
+  confidence:
+    reviewed_note_weight: 1.0    # Confidence score weight for human-reviewed notes
+    unreviewed_note_weight: 0.7  # Confidence score weight for AI drafts
+    rrf_k: 60                    # Reciprocal Rank Fusion smoothing constant
+
+ingest:
+  pdf:
+    strategy: auto                  # auto | layout | fast_native | ocr
+    scanned_char_threshold: 50      # Trigger OCR if characters per page < 50
+    extract_images: true            # Slices and persists high-resolution figures
+    min_image_dimension: 250        # Minimum image width/height in pixels
+    max_repeated_image_count: 2     # MD5 deduplication threshold for header/logo filtering
+
+  ocr:
+    engine: rapidocr                # rapidocr | pytesseract
+    languages:
+      - fr
+      - en
+
+  media:
+    whisper_model: base             # tiny | base | small | medium | large-v3
+    whisper_device: cpu             # cpu | cuda
+    whisper_compute_type: int8      # int8 | float16 | float32
+    audio_compression_bitrate_kbps: 12 # OPUS audio compression target bitrate
+    subtitle_fallback_languages:
+      - fr
+      - en
+
+  image:
+    supported_extensions:
+      - .png
+      - .jpg
+      - .jpeg
+      - .webp
+      - .svg
+    vlm_captioning: false           # false = Lean Pointer model (lazy visual eval via MCP get_media)
+
+llm:
+  max_retries: 2                    # Pydantic validation retries before human-in-the-loop
+  max_tokens: 4096                  # Max completion tokens for note generation
+  temperature: 0.2                  # Generation temperature for deterministic synthesis
+
+upload:
+  max_audio_mb: 500                 # max audio/video file size for ingest (MB)
+  max_pdf_mb: 100                   # max PDF file size for ingest (MB)
+  max_text_chars: 500000            # ~125k words
+
+web:
+  extraction_tier: 0                # 0 = builtin (bs4), 1 = trafilatura
+  max_response_mb: 10               # max HTTP response size
+  timeout_seconds: 30               # fetch timeout
+  min_fetch_interval_seconds: 2     # global rate limit between fetches
+  max_redirects: 5                  # max redirect chain length
 
 # ============================================================
 # TAXONOMY — user-configurable classification values
@@ -61,6 +105,7 @@ taxonomy:
     - livre           # same pipeline as pdf, different semantic context
     - texte           # raw text ingestion
     - web             # web page ingestion (single URL fetch + extract)
+    - image           # isolated diagram, screenshot, or infographic
     - personnel       # no external source, personal reflection
 
   # ============================================================

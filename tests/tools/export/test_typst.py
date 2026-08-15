@@ -2,6 +2,7 @@ import pytest
 from datetime import date
 from pathlib import Path
 from core.schemas import Note, ExportResult
+from core.errors import NotFoundError
 
 
 def _make_note():
@@ -41,7 +42,7 @@ def test_export_typst_contains_title(ctx):
 def test_export_typst_not_found_raises(ctx):
     from tools.export.typst import export_typst
 
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(NotFoundError, match="not found"):
         export_typst("nonexistent", ctx)
 
 
@@ -54,7 +55,7 @@ def test_export_typst_has_font_fallback_chain(ctx):
     content = Path(result.output_path).read_text(encoding="utf-8")
     assert 'lang: "fr"' in content
     assert 'fallback: true' in content
-    assert '"Times New Roman"' in content
+    assert f'"{ctx.settings.user.export.typst.font}"' in content
     assert '"DejaVu Serif"' in content
     assert '"Segoe UI Symbol"' in content
     assert 'breakable: true' in content

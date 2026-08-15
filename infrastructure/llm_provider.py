@@ -110,7 +110,8 @@ def _generate_anthropic(
         try:
             message = client.messages.create(
                 model=settings.user.llm.model,
-                max_tokens=4096,
+                max_tokens=settings.system.llm.max_tokens,
+                temperature=settings.system.llm.temperature,
                 system=template["system_prompt"] + error_context,
                 messages=[{"role": "user", "content": user_message}],
             )
@@ -138,10 +139,10 @@ def _generate_ollama(
     template_name: str,
     settings: Settings,
 ) -> NoteContentInput:
-    template = _load_template(template_name)
     base_url = settings.install.providers.ollama_base_url
     num_ctx = settings.install.providers.ollama_num_ctx
     timeout_s = settings.install.providers.ollama_timeout_s
+    template = _load_template(template_name)
     max_retries = settings.system.llm.max_retries
     user_message = _build_user_message(source_content, source_metadata, template)
     last_error: Exception | None = None
@@ -159,7 +160,10 @@ def _generate_ollama(
                     "model": settings.user.llm.model,
                     "stream": False,
                     "format": "json",
-                    "options": {"temperature": 0.2, "num_ctx": num_ctx},
+                    "options": {
+                        "temperature": settings.system.llm.temperature,
+                        "num_ctx": num_ctx,
+                    },
                     "messages": [
                         {"role": "system",
                          "content": template["system_prompt"] + error_context},

@@ -1,45 +1,45 @@
-# EgoVault — Claude Code Entry Point
+# EgoVault — Claude Code Entry Point (CLAUDE.md)
 
-> **The law.** Few rules, non-negotiable. Read this, then read what it points to.
-
----
-
-## 1. Project identity
-
-EgoVault is a **personal knowledge vault** — ingest sources (YouTube, audio, PDF, text),
-extract and chunk content, embed it for semantic search, and generate structured notes.
-
-**Vision & strategy:** `docs/VISION.md`
+> **The Law.** High-signal, non-negotiable rules for working in this repository.
+> For the universal multi-agent constitution, see [`AGENTS.md`](AGENTS.md).
 
 ---
 
-## 2. Tech stack
+## 1. Project Identity & Cognitive Architecture
 
-Python 3.x · SQLite + sqlite-vec · Ollama/OpenAI · Pydantic v2 · FastAPI · Click CLI · FastMCP · pytest
+EgoVault is a **personal knowledge compiler and cognitive memory engine** based on human neuroscience:
+- **Tier 1 (Chunks):** Raw verbatim evidence in SQLite + `chunks_vec`.
+- **Tier 2 (Notes):** Distilled conceptual nuclei in Obsidian Markdown + `notes_vec`.
+- **Tier 3 (Working Memory):** High-density conceptual context retrieved via `curate()`.
+
+Core Vision: [`docs/VISION-KNOWLEDGE-COMPILER.md`](docs/VISION-KNOWLEDGE-COMPILER.md)
 
 ---
 
-## 3. Project structure
+## 2. Tech Stack
+
+Python 3.13+ · SQLite + sqlite-vec · FTS5 BM25 · Ollama / Anthropic · Pydantic v2 · FastAPI · FastMCP · Typer CLI · pytest
+
+---
+
+## 3. Project Structure
 
 ```
-core/                    ← config, schemas, context, uid, logging, errors
+core/           ← schemas, errors, config, context, uid, logging, security, sanitize
 tools/
-├── media/               ← transcribe, compress, fetch_subtitles, extract_audio
-├── text/                ← chunk, embed, embed_note, summarize, parse_html
-├── web/                 ← fetch_web (URL fetch + extract with SSRF protection)
-├── vault/               ← create_note, update_note, search, finalize_source,
-│                          delete_note, delete_source, restore_note, restore_source,
-│                          generate_note_from_source, purge
-└── export/              ← typst, mermaid
-workflows/
-└── ingest.py            ← unified pipeline — ingest(source_type, target, ctx)
-infrastructure/          ← db.py, vault_writer.py, embedding_provider.py, llm_provider.py
-api/                     ← FastAPI — routers: health, jobs, ingest, notes, sources, search, vault, monitoring
-cli/                     ← Click CLI — commands: ingest, search, notes, sources, status, purge
-mcp/server.py            ← exposes tools/ via MCP protocol (see .claude/rules/vault-usage.md)
-config/                  ← system.yaml (versioned), user.yaml + install.yaml (gitignored)
-tests/                   ← mirrors source structure
-.meta/                   ← process workspace (specs, plans, audits, scratch, archive)
+├── media/      ← transcribe, compress, fetch_subtitles, extract_audio, parse_document, ocr
+├── text/       ← chunk, embed, embed_note, parse_html, segment
+├── web/        ← fetch_web (SSRF protected)
+├── vault/      ← create_note, update_note, search, curate, finalize_source, delete_*, restore_*, purge
+└── export/     ← typst, mermaid
+workflows/      ← ingest.py (unified extraction & segmentation pipeline)
+infrastructure/ ← db.py, vault_writer.py, embedding_provider.py, llm_provider.py
+api/            ← FastAPI routers: health, jobs, ingest, notes, sources, search, vault, monitoring
+cli/            ← Typer CLI commands
+mcp/            ← FastMCP server exposing tools/
+config/         ← system.yaml (versioned), user.yaml + install.yaml (gitignored)
+tests/          ← mirrors source structure
+.meta/          ← process workspace: specs, plans, audits, scratch, archive
 ```
 
 ---
@@ -47,66 +47,30 @@ tests/                   ← mirrors source structure
 ## 4. Commands
 
 ```bash
-python -m pytest tests/          # tests
-python mcp/server.py             # MCP server (dev)
+uv run pytest tests/           # Full deterministic test suite
+uv run python mcp/server.py    # FastMCP server in dev mode
+uv run egovault --help         # Typer CLI entrypoint
 ```
 
 ---
 
-## 5. Automatisms
+## 5. Non-Negotiable Automatisms
 
-These behaviors are hard-wired. Do them without being asked.
-
-1. **Session start** — read `PROJECT-STATUS.md` + `SESSION-CONTEXT.md` before anything.
-2. **Before any Edit or Write** — you must have proposed a plan and received user approval. If no plan exists, propose one. Never implement without explicit user go-ahead.
-3. **Every commit** — `feat:` / `fix:` / `docs:` / `chore:` + description in English.
-4. **Milestone done** — update `PROJECT-STATUS.md`.
-5. **Session end** (user signals stop) — update `PROJECT-STATUS.md` + rewrite `SESSION-CONTEXT.md`, commit+push before confirming.
-6. **Always** — apply rules from `.meta/GUIDELINES.md`. Read it at session start.
-7. **Never** — make autonomous decisions on topics listed in "Open questions" in `SESSION-CONTEXT.md`.
-8. **Doc-maintenance is non-negotiable** — any change with user-visible impact MUST update the relevant chapter(s) in `docs/user-guide/` in the **same commit / PR**. This includes: new config flag, new CLI command, new MCP tool, new provider, new source type, schema change visible to users, breaking change. The `docs/user-guide/` is load-bearing — letting it drift turns it into a lie. If your change has no user-visible impact (refactor, internal helper, test-only), say so explicitly in the commit message instead of skipping silently. See `docs/user-guide/README.md` for the chapter map.
+1. **Session Start:** Read `PROJECT-STATUS.md` and `SESSION-CONTEXT.md` before taking any action.
+2. **No Code Without a Plan:** Never edit or write code without an approved plan in `.meta/plans/`.
+3. **Zero-Hardcode (Rule G3):** No magic numbers or hardcoded model/algorithm values in Python. Everything is configured in `config/`.
+4. **Error Architecture V2 (Rule G6):** All exceptions inherit from `EgoVaultError` with mandatory `error_code`, `user_message`, `actionable_hint`, and `http_status`.
+5. **Doc-Maintenance Synchronized (Automatism):** Any change impacting user-visible behavior MUST update `docs/user-guide/` in the same commit.
+6. **Session End:** Update `PROJECT-STATUS.md` and rewrite `SESSION-CONTEXT.md` before confirming stop.
 
 ---
 
-## 6. Development workflow
+## 6. Engineering Lifecycle
 
 ```
-BRAINSTORM → SPEC → PLAN → IMPLEMENT → TEST → AUDIT → SHIP
+BRAINSTORM → SPEC → PLAN → IMPLEMENT (TDD) → TEST → AUDIT → SHIP
 ```
 
-Full spec: `.meta/specs/2026-03-31-development-workflow.md`
-
-| Task | Skill |
-|------|-------|
-| Brainstorming | `superpowers:brainstorming` |
-| Write plan | `superpowers:writing-plans` |
-| Execute plan | `superpowers:executing-plans` |
-| Code review | `superpowers:requesting-code-review` |
-| Debug | `superpowers:systematic-debugging` |
-
-**Superpowers plugin required:** `/install-plugin obra/superpowers`
-
----
-
-## 7. Superpowers output paths
-
-Specs and plans go in `.meta/`, not `docs/superpowers/`:
-- Brainstorm drafts → `.meta/scratch/spec-<topic>.md`
-- Plan drafts → `.meta/scratch/plan-<topic>.md`
-- Once validated → move to `.meta/specs/` or `.meta/plans/`
-- Audits → `.meta/audits/audit-results-<date>.md`
-
----
-
-## 8. Key documents
-
-| Document | Role |
-|----------|------|
-| `.meta/GUIDELINES.md` | Rules G1-G13, conventions, architecture boundaries |
-| `docs/user-guide/` | **User-facing manual** (12 chapters: concepts, install, config, providers, ingest, search, notes, CLI, MCP, Obsidian, maintenance, troubleshooting). **Must be updated on every user-visible change** — see automatism #8. |
-| `docs/architecture/ARCHITECTURE.md` | Technical architecture, glossary |
-| `docs/architecture/DATABASES.md` | DB schema (must match `infrastructure/db.py`) |
-| `PROJECT-STATUS.md` | Live project state — next action, debt, roadmap |
-| `SESSION-CONTEXT.md` | Living context — decisions, traps, open questions |
-
-**Authority:** CLAUDE.md > ARCHITECTURE.md > code comments. Permanent docs > provisional docs.
+- Process Specification: [`.meta/WORKFLOW.md`](.meta/WORKFLOW.md)
+- Audit Specification: [`.meta/AUDIT-SPEC.md`](.meta/AUDIT-SPEC.md)
+- Universal Constitution: [`AGENTS.md`](AGENTS.md)

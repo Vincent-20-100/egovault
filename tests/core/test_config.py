@@ -1,6 +1,7 @@
 import pytest
 import yaml
 from pathlib import Path
+from pydantic import ValidationError
 
 
 def _write_configs(config_dir: Path, user_dir: Path):
@@ -174,11 +175,66 @@ def test_curate_config_defaults():
     assert s.system.curate.escalation_min_notes == 3
     assert s.system.curate.escalation_max_distance == 0.5
     assert s.system.curate.synthesis_max_chars_per_item == 800
+    assert s.system.curate.confidence.reviewed_note_weight == 1.0
+    assert s.system.curate.confidence.unreviewed_note_weight == 0.7
+    assert s.system.curate.confidence.rrf_k == 60
 
 
-def test_providers_config_ollama_tuning_defaults():
-    from core.config import ProvidersConfig
+def test_note_segmentation_config_defaults():
+    from core.config import NoteSegmentationConfig
 
-    p = ProvidersConfig()
-    assert p.ollama_num_ctx == 8192
-    assert p.ollama_timeout_s == 180
+    cfg = NoteSegmentationConfig()
+    assert cfg.sensitivity_k == 0.5
+    assert cfg.min_similarity_floor == 0.35
+    assert cfg.min_chunks_per_note == 3
+    assert cfg.max_notes_per_source == 30
+    assert cfg.max_chunks_per_candidate == 12
+    assert cfg.agent_claim_ttl_seconds == 300
+    assert cfg.human_claim_ttl_seconds == 3600
+
+
+def test_note_segmentation_validation_bounds():
+    from core.config import NoteSegmentationConfig
+
+    with pytest.raises(ValidationError):
+        NoteSegmentationConfig(sensitivity_k=-1.0)
+
+    with pytest.raises(ValidationError):
+        NoteSegmentationConfig(max_chunks_per_candidate=0)
+
+
+def test_ingest_config_defaults():
+    from core.config import IngestConfig
+
+    cfg = IngestConfig()
+    assert cfg.pdf.strategy == "auto"
+    assert cfg.pdf.scanned_char_threshold == 50
+    assert cfg.pdf.min_image_dimension == 250
+    assert cfg.ocr.engine == "rapidocr"
+    assert "fr" in cfg.ocr.languages
+    assert cfg.media.whisper_model == "base"
+    assert cfg.media.audio_compression_bitrate_kbps == 12
+    assert ".png" in cfg.image.supported_extensions
+
+
+def test_install_hardware_and_database_config():
+    from core.config import HardwareConfig, DatabaseConfig, ApiConfig
+
+    hw = HardwareConfig()
+    assert hw.threads == 4
+    assert hw.device == "cpu"
+
+    db = DatabaseConfig()
+    assert db.busy_timeout_ms == 5000
+
+    api = ApiConfig()
+    assert "http://localhost:3000" in api.cors_origins
+    assert api.rate_limits.default == "60/minute"
+
+
+def test_user_export_typst_config():
+    from core.config import TypstExportConfig
+
+    cfg = TypstExportConfig()
+    assert cfg.font == "Liberation Serif"
+    assert cfg.language == "fr"

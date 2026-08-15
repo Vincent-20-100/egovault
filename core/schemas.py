@@ -4,6 +4,7 @@ All Pydantic models for EgoVault v2.
 Single source of truth for data contracts.
 The LLM fills NoteContentInput only — everything else is system-generated.
 """
+from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Literal
@@ -85,6 +86,7 @@ class NoteSystemFields(BaseModel):
                                         # LLM never sets or modifies this field
                                         # watcher never syncs this from frontmatter
                                         # updatable only via regeneration workflow (human-triggered)
+    candidate_uid: str | None = None    # reference to originating note_candidate if generated from candidate
 
 
 class Note(NoteSystemFields, NoteContentInput):
@@ -93,7 +95,38 @@ class Note(NoteSystemFields, NoteContentInput):
     date_modified: str
     rating: int | None = Field(None, ge=1, le=5)  # user-only signal, semantics open
     sync_status: str = "synced"                    # synced|needs_re_embedding|embedding
-    status: Literal["draft", "active"] = "active"   # approval state: draft (auto-generated) | active (human-approved)
+    status: Literal["draft", "active"] = "active"   # legacy approval state
+    review_status: Literal["unreviewed", "reviewed"] = "unreviewed"  # unreviewed (AI draft) | reviewed (human validated)
+
+
+# ============================================================
+# NOTE CANDIDATES & SEGMENTATION SCHEMAS
+# ============================================================
+
+class CandidateSegment(BaseModel):
+    """In-memory candidate segment produced by topic segmentation."""
+    sequence_index: int
+    chunk_uids: list[str]
+    label: str
+    locator: str | None = None
+    chunks: list[ChunkResult] = Field(default_factory=list)
+
+
+class NoteCandidate(BaseModel):
+    """Full note candidate record from database."""
+    model_config = ConfigDict(extra="ignore")
+    uid: str
+    source_uid: str
+    sequence_index: int
+    chunk_uids: list[str]
+    label: str
+    locator: str | None = None
+    status: Literal["queued", "in_progress", "converted", "skipped"] = "queued"
+    claimed_by: str | None = None
+    claimed_at: str | None = None
+    converted_note_uid: str | None = None
+    model_version: str
+    created_at: str
 
 
 # ============================================================

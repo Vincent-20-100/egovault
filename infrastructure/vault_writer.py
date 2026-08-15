@@ -21,6 +21,7 @@ def write_note(note: Note, vault_path: Path) -> Path:
     """
     content = build_markdown(note)
     file_path = vault_path / f"{note.slug}.md"
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(content, encoding="utf-8")
     return file_path
 

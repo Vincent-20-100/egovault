@@ -20,6 +20,10 @@ def test_reembed_rebuilds_cosine_and_repopulates(tmp_settings):
         "INSERT INTO chunks(uid, source_uid, position, content, token_count) "
         "VALUES ('c1', 's1', 0, 'hello world', 2)"
     )
+    conn.execute(
+        "INSERT INTO notes(uid, slug, note_type, title, docstring, body, date_created, date_modified) "
+        "VALUES ('n1', 'note-1', 'concept', 'Note Title', 'Summary line', 'Full body text', '2026-05-16', '2026-05-16')"
+    )
     conn.commit()
     conn.close()
 
@@ -28,14 +32,16 @@ def test_reembed_rebuilds_cosine_and_repopulates(tmp_settings):
         from scripts.reembed import reembed
         n_chunks, n_notes = reembed()
 
-    assert (n_chunks, n_notes) == (1, 0)
+    assert (n_chunks, n_notes) == (1, 1)
 
     conn = get_vault_connection(db_path)
     sql = conn.execute(
         "SELECT sql FROM sqlite_master WHERE name = 'chunks_vec'"
     ).fetchone()[0]
-    count = conn.execute("SELECT count(*) FROM chunks_vec").fetchone()[0]
+    chunk_count = conn.execute("SELECT count(*) FROM chunks_vec").fetchone()[0]
+    note_count = conn.execute("SELECT count(*) FROM notes_vec").fetchone()[0]
     conn.close()
 
     assert "distance_metric=cosine" in sql
-    assert count == 1
+    assert chunk_count == 1
+    assert note_count == 1

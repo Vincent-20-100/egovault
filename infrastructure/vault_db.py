@@ -7,7 +7,9 @@ Every method is a one-line delegation — no SQL, no logic, no new behavior.
 
 from pathlib import Path
 
-from core.schemas import Note, Source, SearchResult, SearchFilters, ChunkResult
+from core.schemas import (
+    Note, Source, SearchResult, SearchFilters, ChunkResult, NoteCandidate
+)
 
 import infrastructure.db as _db
 
@@ -97,6 +99,9 @@ class VaultDB:
 
     def insert_chunks(self, source_uid: str, chunks: list[ChunkResult]) -> None:
         return _db.insert_chunks(self._db_path, source_uid, chunks)
+
+    def get_chunks(self, chunk_uids: list[str]) -> list[ChunkResult]:
+        return _db.get_chunks(self._db_path, chunk_uids)
 
     def insert_chunk_embeddings(self, chunk_uid: str, embedding: list[float]) -> None:
         return _db.insert_chunk_embeddings(self._db_path, chunk_uid, embedding)
@@ -220,3 +225,47 @@ class VaultDB:
 
         conn.close()
         return {"nodes": [], "pivot_slug": None}
+
+    # -- Note Candidates --
+
+    def insert_note_candidates(self, candidates: list[NoteCandidate]) -> None:
+        return _db.insert_note_candidates(self._db_path, candidates)
+
+    def get_note_candidate(self, uid: str) -> NoteCandidate | None:
+        return _db.get_note_candidate(self._db_path, uid)
+
+    def list_note_candidates(
+        self, source_uid: str | None = None, status: str | None = None
+    ) -> list[NoteCandidate]:
+        return _db.list_note_candidates(self._db_path, source_uid, status)
+
+    def claim_note_candidate(
+        self, candidate_uid: str, session_id: str, ttl_seconds: int = 300
+    ) -> NoteCandidate:
+        return _db.claim_note_candidate(self._db_path, candidate_uid, session_id, ttl_seconds)
+
+    def renew_candidate_lock(
+        self, candidate_uid: str, session_id: str
+    ) -> None:
+        return _db.renew_candidate_lock(self._db_path, candidate_uid, session_id)
+
+    def release_note_candidate(
+        self, candidate_uid: str, session_id: str
+    ) -> None:
+        return _db.release_note_candidate(self._db_path, candidate_uid, session_id)
+
+    def mark_candidate_converted(
+        self, candidate_uid: str, note_uid: str, session_id: str
+    ) -> None:
+        return _db.mark_candidate_converted(self._db_path, candidate_uid, note_uid, session_id)
+
+    def mark_candidate_skipped(
+        self, candidate_uid: str
+    ) -> None:
+        return _db.mark_candidate_skipped(self._db_path, candidate_uid)
+
+    def create_note_from_candidate(
+        self, note: Note, candidate_uid: str, session_id: str
+    ) -> Note:
+        return _db.create_note_from_candidate(self._db_path, note, candidate_uid, session_id)
+

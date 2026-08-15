@@ -12,6 +12,22 @@ paths:
   media_dir: null
   db_file: null
 
+hardware:
+  threads: 4                 # Thread pool workers for background ingest jobs
+  device: "cpu"              # Inference hardware device (cpu | cuda)
+
+database:
+  busy_timeout_ms: 5000      # SQLite lock timeout in milliseconds
+
+api:
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+  rate_limits:
+    default: "60/minute"
+    ingest: "10/minute"
+    search: "120/minute"
+
 providers:
   ollama_base_url: "http://localhost:11434"
   ollama_num_ctx: 8192      # context window for local LLM note generation

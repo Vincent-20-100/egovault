@@ -1,17 +1,22 @@
 """
 YouTube subtitle fetcher.
 
-Input  : YouTube URL + language
+Input  : YouTube URL + language + optional VaultContext
 Output : SubtitleResult (text, language, source indicator)
 No DB write. Falls back to audio download + transcribe if subtitles unavailable.
 """
+from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from core.schemas import SubtitleResult
 from core.logging import loggable
 from tools.media.transcribe import transcribe
+
+if TYPE_CHECKING:
+    from core.context import VaultContext
 
 
 def _extract_video_id(url: str) -> str:
@@ -38,7 +43,11 @@ def _download_audio(youtube_url: str, output_dir: str) -> str:
 
 
 @loggable("fetch_subtitles")
-def fetch_subtitles(youtube_url: str, language: str = "fr") -> SubtitleResult:
+def fetch_subtitles(
+    youtube_url: str,
+    language: str = "fr",
+    ctx: VaultContext | None = None,
+) -> SubtitleResult:
     """
     Fetch YouTube subtitles if available, fall back to transcription.
     SubtitleResult.source indicates 'subtitles' or 'transcription'.
@@ -46,15 +55,21 @@ def fetch_subtitles(youtube_url: str, language: str = "fr") -> SubtitleResult:
     from youtube_transcript_api import YouTubeTranscriptApi
 
     video_id = _extract_video_id(youtube_url)
+    fallback_langs = ["en"]
+    if ctx is not None:
+        fallback_langs = ctx.settings.system.ingest.media.subtitle_fallback_languages
+
+    target_languages = [language] + [l for l in fallback_langs if l != language]
+
     try:
         api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, languages=[language, "en"])
+        transcript = api.fetch(video_id, languages=target_languages)
         text = " ".join(snippet.text for snippet in transcript)
         return SubtitleResult(text=text, language=language, source="subtitles")
     except Exception:
         with tempfile.TemporaryDirectory() as tmpdir:
             audio_path = _download_audio(youtube_url, tmpdir)
-            result = transcribe(audio_path, language=language)
+            result = transcribe(audio_path, language=language, ctx=ctx)
         return SubtitleResult(
             text=result.text, language=result.language, source="transcription"
         )

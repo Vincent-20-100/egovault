@@ -4,54 +4,24 @@
 > Any LLM must read this file to know exactly where things stand.
 > Referenced from CLAUDE.md §9.
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-08-15
 **Last session branch:** `main`
 
 ---
 
 ## Next action
 
-Multi-step plan étapes 0→6 + F5 all DONE (2026-05-17): 0 preserve
-egovault-data, 1 curate validated on live vault, 2 archive plan/docs,
-3 pre-reinit audit, 4 five critical fixes, 5 data cleanup + DB reinit
-(live DB → `_trash-egovault-20260517`, corpus → `_corpus-test-20260517`),
-6 real-condition ingest test (25 sources, findings D/E), then **F5 ollama
-LLM provider SHIPPED** (brainstorm→spec→reviewed→plan→subagent-driven TDD,
-9 commits `a8e9d47..b766930`, suite 491/0/1skip, ship-ready).
-
-**Latest state (2026-05-21):** F5 ollama LLM provider shipped + tag-slugify
-fix → corpus at 25/25 notes (100%). RRF hybrid retrieval shipped (FTS5 +
-`_rrf_fuse` + `search_*_hybrid`, opt-in flag `curate.use_hybrid_retrieval`
-default `false`, validated 1 big win Q2 / 0 regression). Full user-guide
-delivered (12 chapters, ~2300 lines) + CLAUDE.md automatism #8 enforcing doc
-maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
-
-**NEXT (the recommended next session's first move):**
-
-1. **Write implementation plan for Note Creation by Semantic Nucleus** — `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md`
-   - Topic segmentation on consecutive chunk cosine similarity drops (Tier 0).
-   - Budgeted fusion (`min_chunks_per_note`, `max_notes_per_source`).
-   - `note_candidates` table (`queued`, `converted`, `skipped`) with deterministic labeling (first markdown `#` heading) and passage locators (timestamps/pages/lines).
-   - Provenance drill-down: Note $\to$ Candidate $\to$ Chunks with locators.
-   - Note review lifecycle: `notes.review_status` (`unreviewed`, `reviewed`).
-   - New MCP tools: `list_note_candidates`, `get_note_candidate`, `skip_note_candidate`.
-
-**Other candidates (no urgency signal):**
-- **Visual & Complex Document Ingestion** (`.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md`): Lean multimodal image slicing & layout-aware PDF parsing (OpenDataLoader / Unlimited-OCR).
-- **Chantier B — provider management** (open Q 10.4): openai provider,
-  `providers.mode`, setup wizard, OpenRouter, hot-swap. F5 was slice A only.
-- **Search-quality track extras** (finding E remaining): embedding-model
-  evaluation, cross-encoder reranking (see ARCHITECTURE §7.4), chunking
-  granularity. RRF already absorbed the main pain.
-- **Deferred audit debt** — `.meta/audits/2026-05-17-pre-reinit-audit.md`:
-  DB-M1 atomic `purge_source`, DB-M2 error wrapping, DB-M3 connection-leak
-  (try/finally, ~50 funcs), DB-M4 search ignores filters, SCRIPT-M1 reembed
-  safety, TEST-C2 no real semantic e2e test, TEST-M1 missing test files.
+1. **Execute Phase 2 (Visual & Complex Document Ingestion)** — `.meta/plans/2026-08-15-visual-and-document-ingestion-plan.md`
+   - PyMuPDF4LLM structural layout parser & RapidOCR ONNX engine.
+   - High-definition figure extraction & Markdown table parsing.
+   - Multimodal PDF & OCR interactive inspection notebook (`notebooks/03_multimodal_pdf_and_ocr_inspection.ipynb`).
+2. **Execute Interactive Visual Notebooks Suite** — `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md`
+   - Implement `notebooks/01_topic_segmentation_visualizer.ipynb`, `notebooks/02_dual_vector_space_topology.ipynb`, `notebooks/04_end_to_end_cognitive_explorer.ipynb`.
 
 See `docs/user-guide/` for the user manual (12 chapters).
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Cognitive Architecture vision.
-See `docs/FUTURE-WORK.md` § "Architecture pivot" for implementation roadmap.
-See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
+See `AGENTS.md` for universal multi-agent guidelines.
+See `SESSION-CONTEXT.md` for detailed reasoning and active decisions.
 
 ---
 
@@ -59,10 +29,15 @@ See `SESSION-CONTEXT.md` for detailed reasoning and open questions.
 
 | Document | Phase | Status |
 |----------|-------|--------|
-| `.meta/specs/2026-03-31-development-workflow.md` | Process | Active |
-| `.meta/specs/2026-03-31-project-audit-spec.md` | Audit | Active |
-| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Plan-Ready (validated) |
-| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Draft (ready for review) |
+| `AGENTS.md` | Universal Constitution | Active (Living Standard) |
+| `.meta/WORKFLOW.md` | Development Process | Active (Living Standard) |
+| `.meta/AUDIT-SPEC.md` | Audit Protocol | Active (Living Standard) |
+| `.meta/plans/2026-08-15-golden-configuration-and-cleanup.md` | Milestone 0 | Shipped (518 passed / 0 failed) |
+| `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Implemented & Validated |
+| `.meta/plans/2026-08-15-note-creation-semantic-clustering-plan.md` | Phase 1 | Shipped (539 passed / 0 failed) |
+| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Spec-Ready (Validated) |
+| `.meta/plans/2026-08-15-visual-and-document-ingestion-plan.md` | Phase 2 | Plan-Ready (Validated) |
+| `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md` | Visualization & DevTools | Spec-Ready (Validated) |
 
 ## Vision documents
 

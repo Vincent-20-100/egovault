@@ -23,9 +23,15 @@ from tools.vault.finalize_source import finalize_source as _finalize_source_tool
 from tools.vault.generate_note_from_source import generate_note_from_source as _generate_note_from_source_tool
 from tools.vault.search import search as _search_tool
 from tools.vault.curate import curate as _curate_tool
+from tools.vault.list_note_candidates import list_note_candidates as _list_note_candidates_tool
+from tools.vault.claim_note_candidate import claim_note_candidate as _claim_note_candidate_tool
+from tools.vault.create_note_from_candidate import create_note_from_candidate as _create_note_from_candidate_tool
+from tools.vault.skip_note_candidate import skip_note_candidate as _skip_note_candidate_tool
+from tools.vault.get_chunks import get_chunks as _get_chunks_tool
 from tools.export.typst import export_typst as _export_typst_tool
 from tools.export.mermaid import export_mermaid as _export_mermaid_tool
 from infrastructure.context import build_context
+from core.schemas import NoteContentInput
 
 try:
     settings = load_settings()
@@ -397,6 +403,99 @@ def generate_note_from_source(source_uid: str, template: str = "standard") -> di
     """
     result = _generate_note_from_source_tool(source_uid, ctx, template)
     return result.model_dump(mode="json")
+
+
+@mcp.tool()
+def list_note_candidates(
+    source_uid: str | None = None,
+    status: str | None = None,
+) -> list[dict]:
+    """
+    List segmented note candidates from the ingestion queue (1 Source -> N Notes).
+
+    When to use: To inspect pending candidates awaiting note synthesis or conversion.
+    Filter by status ('queued', 'in_progress', 'converted', 'skipped') or source_uid.
+
+    What to call next: claim_note_candidate(uid) to acquire a processing lock,
+    then create_note_from_candidate(uid, ...) to convert it.
+    """
+    results = _list_note_candidates_tool(ctx, source_uid=source_uid, status=status)
+    return [c.model_dump(mode="json") for c in results]
+
+
+@mcp.tool()
+def claim_note_candidate(
+    candidate_uid: str,
+    session_id: str = "mcp_agent",
+    is_human: bool = False,
+) -> dict:
+    """
+    Acquire an exclusive processing lock on a note candidate.
+
+    Lock TTL is 300s for AI agents and 3600s for humans.
+    Returns the claimed candidate record.
+    """
+    result = _claim_note_candidate_tool(candidate_uid, ctx, session_id=session_id, is_human=is_human)
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
+def create_note_from_candidate(
+    candidate_uid: str,
+    title: str,
+    docstring: str,
+    body: str,
+    tags: list[str],
+    session_id: str = "mcp_agent",
+    note_type: str = "synthese",
+) -> dict:
+    """
+    Atomically convert a locked note candidate into an active Obsidian Note.
+
+    Executes in a single SQLite transaction with lock verification, file generation,
+    and automatic vector embedding.
+    """
+    content = NoteContentInput(title=title, docstring=docstring, body=body, tags=tags)
+    result = _create_note_from_candidate_tool(
+        candidate_uid=candidate_uid,
+        content=content,
+        ctx=ctx,
+        session_id=session_id,
+        note_type=note_type,
+        tags=tags,
+    )
+    return result.model_dump(mode="json")
+
+
+@mcp.tool()
+def skip_note_candidate(candidate_uid: str) -> dict:
+    """
+    Skip a note candidate without creating a note.
+    """
+    return _skip_note_candidate_tool(candidate_uid, ctx)
+
+
+@mcp.tool()
+def get_chunks(chunk_uids: list[str]) -> list[dict]:
+    """
+    Retrieve verbatim chunk records by their UIDs for proof inspection.
+
+    When to use: To inspect raw text evidence linked to a note candidate or search result.
+    """
+    results = _get_chunks_tool(chunk_uids, ctx)
+    return [c.model_dump(mode="json") for c in results]
+
+
+@mcp.tool()
+def review_note(note_uid: str, review_status: str = "reviewed") -> dict:
+    """
+    Update the validation review status of a note ('reviewed' or 'unreviewed').
+
+    Reviewed notes receive full confidence weighting (1.0) in curate().
+    """
+    _update_note_tool(note_uid, {"review_status": review_status}, ctx)
+    note = ctx.db.get_note(note_uid)
+    return note.model_dump(mode="json") if note else {}
 
 
 @mcp.tool()

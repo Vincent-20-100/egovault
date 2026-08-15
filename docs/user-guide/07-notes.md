@@ -21,7 +21,9 @@ A note is one row in `notes` + one Markdown file in `vault/notes/<slug>.md`.
 | `rating` | 1–5 or null | Set ONLY by the user — never by the LLM |
 | `sync_status` | `synced` / `pending_deletion` | Tracks Obsidian sync state |
 | `status` | `draft` / `active` | **Lifecycle gate** — see below |
+| `review_status` | `unreviewed` / `reviewed` | **Curate confidence weight** (1.0 for reviewed, 0.7 for unreviewed) |
 | `source_uid` | optional FK | If derived from one source; null for free-form / cross-source notes |
+| `candidate_uid` | optional FK | Points to the segmented `note_candidates` record |
 
 ## Lifecycle: draft → active
 

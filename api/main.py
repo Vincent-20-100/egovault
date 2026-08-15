@@ -40,7 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
         settings = load_settings()
 
-    executor = ThreadPoolExecutor(max_workers=4)
+    executor = ThreadPoolExecutor(max_workers=settings.install.hardware.threads)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -84,13 +84,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="EgoVault API", version="2.0.0", lifespan=lifespan)
 
-    @app.exception_handler(IngestError)
-    async def ingest_error_handler(request, exc: IngestError):
-        return JSONResponse(status_code=exc.http_status, content={"error": exc.error_code, "message": exc.user_message})
+    from core.errors import EgoVaultError
+
+    @app.exception_handler(EgoVaultError)
+    async def egovault_error_handler(request, exc: EgoVaultError):
+        return JSONResponse(status_code=exc.http_status, content=exc.to_dict())
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=settings.install.api.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -134,6 +136,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from api.routers.jobs import router as jobs_router
     from api.routers.ingest import router as ingest_router
     from api.routers.notes import router as notes_router
+    from api.routers.candidates import router as candidates_router
     from api.routers.sources import router as sources_router
     from api.routers.search import router as search_router
     from api.routers.vault import router as vault_router
@@ -143,6 +146,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(jobs_router)
     app.include_router(ingest_router)
     app.include_router(notes_router)
+    app.include_router(candidates_router)
     app.include_router(sources_router)
     app.include_router(search_router)
     app.include_router(vault_router)

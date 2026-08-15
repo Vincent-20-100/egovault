@@ -5,9 +5,10 @@ Single source of truth. Swappable: zero changes in core/ or tools/
 if this file is replaced by a different database implementation.
 """
 
+import json
 import logging
 import sqlite3
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import sqlite_vec
@@ -15,8 +16,9 @@ import sqlite_vec
 _logger = logging.getLogger(__name__)
 
 from core.schemas import (
-    Note, Source, ChunkResult, SearchResult, SearchFilters
+    Note, Source, ChunkResult, SearchResult, SearchFilters, NoteCandidate
 )
+from core.errors import NotFoundError, CandidateClaimedError, ExpiredLockError
 
 
 def get_vault_connection(db_path: Path) -> sqlite3.Connection:
@@ -77,8 +79,28 @@ CREATE TABLE IF NOT EXISTS notes (
     date_modified       DATE NOT NULL,
     language            TEXT DEFAULT 'fr',
     status              TEXT NOT NULL DEFAULT 'active',
+    review_status       TEXT NOT NULL DEFAULT 'unreviewed',
+    candidate_uid       TEXT REFERENCES note_candidates(uid) ON DELETE SET NULL,
     previous_sync_status TEXT
 );
+
+CREATE TABLE IF NOT EXISTS note_candidates (
+    uid                 TEXT PRIMARY KEY,
+    source_uid          TEXT NOT NULL REFERENCES sources(uid) ON DELETE CASCADE,
+    sequence_index      INTEGER NOT NULL,
+    chunk_uids          TEXT NOT NULL,
+    label               TEXT NOT NULL,
+    locator             TEXT,
+    status              TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued', 'in_progress', 'converted', 'skipped')),
+    claimed_by          TEXT,
+    claimed_at          TEXT,
+    converted_note_uid  TEXT REFERENCES notes(uid) ON DELETE SET NULL,
+    model_version       TEXT NOT NULL,
+    created_at          TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_source ON note_candidates(source_uid);
+CREATE INDEX IF NOT EXISTS idx_candidates_status ON note_candidates(status);
 
 CREATE TABLE IF NOT EXISTS chunks (
     uid          TEXT PRIMARY KEY,
@@ -254,6 +276,14 @@ def init_db(
             "SELECT uid, title, COALESCE(docstring, '') FROM notes"
         )
 
+    # Dynamic column migrations for existing notes tables
+    note_cols = [r["name"] for r in conn.execute("PRAGMA table_info(notes)").fetchall()]
+    if note_cols:
+        if "candidate_uid" not in note_cols:
+            conn.execute("ALTER TABLE notes ADD COLUMN candidate_uid TEXT")
+        if "review_status" not in note_cols:
+            conn.execute("ALTER TABLE notes ADD COLUMN review_status TEXT NOT NULL DEFAULT 'unreviewed'")
+
     conn.commit()
     conn.close()
     from core.security import set_restrictive_permissions
@@ -319,10 +349,12 @@ def insert_note(db_path: Path, note: Note) -> None:
     conn.execute(
         """INSERT INTO notes
            (uid, source_uid, slug, note_type, source_type, generation_template,
-            rating, sync_status, status, title, docstring, body, url, date_created, date_modified)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            rating, sync_status, status, review_status, candidate_uid,
+            title, docstring, body, url, date_created, date_modified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (note.uid, note.source_uid, note.slug, note.note_type, note.source_type,
          note.generation_template, note.rating, note.sync_status, note.status,
+         note.review_status, note.candidate_uid,
          note.title, note.docstring, note.body, note.url,
          note.date_created, note.date_modified),
     )
@@ -364,6 +396,7 @@ def update_note(db_path: Path, uid: str, fields: dict) -> None:
     allowed = {
         "title", "docstring", "body", "note_type", "source_type",
         "rating", "sync_status", "date_modified", "url", "status",
+        "review_status", "candidate_uid",
     }
     set_clauses = ", ".join(f"{k} = ?" for k in fields if k in allowed)
     values = [v for k, v in fields.items() if k in allowed]
@@ -445,6 +478,20 @@ def delete_chunks_for_source(db_path: Path, source_uid: str) -> None:
     conn.execute("DELETE FROM chunks WHERE source_uid = ?", (source_uid,))
     conn.commit()
     conn.close()
+
+
+def get_chunks(db_path: Path, chunk_uids: list[str]) -> list[ChunkResult]:
+    """Retrieve chunk objects by a list of chunk UIDs in position order."""
+    if not chunk_uids:
+        return []
+    conn = get_vault_connection(db_path)
+    placeholders = ", ".join("?" for _ in chunk_uids)
+    rows = conn.execute(
+        f"SELECT uid, position, content, token_count FROM chunks WHERE uid IN ({placeholders}) ORDER BY position ASC",
+        chunk_uids,
+    ).fetchall()
+    conn.close()
+    return [ChunkResult(**dict(r)) for r in rows]
 
 
 # ============================================================
@@ -1086,3 +1133,283 @@ def get_workflow_run_cost(db_path: Path, run_id: str) -> dict | None:
         "total_tokens": row["total_tokens"] or 0,
         "total_duration_ms": row["total_duration_ms"] or 0,
     }
+
+
+# ============================================================
+# NOTE CANDIDATES
+# ============================================================
+
+def insert_note_candidates(db_path: Path, candidates: list[NoteCandidate]) -> None:
+    """Insert a batch of note candidates from topic segmentation."""
+    if not candidates:
+        return
+    conn = get_vault_connection(db_path)
+    for c in candidates:
+        conn.execute(
+            """INSERT INTO note_candidates
+               (uid, source_uid, sequence_index, chunk_uids, label, locator,
+                status, claimed_by, claimed_at, converted_note_uid, model_version, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                c.uid,
+                c.source_uid,
+                c.sequence_index,
+                json.dumps(c.chunk_uids),
+                c.label,
+                c.locator,
+                c.status,
+                c.claimed_by,
+                c.claimed_at,
+                c.converted_note_uid,
+                c.model_version,
+                c.created_at,
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_note_candidate(db_path: Path, uid: str) -> NoteCandidate | None:
+    """Fetch a single note candidate by UID."""
+    conn = get_vault_connection(db_path)
+    row = conn.execute("SELECT * FROM note_candidates WHERE uid = ?", (uid,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    d = dict(row)
+    d["chunk_uids"] = json.loads(d["chunk_uids"])
+    return NoteCandidate(**d)
+
+
+def list_note_candidates(
+    db_path: Path,
+    source_uid: str | None = None,
+    status: str | None = None,
+) -> list[NoteCandidate]:
+    """List note candidates optionally filtered by source_uid and status."""
+    conn = get_vault_connection(db_path)
+    query = "SELECT * FROM note_candidates WHERE 1=1"
+    params = []
+    if source_uid is not None:
+        query += " AND source_uid = ?"
+        params.append(source_uid)
+    if status is not None:
+        query += " AND status = ?"
+        params.append(status)
+    query += " ORDER BY sequence_index ASC"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["chunk_uids"] = json.loads(d["chunk_uids"])
+        result.append(NoteCandidate(**d))
+    return result
+
+
+def claim_note_candidate(
+    db_path: Path,
+    candidate_uid: str,
+    session_id: str,
+    ttl_seconds: int = 300,
+) -> NoteCandidate:
+    """
+    Atomically claim a note candidate with TTL-based expiration.
+    Allows stealing expired locks or re-claiming own locks.
+    """
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+    conn = get_vault_connection(db_path)
+
+    # Check candidate existence and current state
+    row = conn.execute(
+        "SELECT * FROM note_candidates WHERE uid = ?", (candidate_uid,)
+    ).fetchone()
+    if row is None:
+        conn.close()
+        raise NotFoundError("NoteCandidate", candidate_uid)
+
+    current_status = row["status"]
+    claimed_by = row["claimed_by"]
+    claimed_at = row["claimed_at"]
+
+    if current_status == "converted":
+        conn.close()
+        raise ExpiredLockError(
+            user_message=f"Candidate '{candidate_uid}' is already converted."
+        )
+
+    # Check if lock can be acquired
+    is_claimable = False
+    if current_status in ("queued", "skipped"):
+        is_claimable = True
+    elif current_status == "in_progress":
+        if claimed_by == session_id:
+            is_claimable = True
+        elif claimed_at:
+            dt = datetime.fromisoformat(claimed_at)
+            elapsed = (now_dt - dt).total_seconds()
+            if elapsed > ttl_seconds:
+                is_claimable = True
+            else:
+                remaining = max(0, int(ttl_seconds - elapsed))
+                conn.close()
+                raise CandidateClaimedError(candidate_uid, claimed_by or "unknown", remaining)
+        else:
+            is_claimable = True
+
+    if not is_claimable:
+        conn.close()
+        raise CandidateClaimedError(candidate_uid, claimed_by or "unknown", 0)
+
+    conn.execute(
+        """UPDATE note_candidates
+           SET status = 'in_progress', claimed_by = ?, claimed_at = ?
+           WHERE uid = ?""",
+        (session_id, now, candidate_uid),
+    )
+    conn.commit()
+    row = conn.execute("SELECT * FROM note_candidates WHERE uid = ?", (candidate_uid,)).fetchone()
+    conn.close()
+    d = dict(row)
+    d["chunk_uids"] = json.loads(d["chunk_uids"])
+    return NoteCandidate(**d)
+
+
+def renew_candidate_lock(
+    db_path: Path,
+    candidate_uid: str,
+    session_id: str,
+) -> None:
+    """Renew the claimed_at timestamp on an in-progress candidate lock."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = get_vault_connection(db_path)
+    cursor = conn.execute(
+        """UPDATE note_candidates
+           SET claimed_at = ?
+           WHERE uid = ? AND status = 'in_progress' AND claimed_by = ?""",
+        (now, candidate_uid, session_id),
+    )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise ExpiredLockError(
+            user_message=f"Cannot renew lock for candidate '{candidate_uid}': lock lost or held by another session."
+        )
+
+
+def release_note_candidate(
+    db_path: Path,
+    candidate_uid: str,
+    session_id: str,
+) -> None:
+    """Release an in-progress candidate back to queued status."""
+    conn = get_vault_connection(db_path)
+    conn.execute(
+        """UPDATE note_candidates
+           SET status = 'queued', claimed_by = NULL, claimed_at = NULL
+           WHERE uid = ? AND status = 'in_progress' AND claimed_by = ?""",
+        (candidate_uid, session_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def mark_candidate_converted(
+    db_path: Path,
+    candidate_uid: str,
+    note_uid: str,
+    session_id: str,
+) -> None:
+    """Transition candidate to converted state with converted_note_uid link."""
+    conn = get_vault_connection(db_path)
+    cursor = conn.execute(
+        """UPDATE note_candidates
+           SET status = 'converted', converted_note_uid = ?, claimed_by = NULL, claimed_at = NULL
+           WHERE uid = ? AND (claimed_by = ? OR status = 'in_progress')""",
+        (note_uid, candidate_uid, session_id),
+    )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise ExpiredLockError(
+            user_message=f"Cannot mark candidate '{candidate_uid}' as converted: lock lost or invalid session."
+        )
+
+
+def mark_candidate_skipped(
+    db_path: Path,
+    candidate_uid: str,
+) -> None:
+    """Transition candidate to skipped state."""
+    conn = get_vault_connection(db_path)
+    conn.execute(
+        """UPDATE note_candidates
+           SET status = 'skipped', claimed_by = NULL, claimed_at = NULL
+           WHERE uid = ?""",
+        (candidate_uid,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def create_note_from_candidate(
+    db_path: Path,
+    note: Note,
+    candidate_uid: str,
+    session_id: str,
+) -> Note:
+    """
+    Atomically creates a Note and transitions its NoteCandidate to 'converted'
+    in a single SQLite transaction with lock ownership validation.
+    """
+    conn = get_vault_connection(db_path)
+    try:
+        with conn:
+            # 1. Validate candidate lock
+            row = conn.execute(
+                "SELECT status, claimed_by FROM note_candidates WHERE uid = ?",
+                (candidate_uid,),
+            ).fetchone()
+            if row is None:
+                raise NotFoundError("NoteCandidate", candidate_uid)
+            if row["status"] != "in_progress" or row["claimed_by"] != session_id:
+                raise ExpiredLockError(
+                    user_message=f"Candidate '{candidate_uid}' lock lost before atomic conversion."
+                )
+
+            # 2. Insert Note
+            conn.execute(
+                """INSERT INTO notes
+                   (uid, source_uid, slug, note_type, source_type, generation_template,
+                    rating, sync_status, status, review_status, candidate_uid,
+                    title, docstring, body, url, date_created, date_modified)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    note.uid, note.source_uid, note.slug, note.note_type, note.source_type,
+                    note.generation_template, note.rating, note.sync_status, note.status,
+                    note.review_status, candidate_uid,
+                    note.title, note.docstring, note.body, note.url,
+                    note.date_created, note.date_modified,
+                ),
+            )
+            conn.execute(
+                "INSERT INTO notes_fts(uid, title, docstring) VALUES (?, ?, ?)",
+                (note.uid, note.title, note.docstring or ""),
+            )
+
+            # 3. Mark candidate converted
+            conn.execute(
+                """UPDATE note_candidates
+                   SET status = 'converted', converted_note_uid = ?, claimed_by = NULL, claimed_at = NULL
+                   WHERE uid = ?""",
+                (note.uid, candidate_uid),
+            )
+    finally:
+        conn.close()
+
+    note.candidate_uid = candidate_uid
+    if note.tags:
+        set_note_tags(db_path, note.uid, note.tags)
+    return note
+
