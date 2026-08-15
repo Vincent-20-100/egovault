@@ -2,7 +2,7 @@
 mode: deep
 date: 2026-08-15
 slug: cognitive-architecture-neuroscience-sota
-sources: [neuroscience-memory-consolidation, spreading-activation, graphrag, tencentdb-agent-memory, letta-memgpt]
+sources: [neuroscience-memory-consolidation, spreading-activation, graphrag, tencentdb-agent-memory, letta-memgpt, vector-isotropy-problem]
 status: active
 ---
 
@@ -36,6 +36,13 @@ Human cognition solved the long-term knowledge problem millions of years ago thr
 - Concepts are nodes in a semantic network. Activating node $A$ ("Risk") spreads activation along associative pathways to connected nodes $B$ ("Convexity"), $C$ ("Antifragility").
 - *EgoVault mapping:* Retrieving a note triggers retrieval of related notes via shared tags and wikilinks `[[concept]]` (multi-hop associative retrieval).
 
+### 2.4 Vector Isotropy & Synaptic Weighting (Overcoming Flat Vector Spaces)
+- **The Flat Vector Problem:** Standard cosine similarity on unit spheres treats an axiomatic principle (*"Conservation of Energy"*) and a trivial case study (*"How startup X priced product Y in 2021"*) identically (norm = 1).
+- **Biological Solution:** Synaptic potentiation (LTP) and lower resting membrane thresholds make foundational hub concepts easier to activate.
+- **EgoVault Principle — Deterministic A Posteriori Weighting:**
+  - **No arbitrary manual ratings at creation time:** Reject subjective 1-5 star ratings during note creation (which drift over time).
+  - **Deterministic Emergent Centrality:** Depth and weight are derived organically from the Obsidian graph topology (in-degree, PageRank, backlink density) and structural taxonomies (`concept` vs `synthese`).
+
 ---
 
 ## 3. SOTA AI Memory & Retrieval Systems (2024–2026)
@@ -63,3 +70,5 @@ EgoVault sits at a unique, unserved intersection in the knowledge ecosystem:
 3. **Conceptual Vectorization (Tier 2) vs Naive Chunk RAG:**
    - Chunks capture verbatim phrasing (noisy, oral, colloquial).
    - Notes capture distilled theses and mental models. Vectorizing notes produces higher semantic density and allows broader cosine thresholds, fostering lateral thinking and multidisciplinary synthesis.
+4. **Emergent Topological Relief:**
+   - Instead of static embeddings on a flat surface, the knowledge compiler combines dense vector proximity with graph centrality (PageRank on backlinks), bringing root mental models to the surface naturally.
