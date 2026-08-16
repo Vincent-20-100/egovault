@@ -33,7 +33,7 @@ See `SESSION-CONTEXT.md` for detailed reasoning and active decisions.
 | `.meta/plans/2026-08-15-golden-configuration-and-cleanup.md` | Milestone 0 | Shipped (v0.4.0) (518 passed / 0 failed) |
 | `.meta/specs/2026-08-14-note-creation-semantic-clustering-spec.md` | Core Engine | Shipped (v0.4.0) |
 | `.meta/plans/2026-08-15-note-creation-semantic-clustering-plan.md` | Phase 1 | Shipped (v0.4.0) (539 passed / 0 failed) |
-| `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md` | DevTools & R&D | Shipped (v0.4.0) (Notebooks 01, 02, 04) |
+| `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md` | DevTools & R&D | Shipped (v0.4.0) (Consolidated 2-Notebook Suite: 01 Benchmarks & 02 Showcase) |
 | `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Spec-Ready (Validated) |
 | `.meta/plans/2026-08-15-visual-and-document-ingestion-plan.md` | Phase 2 | Plan-Ready (Validated) |
 

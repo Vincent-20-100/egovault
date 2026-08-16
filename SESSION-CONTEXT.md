@@ -95,9 +95,8 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    - Notebook 03: `03_multimodal_pdf_and_ocr_inspection.ipynb`.
 
 2. **Interactive Visual Notebooks Implementation:**
-   - Notebook 01: `01_topic_segmentation_visualizer.ipynb`
-   - Notebook 02: `02_dual_vector_space_topology.ipynb`
-   - Notebook 04: `04_end_to_end_cognitive_explorer.ipynb`
+   - Notebook 01: `01_engine_benchmarks.ipynb` (TextTiling trajectory, 4-strategy benchmark on book prose vs spoken discourse podcast `https://youtu.be/Pef22g53zsg`, retrieval RRF benchmark).
+   - Notebook 02: `02_cognitive_explorer_demo.ipynb` (End-to-end product showcase: Ingestion PDF -> Chunking -> Markdown Note compilation -> Curate working memory -> Verbatim proof).
 
 ---
 
