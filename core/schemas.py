@@ -297,3 +297,28 @@ class FetchWebResult(BaseModel):
     word_count: int
     final_url: str
     content_type: str
+
+
+class ExtractedImageMetadata(BaseModel):
+    path: str
+    page_number: int
+    md5_hash: str
+    width: int
+    height: int
+    caption: str | None = None
+
+
+class DocumentParseResult(BaseModel):
+    text: str
+    page_count: int
+    images: list[ExtractedImageMetadata] = Field(default_factory=list)
+    is_scanned: bool = False
+
+
+class MediaAssetResult(BaseModel):
+    file_path: str
+    mime_type: str
+    size_bytes: int
+    content_base64: str
+
+

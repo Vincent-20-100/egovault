@@ -37,12 +37,36 @@ def _extract_audio(target: str, ctx: VaultContext) -> tuple[str, dict]:
     return result.text, {"language": result.language}
 
 
-def _extract_pdf(target: str, ctx: VaultContext) -> tuple[str, dict]:
-    import pypdf
-    reader = pypdf.PdfReader(target)
-    pages = [page.extract_text() or "" for page in reader.pages]
-    text = "\n\n".join(pages)
-    return text, {"page_count": len(reader.pages)}
+def _extract_pdf(target: str, ctx: VaultContext, output_media_dir: Path | None = None) -> tuple[str, dict]:
+    from tools.media.parse_document import parse_document
+    parsed = parse_document(target, ctx, output_media_dir=output_media_dir)
+    if parsed.is_scanned:
+        from tools.media.ocr_document import ocr_document
+        parsed = ocr_document(target, ctx)
+    return parsed.text, {"page_count": parsed.page_count, "is_scanned": parsed.is_scanned}
+
+
+def _extract_image(target: str, ctx: VaultContext, output_media_dir: Path | None = None) -> tuple[str, dict]:
+    from core.errors import NotFoundError
+    img_path = Path(target)
+    if not img_path.exists():
+        raise NotFoundError(
+            error_code="image_not_found",
+            user_message=f"Image file not found: {target}",
+            actionable_hint="Verify that the image file path exists on disk.",
+        )
+    stem = img_path.stem
+    rel_path = target
+    if output_media_dir:
+        output_media_dir.mkdir(parents=True, exist_ok=True)
+        dest = output_media_dir / img_path.name
+        if not dest.exists():
+            import shutil
+            shutil.copy2(img_path, dest)
+        rel_path = f"media/{output_media_dir.name}/{img_path.name}"
+
+    transcript = f"![{stem}]({rel_path})"
+    return transcript, {"image_path": str(img_path)}
 
 
 def _extract_text(target: str, ctx: VaultContext) -> tuple[str, dict]:
@@ -79,6 +103,7 @@ _EXTRACTORS: dict[str, callable] = {
     "video": _extract_audio,
     "pdf": _extract_pdf,
     "livre": _extract_pdf,
+    "image": _extract_image,
     "texte": _extract_text,
     "html": _extract_html,
     "web": _extract_web,
@@ -99,7 +124,7 @@ def _make_slug(source_type: str, target: str, title: str | None, ctx: VaultConte
         base = f"youtube-{_youtube_video_id(target)}"
     elif title:
         base = title
-    elif source_type in ("audio", "video", "pdf", "livre"):
+    elif source_type in ("audio", "video", "pdf", "livre", "image"):
         base = Path(target).stem
     else:
         base = source_type
@@ -152,7 +177,11 @@ def ingest(
     try:
         # Step 1: Extract text
         ctx.db.update_source_status(source_uid, "transcribing")
-        text, metadata = extractor(target, ctx)
+        output_media_dir = ctx.media_path / slug
+        try:
+            text, metadata = extractor(target, ctx, output_media_dir=output_media_dir)
+        except TypeError:
+            text, metadata = extractor(target, ctx)
 
         if not text or not text.strip():
             raise EmptyContentError()

@@ -35,8 +35,8 @@ See `SESSION-CONTEXT.md` for detailed reasoning and active decisions.
 | `.meta/plans/2026-08-15-note-creation-semantic-clustering-plan.md` | Phase 1 | Shipped (v0.4.0) (539 passed / 0 failed) |
 | `.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md` | DevTools & R&D | Shipped (v0.4.0) (Consolidated 2-Notebook Suite: 01 Benchmarks & 02 Showcase) |
 | `.meta/specs/2026-08-16-tool-renaming-and-search-all-spec.md` | Core Engine | Shipped (v0.4.0) (541 passed / 0 failed) |
-| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Spec-Ready (Validated) |
-| `.meta/plans/2026-08-15-visual-and-document-ingestion-plan.md` | Phase 2 | Plan-Ready (Validated) |
+| `.meta/specs/2026-08-15-visual-and-document-ingestion-spec.md` | Ingest Engine | Shipped (v0.5.0) (547 passed / 0 failed) |
+| `.meta/plans/2026-08-15-visual-and-document-ingestion-plan.md` | Phase 2 | Shipped (v0.5.0) (547 passed / 0 failed) |
 
 ## Vision documents
 

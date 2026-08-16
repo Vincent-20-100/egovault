@@ -30,6 +30,7 @@ from tools.vault.skip_note_candidate import skip_note_candidate as _skip_note_ca
 from tools.vault.get_chunks import get_chunks as _get_chunks_tool
 from tools.export.typst import export_typst as _export_typst_tool
 from tools.export.mermaid import export_mermaid as _export_mermaid_tool
+from tools.media.get_media import get_media as _get_media_tool
 from infrastructure.context import build_context
 from core.schemas import NoteContentInput
 
@@ -173,6 +174,18 @@ def query_vault(query: str, filters: dict | None = None, limit: int = 5) -> dict
 def curate(query: str, filters: dict | None = None, limit: int = 5) -> dict:
     """Backward compatibility alias for query_vault."""
     return query_vault(query, filters, limit)
+
+
+@mcp.tool()
+def get_media(file_path: str) -> dict:
+    """
+    Safely retrieve a media asset (e.g. image/figure) from media_dir for LLM visual inspection.
+
+    When to use: When an extracted figure Markdown pointer `![Caption](media/.../fig_xx.png)` is
+    referenced in a chunk or note, and you need to inspect the image payload.
+    """
+    return _get_media_tool(file_path, ctx).model_dump(mode="json")
+
 
 
 

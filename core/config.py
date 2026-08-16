@@ -74,6 +74,7 @@ class IngestPdfConfig(BaseModel):
 
 class IngestOcrConfig(BaseModel):
     engine: str = "rapidocr"
+    dpi: int = Field(default=150, ge=72, le=600)
     languages: list[str] = Field(default_factory=lambda: ["fr", "en"])
 
 

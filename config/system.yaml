@@ -41,6 +41,7 @@ ingest:
 
   ocr:
     engine: rapidocr                # rapidocr | pytesseract
+    dpi: 150                        # Rendering resolution for OCR pixmaps
     languages:
       - fr
       - en

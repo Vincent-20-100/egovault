@@ -112,20 +112,22 @@ def test_youtube_extractor(tmp_settings, tmp_db, tmp_path):
 
 def test_pdf_extractor(tmp_settings, tmp_db, tmp_path):
     from workflows.ingest import ingest
+    from core.schemas import DocumentParseResult
     ctx = _make_ctx(tmp_settings, tmp_db, tmp_path)
 
-    mock_page = MagicMock()
-    mock_page.extract_text.return_value = "PDF page content"
-    mock_reader = MagicMock()
-    mock_reader.pages = [mock_page]
+    pdf_path = tmp_path / "sample_doc.pdf"
+    pdf_path.touch()
 
-    import sys
-    mock_pypdf = MagicMock()
-    mock_pypdf.PdfReader.return_value = mock_reader
-    with patch.dict(sys.modules, {"pypdf": mock_pypdf}):
+    mock_parsed = DocumentParseResult(
+        text="Sample extracted PDF layout text content for testing.",
+        page_count=1,
+        is_scanned=False,
+    )
+
+    with patch("tools.media.parse_document.parse_document", return_value=mock_parsed):
         with patch("workflows.ingest.chunk_text", return_value=[_make_chunk()]):
             with patch("workflows.ingest.embed_text", return_value=make_embedding(0.0)):
-                source = ingest("pdf", "/fake/doc.pdf", ctx, title="My PDF")
+                source = ingest("pdf", str(pdf_path), ctx, title="My PDF")
 
     assert source.source_type == "pdf"
     assert source.status == "rag_ready"

@@ -43,6 +43,14 @@ class VaultDB:
     def restore_source(self, uid: str) -> str:
         return _db.restore_source(self._db_path, uid)
 
+    def list_sources(
+        self,
+        status: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Source]:
+        return _db.list_sources(self._db_path, status, limit, offset)
+
     def list_sources_pending_deletion(self) -> list[Source]:
         return _db.list_sources_pending_deletion(self._db_path)
 

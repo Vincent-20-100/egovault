@@ -25,7 +25,8 @@ partial transcript. You can inspect, manually fix, and re-ingest.
 |---|---|---|---|
 | `youtube` | YouTube URL | `youtube-transcript-api` (subtitles) → `faster-whisper` (fallback if no subs) | Both auto-detected. Whisper is local, GPU-accelerated when available. |
 | `audio` | `.mp3`, `.wav`, `.m4a`, `.flac`, `.ogg`, `.aac` | `faster-whisper` directly | Language hint via CLI `--language` (default: `fr`) |
-| `pdf` | `.pdf` | `pypdf` | Text-only; image-heavy PDFs lose content. Future: chandra OCR (tier-2 extractor, see product audit §11) |
+| `pdf` | `.pdf` | `parse_document` (layout parser + figure extraction) → `ocr_document` (OCR fallback) | Multi-column layout parser with native table support, HD figure slicing, and automatic CPU OCR for scanned PDFs |
+| `image` | `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg` | Lean Pointer image extractor | Copies asset into `media/{slug}/` and inserts a Markdown visual pointer `![Title](media/{slug}/...)` |
 | `texte` | `.txt` or text content via API/MCP | passthrough | Best for already-clean text |
 | `html` | `.html`, `.htm` | builtin (`bs4`) or `trafilatura` (tier-1, optional extra) | Configurable via `system.yaml` `web.extraction_tier` |
 | `web` | URL | `fetch_web` → 2-tier extraction | SSRF-protected; respects rate limit (`web.min_fetch_interval_seconds`) |
