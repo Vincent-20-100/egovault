@@ -44,7 +44,7 @@ from tools.text.chunk import chunk_text
 from tools.text.segment import segment_chunks, _cosine_similarity
 from tools.vault.claim_note_candidate import claim_note_candidate
 from tools.vault.create_note_from_candidate import create_note_from_candidate
-from tools.vault.curate import curate
+from tools.vault.query_vault import query_vault
 from tools.vault.list_note_candidates import list_note_candidates
 from tools.vault.update_note import update_note
 from workflows.ingest import ingest
@@ -213,12 +213,12 @@ def run_retrieval_benchmark(ctx):
                 update_note(note_res.note.uid, {"review_status": "reviewed"}, test_ctx)
 
         queries = ["duty and virtue", "meditation on death", "self-discipline and reason", "London Metal Exchange copper"]
-        print(f"\n  Running {len(queries)} queries through curate()...")
+        print(f"\n  Running {len(queries)} queries through query_vault()...")
         for q in queries:
-            test_ctx.settings.system.curate.use_hybrid_retrieval = False
-            r_cos = curate(q, test_ctx, limit=5)
-            test_ctx.settings.system.curate.use_hybrid_retrieval = True
-            r_hyb = curate(q, test_ctx, limit=5)
+            test_ctx.settings.system.query_vault.use_hybrid_retrieval = False
+            r_cos = query_vault(q, test_ctx, limit=5)
+            test_ctx.settings.system.query_vault.use_hybrid_retrieval = True
+            r_hyb = query_vault(q, test_ctx, limit=5)
             print(f"    Query: \"{q}\"")
             print(f"      Cosine -> confidence={r_cos.confidence:.3f}, sources={len(r_cos.sources)}")
             print(f"      Hybrid -> confidence={r_hyb.confidence:.3f}, sources={len(r_hyb.sources)}")

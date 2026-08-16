@@ -1,5 +1,5 @@
 """
-Curate command — Librarian tier 0 retrieval.
+Query command — Librarian working memory retrieval.
 
 Routing layer only. No business logic.
 """
@@ -10,7 +10,7 @@ import typer
 
 from cli.output import print_error
 
-app = typer.Typer(help="Librarian retrieval over the vault.")
+app = typer.Typer(help="Query working memory context over the vault.")
 
 
 def _build_ctx():
@@ -19,17 +19,17 @@ def _build_ctx():
     return build_context(load_settings())
 
 
-def _run_curate(query: str, ctx, limit: int):
-    from tools.vault.curate import curate
-    return curate(query, ctx, limit=limit)
+def _run_query(query: str, ctx, limit: int):
+    from tools.vault.query_vault import query_vault
+    return query_vault(query, ctx, limit=limit)
 
 
-@app.command()
-def curate_cmd(
+@app.command(name="query")
+def query_cmd(
     query: Annotated[str, typer.Argument(help="Knowledge question")],
     limit: Annotated[int, typer.Option("--limit", help="Max sources")] = 5,
 ) -> None:
-    """Librarian tier 0 retrieval over the vault."""
+    """Librarian working memory retrieval over the vault."""
     if not query.strip():
         print_error("Query must not be empty.", "empty_query", False, False)
         raise typer.Exit(1)
@@ -42,9 +42,9 @@ def curate_cmd(
         raise typer.Exit(1)
 
     try:
-        result = _run_curate(query, ctx, limit)
+        result = _run_query(query, ctx, limit)
     except Exception as e:
-        print_error("Curate failed.", "curate_error", False, False, str(e))
+        print_error("Query failed.", "query_error", False, False, str(e))
         raise typer.Exit(1)
 
     if not result.sources:

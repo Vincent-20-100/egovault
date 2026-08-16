@@ -22,7 +22,7 @@ from tools.vault.update_note import update_note as _update_note_tool
 from tools.vault.finalize_source import finalize_source as _finalize_source_tool
 from tools.vault.generate_note_from_source import generate_note_from_source as _generate_note_from_source_tool
 from tools.vault.search import search as _search_tool
-from tools.vault.curate import curate as _curate_tool
+from tools.vault.query_vault import query_vault as _query_vault_tool
 from tools.vault.list_note_candidates import list_note_candidates as _list_note_candidates_tool
 from tools.vault.claim_note_candidate import claim_note_candidate as _claim_note_candidate_tool
 from tools.vault.create_note_from_candidate import create_note_from_candidate as _create_note_from_candidate_tool
@@ -133,10 +133,12 @@ def search(query: str, filters: dict | None = None, mode: str = "chunks") -> lis
     Semantic search over the vault.
     mode='chunks': chunk-level RAG — searches source content (transcripts, PDFs).
     mode='notes' : note-level semantic search — searches your written notes.
+    mode='all'   : dual-space search across both notes and chunks.
 
     When to use: The starting point for any knowledge retrieval task.
     Use mode='chunks' to find raw source material for a new note.
     Use mode='notes' to find existing notes on a topic.
+    Use mode='all' to search both vector spaces simultaneously.
 
     What to call next:
     - After mode='chunks': get_source(source_uid) to read the full source.
@@ -148,7 +150,7 @@ def search(query: str, filters: dict | None = None, mode: str = "chunks") -> lis
 
 
 @mcp.tool()
-def curate(query: str, filters: dict | None = None, limit: int = 5) -> dict:
+def query_vault(query: str, filters: dict | None = None, limit: int = 5) -> dict:
     """
     Librarian retrieval — the preferred entry point for any knowledge question.
 
@@ -163,8 +165,15 @@ def curate(query: str, filters: dict | None = None, limit: int = 5) -> dict:
     content for any source you want to quote verbatim.
     """
     search_filters = SearchFilters(**(filters or {}))
-    result = _curate_tool(query, ctx, filters=search_filters, limit=limit)
+    result = _query_vault_tool(query, ctx, filters=search_filters, limit=limit)
     return result.model_dump(mode="json")
+
+
+@mcp.tool()
+def curate(query: str, filters: dict | None = None, limit: int = 5) -> dict:
+    """Backward compatibility alias for query_vault."""
+    return query_vault(query, filters, limit)
+
 
 
 @mcp.tool()

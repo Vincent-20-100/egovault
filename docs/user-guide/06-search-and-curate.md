@@ -1,4 +1,4 @@
-# 06 — Search and curate
+# 06 — Search and query_vault
 
 This is the chapter you'll reread most.
 
@@ -6,18 +6,18 @@ This is the chapter you'll reread most.
 
 | Tier | What it returns | LLM needed? | Status |
 |---|---|:-:|---|
-| **0 — deterministic Librarian** | sorted raw results from notes + chunks, with truncation | no | shipped (`curate()`) |
+| **0 — deterministic Librarian** | sorted raw results from notes + chunks, with truncation | no | shipped (`query_vault()`) |
 | **1 — LLM synthesis** | tier-0 + LLM dedupes/selects/synthesizes a coherent text | yes | open redesign (Q #7) |
 | **2 — agentic** | full agent loop, multi-call reasoning | yes | not on roadmap |
 
-Today, when you say "search" you mean tier-0 + optional hybrid retrieval. The
+Today, when you say "query" you mean tier-0 + optional hybrid retrieval. The
 deferred tier-1 brainstorm (open question 7 in SESSION-CONTEXT) is being
 informed by the 2026-05-19 SOTA synthesis (`docs/.../research/synthesis-retrieval-sota-2026-05-19.md`).
 
-## What `curate()` does (tier 0)
+## What `query_vault()` does (tier 0)
 
 ```
-curate(query, filters?, limit=5) →
+query_vault(query, filters?, limit=5) →
    1. embed query (via ctx.embed)
    2. retrieve notes (top-K via cosine, optionally + BM25 fused via RRF)
    3. count "relevant" notes (distance < escalation_max_distance)
@@ -34,7 +34,7 @@ compiled knowledge beats raw chunks when it exists.
 
 ```yaml
 # system.yaml
-curate:
+query_vault:
   escalation_min_notes: 3              # if < N notes pass the distance gate, escalate
   escalation_max_distance: 0.5         # cosine distance threshold for "relevant"
 ```

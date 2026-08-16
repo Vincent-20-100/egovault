@@ -46,18 +46,22 @@ class NoteSegmentationConfig(BaseModel):
     human_claim_ttl_seconds: int = Field(default=3600, ge=60, le=604800)
 
 
-class CurateConfidenceConfig(BaseModel):
+class QueryVaultConfidenceConfig(BaseModel):
     reviewed_note_weight: float = Field(default=1.0, ge=0.0, le=10.0)
     unreviewed_note_weight: float = Field(default=0.7, ge=0.0, le=10.0)
     rrf_k: int = Field(default=60, ge=1, le=1000)
 
 
-class CurateConfig(BaseModel):
+class QueryVaultConfig(BaseModel):
     escalation_min_notes: int = Field(default=3, ge=1, le=50)
     escalation_max_distance: float = Field(default=0.5, ge=0.0, le=2.0)
     synthesis_max_chars_per_item: int = Field(default=800, ge=100, le=10000)
     use_hybrid_retrieval: bool = False
-    confidence: CurateConfidenceConfig = Field(default_factory=CurateConfidenceConfig)
+    confidence: QueryVaultConfidenceConfig = Field(default_factory=QueryVaultConfidenceConfig)
+
+
+CurateConfidenceConfig = QueryVaultConfidenceConfig
+CurateConfig = QueryVaultConfig
 
 
 class IngestPdfConfig(BaseModel):
@@ -120,12 +124,16 @@ class SystemConfig(BaseModel):
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     note_segmentation: NoteSegmentationConfig = Field(default_factory=NoteSegmentationConfig)
-    curate: CurateConfig = Field(default_factory=CurateConfig)
+    query_vault: QueryVaultConfig = Field(default_factory=QueryVaultConfig)
     ingest: IngestConfig = Field(default_factory=IngestConfig)
     llm: LLMSystemConfig = Field(default_factory=LLMSystemConfig)
     upload: UploadConfig = Field(default_factory=UploadConfig)
     web: WebConfig = Field(default_factory=WebConfig)
     taxonomy: TaxonomyConfig = Field(default_factory=TaxonomyConfig)
+
+    @property
+    def curate(self) -> QueryVaultConfig:
+        return self.query_vault
 
 
 # ============================================================

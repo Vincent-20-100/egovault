@@ -143,9 +143,10 @@ EgoVault's `.obsidian/` ships with:
 - **Daily notes** disabled (EgoVault notes are evergreen, not journal-like)
 
 Plugins worth adding manually:
-- **Templater** — for your own note formatting shortcuts
-- **Dataview** — query your notes as a DB inside Obsidian (great for
-  cross-corpus analytics: "all `note_type: concept` notes from this month")
+- **3D Semantic Graph** — projects your compiled EgoVault notes into an interactive 3D semantic manifold using vector embeddings. Configure it with your local Ollama instance (`http://localhost:11434` + `nomic-embed-text`) to align its 3D visualization perfectly with EgoVault's vector space.
+- **New 3D Graph** — high-performance Rust + WebAssembly 3D visualizer for Obsidian wikilink structures and tag clusters.
+- **Templater** — for your own note formatting shortcuts.
+- **Dataview** — query your notes as a DB inside Obsidian (great for cross-corpus analytics: "all `note_type: concept` notes from this month").
 
 These are user choices; EgoVault doesn't depend on them.
 

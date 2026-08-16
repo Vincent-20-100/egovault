@@ -1,5 +1,5 @@
 """
-Librarian tool — Curate prefrontal working memory context.
+Librarian tool — Query vault working memory context.
 
 Orchestrates the two-tier search (compiled notes → raw chunks) into a single
 high-density CuratedContext with confidence weighting based on note review status.
@@ -11,16 +11,16 @@ from core.schemas import SearchFilters, CuratedSource, CuratedContext
 from core.logging import loggable
 
 
-@loggable("curate")
-def curate(
+@loggable("query_vault")
+def query_vault(
     query: str,
     ctx: VaultContext,
     conversation_summary: str | None = None,  # accepted, inert in tier 0
     filters: SearchFilters | None = None,
     limit: int = 5,
 ) -> CuratedContext:
-    """Curate working memory context: search notes, escalate to chunks if sparse, assemble."""
-    cfg = ctx.settings.system.curate
+    """Query working memory context: search notes, escalate to chunks if sparse, assemble."""
+    cfg = getattr(ctx.settings.system, "query_vault", ctx.settings.system.curate)
     query_embedding = ctx.embed(query)
 
     # Opt-in hybrid retrieval (cosine + BM25 fused via RRF). When off, pure cosine.
@@ -88,3 +88,8 @@ def curate(
         confidence=confidence,
         query=query,
     )
+
+
+# Backward compatibility alias
+curate = query_vault
+

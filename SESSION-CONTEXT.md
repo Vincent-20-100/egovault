@@ -80,7 +80,8 @@ Rule: only v0.X.0 tags are timestamped. Script enforces the pattern.
    - **Candidate Tools & Ingestion Hook (`workflows/ingest.py`, `tools/vault/`):** 1 Source $\to$ N Notes segmentation pipeline hook, `list_note_candidates`, `claim_note_candidate`, `create_note_from_candidate`, `skip_note_candidate`, `get_chunks`.
    - **Review Status & Curate Confidence (`tools/vault/curate.py`):** Confidence scoring dynamically weighted by note validation status (`reviewed` = 1.0, `unreviewed` = 0.7).
    - **Routing Layers (API & MCP):** `/candidates` REST endpoints + MCP tools (`list_note_candidates`, `claim_note_candidate`, `create_note_from_candidate`, `skip_note_candidate`, `get_chunks`, `review_note`).
-   - **Interactive Visual Notebooks Suite Spec (`.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md`):** Complete design for 4 visual notebooks including an end-to-end cognitive memory explorer.
+   - **Tool Renaming & Search Standardization (`.meta/specs/2026-08-16-tool-renaming-and-search-all-spec.md`):** Zero-alias clean rename of `curate` $\to$ `query_vault` across Python tools, config (`query_vault:`), MCP (`query_vault`), CLI (`egovault query`), and REST API (`POST /query`). Addition of dual-space `mode='all'` in `search()` across Python tool, MCP, CLI (`egovault search --mode all`), and REST API. Standardized `create_note()`.
+   - **Interactive Visual Notebooks Suite Spec (`.meta/specs/2026-08-15-interactive-visual-notebooks-spec.md`):** Consolidated 2-notebook suite (`01_engine_benchmarks.ipynb` & `02_cognitive_explorer_demo.ipynb`) featuring real spoken discourse podcast benchmark (`https://youtu.be/Pef22g53zsg`).
    - **Global Verification:** Full regression suite passed with **539 passed, 1 skipped, 0 failed**.
 
 ---

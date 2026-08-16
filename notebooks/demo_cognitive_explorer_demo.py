@@ -32,7 +32,7 @@ from workflows.ingest import ingest
 from tools.vault.list_note_candidates import list_note_candidates
 from tools.vault.claim_note_candidate import claim_note_candidate
 from tools.vault.create_note_from_candidate import create_note_from_candidate
-from tools.vault.curate import curate
+from tools.vault.query_vault import query_vault
 from tools.vault.get_chunks import get_chunks
 from tools.vault.update_note import update_note
 from core.schemas import NoteContentInput
@@ -141,8 +141,8 @@ def main():
         print(f"         Updated Review Status: {reviewed_note.review_status}")
 
         # Step 6: Curate prefrontal working memory
-        print("\n[Step 6: Prefrontal Working Memory] Querying curate() for 'duty, virtue and death'...")
-        curated = curate("duty virtue and death", ctx, limit=5)
+        print("\n[Step 6: Prefrontal Working Memory] Querying query_vault() for 'duty, virtue and death'...")
+        curated = query_vault("duty virtue and death", ctx, limit=5)
         print(f"         Query      : \"{curated.query}\"")
         print(f"         Confidence : {curated.confidence:.3f}")
         print(f"         Sources    : {len(curated.sources)} retrieved")

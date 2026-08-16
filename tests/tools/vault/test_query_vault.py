@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 from core.schemas import SearchResult, Note
-from tools.vault.curate import curate
+from tools.vault.query_vault import query_vault, curate
 
 
 def _ctx_with(notes, chunks):
@@ -8,13 +8,14 @@ def _ctx_with(notes, chunks):
     ctx.embed.return_value = [0.0] * 8
     ctx.db.search_notes.return_value = notes
     ctx.db.search_chunks.return_value = chunks
-    ctx.settings.system.curate.escalation_min_notes = 3
-    ctx.settings.system.curate.escalation_max_distance = 0.5
-    ctx.settings.system.curate.synthesis_max_chars_per_item = 800
-    ctx.settings.system.curate.use_hybrid_retrieval = False
-    ctx.settings.system.curate.confidence.reviewed_note_weight = 1.0
-    ctx.settings.system.curate.confidence.unreviewed_note_weight = 0.7
-    ctx.settings.system.curate.confidence.rrf_k = 60
+    ctx.settings.system.query_vault.escalation_min_notes = 3
+    ctx.settings.system.query_vault.escalation_max_distance = 0.5
+    ctx.settings.system.query_vault.synthesis_max_chars_per_item = 800
+    ctx.settings.system.query_vault.use_hybrid_retrieval = False
+    ctx.settings.system.query_vault.confidence.reviewed_note_weight = 1.0
+    ctx.settings.system.query_vault.confidence.unreviewed_note_weight = 0.7
+    ctx.settings.system.query_vault.confidence.rrf_k = 60
+    ctx.settings.system.curate = ctx.settings.system.query_vault
     return ctx
 
 

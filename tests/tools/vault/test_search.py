@@ -58,3 +58,30 @@ def test_search_invalid_mode_raises(ctx):
     with patch("requests.post", return_value=_mock_embedding()):
         with pytest.raises(ValueError, match="mode"):
             search("test", ctx, mode="invalid")
+
+
+def test_search_all_mode_returns_combined_results(ctx):
+    from tools.vault.search import search
+    from core.schemas import Source, ChunkResult, Note
+    from datetime import date
+
+    source = Source(uid="s1", slug="s1", source_type="youtube", status="rag_ready",
+                    date_added=date.today().isoformat())
+    ctx.db.insert_source(source)
+    chunk = ChunkResult(uid="c1", position=0, content="hello world content", token_count=3)
+    ctx.db.insert_chunks("s1", [chunk])
+    ctx.db.insert_chunk_embeddings("c1", make_embedding())
+
+    note = Note(
+        uid="n1", slug="test-note", title="Test Note", tags=["tag1"],
+        body="Test body content here.", docstring="Short description.",
+        date_created=date.today().isoformat(), date_modified=date.today().isoformat(),
+    )
+    ctx.db.insert_note(note)
+    ctx.db.insert_note_embedding("n1", make_embedding())
+
+    with patch("requests.post", return_value=_mock_embedding()):
+        results = search("test query", ctx, mode="all", limit=5)
+
+    assert len(results) == 2
+

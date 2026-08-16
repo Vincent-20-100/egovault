@@ -107,8 +107,8 @@ Snapshot of the 22+ tools (see `mcp/server.py` for the authoritative list):
 
 ### Retrieval
 
-- `search(query, mode="chunks"|"notes", filters=None)` — raw top-K
-- `curate(query, filters=None, limit=5)` — **Librarian** (the preferred entry point)
+- `search(query, mode="chunks"|"notes"|"all", filters=None)` — raw top-K
+- `query_vault(query, filters=None, limit=5)` — **Librarian** (the preferred entry point)
 
 ### Notes & Candidates (1 Source -> N Notes)
 
@@ -117,7 +117,7 @@ Snapshot of the 22+ tools (see `mcp/server.py` for the authoritative list):
 - `create_note_from_candidate(candidate_uid, title, docstring, body, tags)` — atomic conversion
 - `skip_note_candidate(candidate_uid)` — mark candidate as skipped
 - `get_chunks(chunk_uids)` — verbatim source drill-down
-- `review_note(note_uid, review_status="reviewed")` — set validation status for curate()
+- `review_note(note_uid, review_status="reviewed")` — set validation status for query_vault()
 - `generate_note_from_source(uid, template="standard")` — LLM drafts a note
 - `create_note(content, source_uid=None)` — manual note creation
 - `update_note(uid, fields)`

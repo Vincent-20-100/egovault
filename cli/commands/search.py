@@ -13,7 +13,7 @@ from cli.output import print_table, print_error
 
 app = typer.Typer(help="Semantic search over the vault.")
 
-_VALID_MODES = ("chunks", "notes")
+_VALID_MODES = ("chunks", "notes", "all")
 
 
 def _build_ctx():
@@ -31,7 +31,7 @@ def _run_search(query: str, ctx, mode: str, limit: int):
 def search_cmd(
     query: Annotated[str, typer.Argument(help="Search query")],
     limit: Annotated[int, typer.Option("--limit", help="Maximum number of results")] = 10,
-    mode: Annotated[str, typer.Option("--mode", help="Search mode: chunks or notes")] = "chunks",
+    mode: Annotated[str, typer.Option("--mode", help="Search mode: chunks, notes, or all")] = "chunks",
     json_mode: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="Show distance, chunk_uid, execution time")] = False,
 ) -> None:
@@ -41,7 +41,7 @@ def search_cmd(
         raise typer.Exit(1)
 
     if mode not in _VALID_MODES:
-        print_error(f"Invalid mode '{mode}'. Use 'chunks' or 'notes'.", "invalid_mode", json_mode, verbose)
+        print_error(f"Invalid mode '{mode}'. Use 'chunks', 'notes', or 'all'.", "invalid_mode", json_mode, verbose)
         raise typer.Exit(1)
 
     try:

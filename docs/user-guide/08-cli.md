@@ -59,27 +59,26 @@ egovault ingest <target> [--title TITLE]
 
 ### `search`
 
-Raw semantic search (no escalation, no fusion). For curated results, use
-`curate`.
+Raw semantic search over chunks, notes, or both. For curated working memory context, use `query`.
 
 ```bash
-egovault search "<query>" [--mode notes|chunks] [--limit 10] [--filters JSON]
+egovault search "<query>" [--mode notes|chunks|all] [--limit 10] [--filters JSON]
 ```
 
 | Option | Effect | Default |
 |---|---|---|
 | `query` | The text query | — |
-| `--mode` | Search the notes tier or the chunks tier | `chunks` |
+| `--mode` | Search notes, chunks, or both (`all`) | `chunks` |
 | `--limit` | Max results | 10 |
 | `--filters` | JSON `SearchFilters` literal | none |
 
-### `curate`
+### `query`
 
-Librarian retrieval (tier 0 today; tier 1 in the future). Respects
+Librarian retrieval (working memory recall). Respects
 `escalation_*` and `use_hybrid_retrieval`. See [06-search-and-curate.md](06-search-and-curate.md).
 
 ```bash
-egovault curate "<query>" [--limit 5] [--filters JSON]
+egovault query "<query>" [--limit 5] [--filters JSON]
 ```
 
 ### `purge`
