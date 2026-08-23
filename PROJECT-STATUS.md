@@ -51,15 +51,32 @@ maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
   DB-M1 atomic `purge_source`, DB-M2 error wrapping, DB-M3 connection-leak
   (try/finally, ~50 funcs), DB-M4 search ignores filters, SCRIPT-M1 reembed
   safety, TEST-C2 no real semantic e2e test, TEST-M1 missing test files.
-- **yt-dlp subtitle fallback** (2026-08-13) — add an intermediate level to
+- **yt-dlp subtitle fallback** (2026-08-23) — add an intermediate level to
   `fetch_subtitles`: after `youtube_transcript_api` fails, try
   `yt-dlp --write-subs --skip-download` before resorting to audio + Whisper.
   Covers videos where the transcript API is blocked but `.vtt` subs exist.
   Zero Whisper, zero audio download.
-- **`ingest_video` generic source** (2026-08-13) — extend `ingest_youtube` to
+- **`ingest_video` generic source** (2026-08-23) — extend `ingest_youtube` to
   accept any yt-dlp-supported URL (~1800 sites: Vimeo, Twitter/X, Twitch VODs,
   Dailymotion, PeerTube…). Same pipeline; remove the YouTube-only URL validator
   or make it opt-in. Requires brainstorm on URL validation policy.
+- **`voice_memo` source type + mobile capture** (2026-08-23) — new
+  `source_type: voice_memo` allégé: audio → transcribe → note directe sans LLM,
+  sans chunking pour les courts (< seuil configurable). Champ `origin:
+  personal | external` sur les notes. Tag choisi par l'utilisateur au moment de
+  l'enregistrement (idee / travail / concept…) → espaces sémantiques distincts
+  dans recall(). Frontend naturel: PWA smartphone (MediaRecorder API →
+  `POST /ingest`). Ref: ESP32 voice recorder project (DIY) comme inspiration UX.
+- **Knowledge graph — auto-linking notes** (2026-08-23) — relier
+  automatiquement les notes par similarité cosine (notes proches → arêtes dans
+  un graphe). Préfigure la couche "Knowledge Compiler" du VISION doc. Ref:
+  projet MCP Neo4j shared-brain (fostersw.com) — même pattern, eux utilisent
+  Neo4j Aura cloud, nous SQLite local. Potentiellement visualisable (Mermaid ou
+  Three.js 3D).
+- **Visualisation graphe de notes** (2026-08-23) — vue graphe du vault
+  (notes = noeuds, similarité = arêtes). Dépend de l'auto-linking ci-dessus.
+  Inspiration: Three.js + d3-force du projet MCP shared-brain. Feature de valeur
+  pour communiquer la densité du vault.
 
 See `docs/user-guide/` for the user manual (12 chapters).
 See `docs/VISION-KNOWLEDGE-COMPILER.md` for the Knowledge Compiler vision.
