@@ -90,6 +90,13 @@ Post-retrieval filtering based on a configurable similarity threshold. Currently
 ### Context fusion
 Combine chunks from multiple sources into a coherent context window before LLM generation. Currently each chunk is returned independently. Fusion would group related chunks, deduplicate overlapping content, and present a unified context to the LLM.
 
+### Alternative Vector Backends for Large Scale (Turbovec / TurboQuant)
+Exploration of [Turbovec](https://github.com/ryancodrai/turbovec) (Rust TurboQuant 2-bit/4-bit data-oblivious quantizer with SIMD kernels) as an optional backend for large-vault / memory-constrained environments.
+- Provides 4× to 8× vector memory compression and native `allowlist` candidate filtering for hybrid BM25 + dense reranking.
+- Pluggable via hexagonal seam in `infrastructure/` (e.g. `vector_backend: sqlite_vec | turbovec`).
+- Research card: [`.meta/references/research/deep-turbovec-2026-08-18.md`](../.meta/references/research/deep-turbovec-2026-08-18.md).
+
+
 ---
 
 ## Architecture pivot — Knowledge compiler + Agent retrieval (2026-03-31)
