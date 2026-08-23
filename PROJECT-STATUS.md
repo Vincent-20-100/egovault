@@ -73,6 +73,18 @@ maintenance. Suite **511 passed / 1 skipped / 0 failed**, deterministic.
   projet MCP Neo4j shared-brain (fostersw.com) — même pattern, eux utilisent
   Neo4j Aura cloud, nous SQLite local. Potentiellement visualisable (Mermaid ou
   Three.js 3D).
+- **docling + docling-graph integration** (2026-08-23) — candidat fort pour
+  deux choses distinctes: (1) remplacer le PDF extractor basique par docling
+  (layout-aware, tables, figures preservees avant chunking); (2) pipeline
+  optionnel docling-graph pour extraire entites + relations typees depuis les
+  docs ingeres → KG stocke en SQLite (tables entity/relation). Backend Ollama
+  et Pydantic v2 deja alignes. Template Pydantic par type de source (articles
+  recherche, docs techniques…) generables depuis exemples via
+  `docling-graph template from-docs`. Provenance deterministe sans LLM extra.
+  recall() pourrait combiner cosine (decouverte) + traversee graphe (precision).
+  Ref: github.com/docling-project/docling-graph (MIT, IBM, uv). Necessite
+  brainstorm: integration profonde vs couche optionnelle, stockage KG dans
+  SQLite vs fichier NetworkX serialise.
 - **Visualisation graphe de notes** (2026-08-23) — vue graphe du vault
   (notes = noeuds, similarité = arêtes). Dépend de l'auto-linking ci-dessus.
   Inspiration: Three.js + d3-force du projet MCP shared-brain. Feature de valeur
