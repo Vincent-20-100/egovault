@@ -9,8 +9,8 @@ import pytest
 from datetime import date
 from pathlib import Path
 
-from core.schemas import Note, Source, SearchFilters
-from tests.conftest import make_embedding, EMBEDDING_DIMS
+from core.schemas import Note, Source
+from tests.conftest import make_embedding
 
 
 # ============================================================

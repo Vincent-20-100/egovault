@@ -1,0 +1,29 @@
+{
+  "security-gate": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command|view_file|write_to_file|replace_file_content|bash|Bash|Edit|Write|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/security_gate.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/auto_format.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

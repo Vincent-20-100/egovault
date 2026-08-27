@@ -7,7 +7,10 @@ like `git commit -m x && git status` do not get `--author` appended to the
 last (non-commit) segment.
 """
 from __future__ import annotations
-import json, re, subprocess, sys
+import json
+import re
+import subprocess
+import sys
 
 
 def git_identity(key: str) -> str:

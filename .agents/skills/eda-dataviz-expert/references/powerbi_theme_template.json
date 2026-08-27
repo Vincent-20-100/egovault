@@ -1,0 +1,24 @@
+﻿{
+  "name": "EDA Expert Editorial",
+  "dataColors": [
+    "#1D4ED8",
+    "#94A3B8",
+    "#93C5FD",
+    "#059669",
+    "#EA580C",
+    "#64748B",
+    "#DC2626"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#222222",
+  "tableAccent": "#1D4ED8",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "*": {
+          "fontFamily": "Segoe UI"
+        }
+      }
+    }
+  }
+}

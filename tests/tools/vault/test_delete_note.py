@@ -1,8 +1,6 @@
 import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from core.errors import NotFoundError, ConflictError
-from core.schemas import DeleteNoteResult
 
 
 def _make_note(uid="nuid-1", sync_status="synced"):

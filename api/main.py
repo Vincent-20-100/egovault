@@ -15,7 +15,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core.config import Settings, load_settings
-from core.errors import IngestError
 from infrastructure.context import build_context
 from infrastructure.db import init_db, init_system_db, mark_orphan_jobs_failed
 
@@ -57,7 +56,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Configure tool logging callback.
         import core.logging as log_mod
         from infrastructure.db import get_system_connection
-        from core.uid import generate_uid
 
         def _make_log_writer(system_db_path):
             def writer(uid, tool_name, input_json, output_json, duration_ms, status, error,

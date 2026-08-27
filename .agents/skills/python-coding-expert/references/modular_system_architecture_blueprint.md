@@ -1,0 +1,255 @@
+# Repository-Level Modular Architecture Blueprint (The Mega-App Monorepo Standard)
+
+> **Core Philosophy**: A world-class software repository scales effortlessly from a single developer CLI to a multi-team, multi-package, full-stack enterprise platform. It achieves this through **strict layer boundaries, modular package workspaces, pluggable frontend/API surfaces, and a single invariant domain core**.
+
+---
+
+## 🏛️ 1. The Two Industry-Standard Repository Patterns
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                   WHICH REPOSITORY PATTERN TO CHOOSE?                    │
+├─────────────────────────────────────┬────────────────────────────────────┤
+│ PATTERN A: UV WORKSPACE MONOREPO    │ PATTERN B: MODULAR MULTI-SURFACE   │
+│ • Large-scale / Multi-team          │ • Single cohesive product (e.g.    │
+│ • Multiple deployable binaries      │   EgoVault, toolkits, CLI+API app) │
+│ • Independent PyPI/NPM packages     │ • Fast unified CI/CD               │
+│ • `packages/` + `apps/` layout      │ • `core/` + `surfaces/` layout     │
+└─────────────────────────────────────┴────────────────────────────────────┘
+```
+
+---
+
+## 🏗️ 2. Pattern A: The Full Monorepo Master Layout (`uv` + `pnpm`/Turborepo)
+
+For large systems comprising multiple microservices, client libraries, a frontend, and shared domain packages:
+
+```text
+my_enterprise_repo/
+├── .github/                       # CI/CD Automations
+│   └── workflows/
+│       ├── ci.yaml                # Lint (ruff), typecheck (mypy), test (pytest)
+│       ├── build-containers.yaml  # Docker build & push for api/worker/web
+│       └── publish-sdk.yaml       # Automated PyPI & NPM package publishing
+│
+├── apps/                          # 🚀 Deployable Applications & Services
+│   ├── api/                       # Service 1: FastAPI REST / GraphQL Backend
+│   │   ├── Dockerfile
+│   │   ├── pyproject.toml         # Depends on workspace:packages/core, packages/services
+│   │   └── src/api/
+│   │       ├── main.py            # App factory & composition root
+│   │       ├── routers/           # Thin REST endpoints
+│   │       └── middleware/        # Auth, CORS, Request Tracing
+│   │
+│   ├── cli/                       # Service 2: Standalone Distribution CLI
+│   │   ├── pyproject.toml
+│   │   └── src/cli/
+│   │       ├── main.py            # Typer / Click commands
+│   │       └── formatters.py      # Rich terminal UI & JSON output
+│   │
+│   ├── mcp/                       # Service 3: AI Model Context Protocol Server
+│   │   ├── pyproject.toml
+│   │   └── src/mcp/
+│   │       └── server.py          # FastMCP tool / resource handlers for LLMs
+│   │
+│   ├── web/                       # Service 4: Next.js / TypeScript Frontend
+│   │   ├── Dockerfile
+│   │   ├── package.json           # React / Next.js / TailwindCSS
+│   │   ├── app/                   # App Router pages & server components
+│   │   └── components/            # UI component library
+│   │
+│   └── worker/                    # Service 5: Asynchronous Background Job Worker
+│       ├── Dockerfile
+│       ├── pyproject.toml
+│       └── src/worker/
+│           ├── tasks.py           # ARQ / Celery job consumers
+│           └── scheduler.py       # Cron / Periodic task scheduler
+│
+├── packages/                      # 📦 Shared Internal & Public Packages (Zero circular deps)
+│   ├── core/                      # Package 1: Pure Domain Kernel (ZERO external dependencies)
+│   │   ├── pyproject.toml
+│   │   └── src/core/
+│   │       ├── models.py          # Domain entities & immutable data schemas
+│   │       ├── protocols.py       # typing.Protocol interface contracts
+│   │       ├── errors.py          # Centralized AppError hierarchy
+│   │       ├── context.py         # Application Context container
+│   │       └── config.py          # Pydantic Settings & Config schema
+│   │
+│   ├── services/                  # Package 2: Pure Domain Orchestration & Workflows
+│   │   ├── pyproject.toml         # Depends on workspace:packages/core
+│   │   └── src/services/
+│   │       ├── ingestion.py       # Processing pipelines
+│   │       └── search_engine.py   # Business logic algorithms
+│   │
+│   ├── infrastructure/            # Package 3: Concrete Storage & Network Adapters
+│   │   ├── pyproject.toml         # Depends on workspace:packages/core
+│   │   └── src/infra/
+│   │       ├── db_postgres.py     # PostgreSQL / SQLAlchemy / asyncpg
+│   │       ├── db_sqlite_vec.py   # SQLite-vec / VectorDB storage
+│   │       ├── s3_storage.py      # AWS S3 / MinIO blob storage
+│   │       └── http_clients.py    # Third-party API integrations (httpx)
+│   │
+│   ├── sdk-python/                # Package 4: Lightweight Typed Client for External Users
+│   │   ├── pyproject.toml         # Published to PyPI
+│   │   └── src/my_sdk/
+│   │       └── client.py          # Synchronous & Async HTTP client
+│   │
+│   └── sdk-ts/                    # Package 5: Autogenerated TypeScript Client (OpenAPI-ts)
+│       ├── package.json           # Published to NPM
+│       └── src/
+│
+├── docs/                          # 📚 Complete Documentation Portal (MkDocs Material / VitePress)
+│   ├── index.md                   # Getting started & Overview
+│   ├── architecture/              # ADRs (Architecture Decision Records) & C4 Diagrams
+│   ├── user-guide/                # End-user documentation & tutorials
+│   └── api-reference/             # Autogenerated OpenAPI / Python docstrings
+│
+├── config/                        # ⚙️ Configuration Profiles & Presets
+│   ├── system.yaml                # Hard technical boundaries & defaults
+│   ├── user.yaml                  # Customizable user preferences
+│   └── .env.example               # Template for environment secrets
+│
+├── scripts/                       # 🛠️ DevOps, Migration & Benchmark Utilities
+│   ├── seed_database.py           # Populates local dev database
+│   ├── run_benchmarks.py          # Throughput & latency benchmarking
+│   └── release.py                 # Semantic versioning & changelog builder
+│
+├── tests/                         # 🧪 Global Integration & End-to-End Test Suite
+│   ├── e2e/                       # Full-system tests across API, Web, and Workers
+│   └── fixtures/                  # Shared test data, seed files, and mock servers
+│
+├── docker-compose.yml             # Local Multi-Container Dev Environment (API + DB + Web + Worker)
+├── pyproject.toml                 # Root UV Workspace Manifest
+├── package.json                   # Root PNPM Workspace Manifest (Frontend)
+├── Makefile or justfile           # Universal Developer Commands (`make dev`, `make test`)
+└── README.md                      # Project front-door
+```
+
+---
+
+## 🏛️ 3. Pattern B: The Cohesive Single-Package Architecture (Unified Engine)
+
+For single-distribution products offering multiple surfaces in one package (e.g. EgoVault, CLI+API engines):
+
+```text
+my_project/
+├── core/                  # Pure Domain Kernel (models, errors, protocols, context, config)
+├── services/              # Pure Domain Logic & Workflows (orchestrates core)
+├── infrastructure/        # Concrete Adapters (databases, vector indexers, network)
+├── api/                   # Thin REST API router (FastAPI)
+├── cli/                   # Thin Terminal CLI commands (Typer + Rich)
+├── mcp/                   # Thin MCP Server for AI IDEs
+├── frontend/              # Embedded or decoupled Web UI (Next.js / Vite / NiceGUI)
+├── docs/                  # User guide, architecture specs, ADRs
+├── config/                # 3-tier YAML/TOML configuration
+├── scripts/               # Maintenance scripts, database tools, benchmarks
+├── tests/                 # Unit (In-Memory Fakes), Integration (Adapters), E2E
+├── pyproject.toml         # Single pyproject.toml with optional extras [cli], [api], [mcp]
+└── Dockerfile
+```
+
+---
+
+## 🍒 4. The Master Cherry-Picking Matrix
+
+Assemble your system according to immediate needs, without rewriting core logic when upgrading scope:
+
+| Target Scope | Repositories & Modules Needed | Frontends & Entrypoints |
+| :--- | :--- | :--- |
+| 🛠️ **Micro Tool / Script** | `core/` (inline config + errors) | Single CLI file |
+| 📦 **Standalone Library / SDK** | `packages/core/` + `packages/services/` + `packages/sdk-python/` | PyPI Package + `docs/` |
+| 🖥️ **Desktop CLI App** | `core/` + `services/` + `infrastructure/` + `cli/` | Terminal executable (`typer`) |
+| 🤖 **AI Agent Memory / MCP Server**| `core/` + `services/` + `infrastructure/` + `mcp/` + `cli/` | FastMCP stdio/SSE server |
+| 🌐 **Backend Microservice** | `packages/core/` + `packages/infra/` + `apps/api/` + `apps/worker/` | REST / OpenAPI + Celery/ARQ |
+| 🚀 **Full-Stack Web Platform** | Full Monorepo: `packages/*` + `apps/api/` + `apps/web/` + `docs/` | Next.js Frontend + FastAPI Backend |
+
+---
+
+## ⚙️ 5. Setting Up the `uv` Workspace Monorepo (`pyproject.toml`)
+
+Root `pyproject.toml` coordinates all internal packages without publishing intermediate builds:
+
+```toml
+# root / pyproject.toml
+[project]
+name = "my-enterprise-monorepo"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["packages/*", "apps/*"]
+
+[tool.uv.sources]
+# Local workspace path dependencies (resolved in zero-copy mode by uv)
+core = { workspace = true }
+services = { workspace = true }
+infrastructure = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["packages", "apps", "tests"]
+```
+
+### Internal Package Definition (`apps/api/pyproject.toml`):
+```toml
+[project]
+name = "api-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "core",
+    "services",
+    "infrastructure",
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.0",
+]
+```
+
+---
+
+## 🌐 6. Frontend Integration Patterns
+
+### Pattern 1: Decoupled Single-Page App (SPA / Next.js)
+* **API Backend** runs on `http://localhost:8000`.
+* **Next.js Frontend** runs on `http://localhost:3000`.
+* **Contract synchronization**: Autogenerate TypeScript types directly from FastAPI's `openapi.json` using `openapi-typescript`:
+```bash
+npx openapi-typescript http://localhost:8000/openapi.json -o apps/web/src/api-types.ts
+```
+
+### Pattern 2: Single-Binary Embedded Frontend (FastAPI Static Mount)
+For desktop tools or self-hosted servers where deploying two containers is undesirable:
+1. Build the Next.js/Vite frontend into static HTML/JS/CSS (`dist/` or `out/`).
+2. Mount static directory directly in FastAPI:
+```python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+app = FastAPI()
+
+# Mount API routers first
+app.include_router(api_router, prefix="/api/v1")
+
+# Mount compiled static frontend at root
+dist_path = Path(__file__).parent / "static_dist"
+if dist_path.exists():
+    app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
+```
+
+---
+
+## 📚 7. Documentation Architecture Standard (`docs/`)
+
+Never leave architecture decisions in chat logs or memory. Formalize documentation in `docs/`:
+
+1. **`docs/architecture/ADR/` (Architecture Decision Records)**:
+   * Record every irreversible design decision with: *Status, Context, Decision, Consequences*.
+   * Example: `docs/architecture/ADR/0004-sqlite-vec-hybrid-retrieval.md`.
+2. **`docs/user-guide/`**:
+   * Chapters organized logically (Installation, Configuration, Ingestion, Querying, Troubleshooting).
+3. **`docs/api/`**:
+   * Keep autogenerated REST schemas and SDK documentation synchronized with CI.

@@ -6,8 +6,6 @@ All business logic lives in tools/ — this file is routing only.
 """
 
 import sys
-import importlib.util
-import site
 from pathlib import Path as _Path
 
 from core.config import load_settings

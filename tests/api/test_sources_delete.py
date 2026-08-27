@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from core.schemas import DeleteSourceResult, RestoreSourceResult, PurgeResult
-from core.errors import NotFoundError, ConflictError
+from core.errors import NotFoundError
 
 
 @pytest.fixture

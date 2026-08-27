@@ -3,7 +3,6 @@
 
 import sqlite3
 import pytest
-from pathlib import Path
 from infrastructure.db import get_vault_connection, init_db
 
 

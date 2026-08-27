@@ -1,5 +1,3 @@
-import pytest
-from pathlib import Path
 
 from tests.conftest import make_embedding
 
@@ -603,7 +601,6 @@ def test_fresh_init_db_has_soft_delete_columns(tmp_path):
 def test_init_db_warns_on_stale_l2_vec_table(tmp_path, caplog):
     """DB-C2: a pre-cosine (L2) vec table must trigger a warning on init_db."""
     import logging
-    import sqlite_vec
     from infrastructure.db import init_db, get_vault_connection
 
     db_file = tmp_path / "vault.db"

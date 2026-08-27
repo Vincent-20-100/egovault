@@ -1,6 +1,5 @@
 import tempfile
 from pathlib import Path
-import pytest
 from unittest.mock import MagicMock, patch
 
 from core.schemas import DocumentParseResult

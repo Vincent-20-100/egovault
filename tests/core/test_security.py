@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from core.security import (
     validate_youtube_url, validate_file_path, validate_web_url,
-    set_restrictive_permissions, _is_private_ip,
+    set_restrictive_permissions,
 )
 
 

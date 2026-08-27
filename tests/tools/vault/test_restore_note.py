@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch
 from core.errors import NotFoundError, ConflictError
-from core.schemas import RestoreNoteResult
 
 
 def _make_note(sync_status="pending_deletion"):

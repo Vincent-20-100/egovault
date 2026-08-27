@@ -4,8 +4,7 @@ from unittest.mock import patch, MagicMock
 from tests.conftest import make_embedding, EMBEDDING_DIMS
 
 from core.schemas import (
-    ChunkResult, SearchResult, NoteResult, FinalizeResult,
-    TranscriptResult, CompressResult, SubtitleResult, ExportResult,
+    ChunkResult, SearchResult, NoteResult, TranscriptResult, CompressResult, SubtitleResult, ExportResult,
 )
 
 
@@ -164,7 +163,7 @@ def test_mcp_export_mermaid_calls_tool(tmp_settings):
 
 def test_mcp_update_note_calls_tool(tmp_settings):
     import mcp.server as srv
-    from core.schemas import NoteResult, Note
+    from core.schemas import Note
     from datetime import date
 
     note = Note(
@@ -472,7 +471,7 @@ def test_mcp_ingest_web_calls_workflow(tmp_settings):
 def test_mcp_generate_note_from_source_calls_tool(tmp_settings):
     import mcp.server as srv
     from unittest.mock import patch
-    from core.schemas import NoteResult, Note
+    from core.schemas import Note
     from datetime import date
 
     note = Note(

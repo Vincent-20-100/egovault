@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from core.context import VaultContext
 from core.schemas import NoteResult, NoteContentInput
-from core.errors import NotFoundError
 from core.logging import loggable
 from tools.vault.create_note_from_candidate import create_note_from_candidate
 

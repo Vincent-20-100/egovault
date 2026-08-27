@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Pre-commit hook: blocks commits with a forbidden author identity."""
 from __future__ import annotations
-import os, subprocess, sys
+import os
+import subprocess
+import sys
 
 FORBIDDEN = ["claude", "anthropic"]
 

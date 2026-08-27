@@ -1,6 +1,5 @@
 import pytest
-import unittest.mock as mock
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from datetime import date
 
 from tests.conftest import make_embedding

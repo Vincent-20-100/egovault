@@ -115,7 +115,7 @@ def test_anthropic_auth_error_does_not_leak_key(monkeypatch):
     def mock_anthropic_constructor(api_key):
         client = MagicMock()
         client.messages.create.side_effect = FakeAPIError(
-            f"Invalid API key: sk-ant-api03-realkey123456789012345678901234567890"
+            "Invalid API key: sk-ant-api03-realkey123456789012345678901234567890"
         )
         return client
 

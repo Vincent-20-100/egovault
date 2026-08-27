@@ -48,6 +48,21 @@ packages = ["api", "cli", "core", "infrastructure", "tools", "tools.web", "workf
 testpaths = ["tests"]
 pythonpath = ["."]
 
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".agents",
+    ".venv",
+    ".git",
+    "__pycache__",
+    "notebooks",
+    ".worktrees",
+]
+
+[tool.ruff.lint]
+ignore = ["E402", "E702", "E741", "F841"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

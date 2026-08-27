@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime, timezone
 from tests.conftest import make_embedding
 from core.schemas import Source, NoteCandidate, ChunkResult

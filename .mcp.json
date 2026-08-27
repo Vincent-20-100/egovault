@@ -4,6 +4,11 @@
       "command": "C:\\Users\\Vincent\\GitHub\\Vincent-20-100\\egovault\\.venv\\Scripts\\python.exe",
       "args": ["mcp/server.py"],
       "cwd": "C:\\Users\\Vincent\\GitHub\\Vincent-20-100\\egovault"
+    },
+    "token_shield": {
+      "command": "C:\\Users\\Vincent\\GitHub\\Vincent-20-100\\egovault\\.venv\\Scripts\\python.exe",
+      "args": ["token_shield/server.py"],
+      "cwd": "C:\\Users\\Vincent\\GitHub\\Vincent-20-100\\egovault"
     }
   }
 }

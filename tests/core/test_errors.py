@@ -1,4 +1,3 @@
-import pytest
 from core.errors import (
     EgoVaultError,
     MissingConfigError,

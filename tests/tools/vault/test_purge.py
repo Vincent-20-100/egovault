@@ -1,6 +1,4 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from core.schemas import PurgeResult
+from unittest.mock import patch
 
 
 def test_purge_empty_vault(ctx):

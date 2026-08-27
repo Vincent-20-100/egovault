@@ -16,7 +16,6 @@ Usage:
 import sys
 import pypdf
 import tempfile
-import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -151,7 +150,7 @@ def main():
             print(f"         - [{s.tier}] {clean_title}... (distance: {s.distance:.4f})")
 
         # Step 7: Verbatim proof drill-down
-        print(f"\n[Step 7: Verbatim Proof Drill-Down] Proof drill-down via get_chunks()...")
+        print("\n[Step 7: Verbatim Proof Drill-Down] Proof drill-down via get_chunks()...")
         proof_chunks = get_chunks(cand_to_convert.chunk_uids[:3], ctx)
         for ch in proof_chunks:
             preview = ch.content.strip().replace("\n", " ")[:90].encode("ascii", "ignore").decode("ascii")

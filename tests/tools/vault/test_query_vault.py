@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
-from core.schemas import SearchResult, Note
-from tools.vault.query_vault import query_vault, curate
+from core.schemas import SearchResult
+from tools.vault.query_vault import curate
 
 
 def _ctx_with(notes, chunks):

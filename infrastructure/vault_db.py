@@ -92,14 +92,6 @@ class VaultDB:
     ) -> list[Note]:
         return _db.list_notes(self._db_path, note_type, tags, limit, offset)
 
-    def list_sources(
-        self,
-        status: str | None,
-        limit: int,
-        offset: int,
-    ) -> list[Source]:
-        return _db.list_sources(self._db_path, status, limit, offset)
-
     def orphan_notes_for_source(self, source_uid: str) -> list[str]:
         return _db.orphan_notes_for_source(self._db_path, source_uid)
 

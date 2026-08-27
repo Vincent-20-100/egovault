@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>EgoVault — Sci-Fi Control Room</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1d26;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* Sol en dalles bleues-grises style spaceship tileset */
+  #factory {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    /* Tuiles 32x32 avec bordure subtile */
+    background-color: #545d70;
+    background-image:
+      /* Coins des tuiles */
+      radial-gradient(circle at 0 0, rgba(0,0,0,0.25) 1px, transparent 1px),
+      radial-gradient(circle at 32px 0, rgba(0,0,0,0.25) 1px, transparent 1px),
+      radial-gradient(circle at 0 32px, rgba(0,0,0,0.25) 1px, transparent 1px),
+      radial-gradient(circle at 32px 32px, rgba(0,0,0,0.25) 1px, transparent 1px),
+      /* Grille de tuiles */
+      linear-gradient(rgba(0,0,0,0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.12) 1px, transparent 1px),
+      /* Texture interne tuile (reflet léger) */
+      linear-gradient(135deg, rgba(255,255,255,0.04) 25%, transparent 25%);
+    background-size: 32px 32px, 32px 32px, 32px 32px, 32px 32px, 32px 32px, 32px 32px, 32px 32px;
+  }
+
+  /* Murs du fond */
+  .wall-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 48px;
+    background: #2d3142;
+    background-image:
+      repeating-linear-gradient(90deg, transparent, transparent 63px, rgba(255,255,255,0.04) 63px, rgba(255,255,255,0.04) 64px);
+    border-bottom: 3px solid #1a1d26;
+  }
+  .wall-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 32px;
+    background: #1e2130;
+    border-top: 2px solid #111420;
+  }
+  .wall-left {
+    position: absolute;
+    top: 48px; bottom: 32px; left: 0;
+    width: 32px;
+    background: #2d3142;
+    border-right: 3px solid #1a1d26;
+  }
+  .wall-right {
+    position: absolute;
+    top: 48px; bottom: 32px; right: 0;
+    width: 32px;
+    background: #2d3142;
+    border-left: 3px solid #1a1d26;
+  }
+
+  /* Lumières au plafond (mur du haut) */
+  .ceiling-light {
+    position: absolute;
+    top: 8px;
+    height: 6px;
+    width: 48px;
+    background: linear-gradient(90deg, transparent, #4dd9e8, #4dd9e8, transparent);
+    opacity: 0.6;
+    border-radius: 1px;
+  }
+  .ceiling-light.active {
+    opacity: 1;
+    box-shadow: 0 0 8px #4dd9e8, 0 4px 12px rgba(77,217,232,0.3);
+    animation: flicker 3s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%,100% { opacity:1; }
+    92% { opacity:1; }
+    93% { opacity:0.6; }
+    94% { opacity:1; }
+    97% { opacity:0.8; }
+    98% { opacity:1; }
+  }
+
+  /* Zone de dépôt — hazard stripes orange */
+  .loading-dock {
+    position: absolute;
+    left: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 148px;
+    padding: 12px;
+  }
+  .hazard-border {
+    position: absolute;
+    inset: -6px;
+    border: 6px solid transparent;
+    border-image: repeating-linear-gradient(
+      45deg,
+      #e8943a 0px, #e8943a 8px,
+      #1a1d26 8px, #1a1d26 16px
+    ) 6;
+  }
+  .dock-label {
+    position: absolute;
+    top: -18px;
+    left: 0;
+    font-size: 8px;
+    color: #e8943a;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px #e8943a;
+  }
+  .source-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(45, 49, 66, 0.9);
+    border: 1px solid #3d4460;
+    border-radius: 2px;
+    padding: 7px 9px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #a0b4cc;
+    width: 100%;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .source-btn:hover {
+    border-color: #4dd9e8;
+    color: #4dd9e8;
+    background: rgba(77,217,232,0.08);
+  }
+  .source-btn .icon { font-size: 14px; }
+  .source-btn.note {
+    color: #b39ddb;
+    border-color: #5c4a7a;
+    background: rgba(92,74,122,0.3);
+  }
+
+  /* Machine générique — style spaceship console */
+  .machine {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .machine-body {
+    width: 64px;
+    height: 64px;
+    background: #2d3142;
+    border: 2px solid #3d4460;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .machine-body .micon { font-size: 20px; }
+  .machine-body .mname { font-size: 7px; color: #5a6478; line-height: 1.2; }
+
+  /* Petites lumières sur les machines */
+  .machine-lights {
+    display: flex; gap: 3px; margin-top: 2px;
+  }
+  .mlight {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: #2d3142;
+  }
+
+  /* États */
+  .machine.off .machine-body { border-color: #3d4460; }
+  .machine.off .mname { color: #3d4460; }
+  .machine.off .mlight { background: #1e2130; }
+
+  .machine.active .machine-body {
+    border-color: #4dd9e8;
+    background: #1e3040;
+    box-shadow: 0 0 16px rgba(77,217,232,0.25), inset 0 0 10px rgba(77,217,232,0.08);
+  }
+  .machine.active .mname { color: #4dd9e8; }
+  .machine.active .mlight:nth-child(1) { background: #4dd9e8; animation: blink 0.6s step-end infinite; }
+  .machine.active .mlight:nth-child(2) { background: #4dd9e8; animation: blink 0.9s step-end infinite; }
+  .machine.active .mlight:nth-child(3) { background: #4dd9e8; animation: blink 1.3s step-end infinite; }
+
+  .machine.done .machine-body {
+    border-color: #68d391;
+    background: #1e3028;
+  }
+  .machine.done .mname { color: #68d391; }
+  .machine.done .mlight { background: #68d391; }
+
+  .machine.warn .machine-body {
+    border-color: #e8943a;
+    background: #2d2010;
+    animation: warn-pulse 2s ease-in-out infinite;
+  }
+  .machine.warn .mname { color: #e8943a; }
+  .machine.warn .mlight:nth-child(1) { background: #e8943a; animation: blink 0.5s step-end infinite; }
+
+  @keyframes blink {
+    0%,100% { opacity:1; }
+    50% { opacity:0.1; }
+  }
+  @keyframes warn-pulse {
+    0%,100% { box-shadow: 0 0 8px rgba(232,148,58,0.2); }
+    50% { box-shadow: 0 0 16px rgba(232,148,58,0.4); }
+  }
+
+  /* SVG tuyaux */
+  #pipes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Objet voyageant */
+  .travel-obj {
+    position: absolute;
+    z-index: 5;
+    font-size: 12px;
+    filter: drop-shadow(0 0 4px #4dd9e8);
+  }
+
+  /* Terminal mural gauche */
+  .wall-terminal {
+    position: absolute;
+    left: 32px;
+    top: 64px;
+    width: 28px;
+    background: #2d3142;
+    border-right: 2px solid #1a1d26;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+  .terminal-screen {
+    width: 20px;
+    height: 14px;
+    background: #0d1a2a;
+    border: 1px solid #4dd9e8;
+    border-radius: 1px;
+    position: relative;
+    overflow: hidden;
+  }
+  .terminal-screen::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: repeating-linear-gradient(0deg, rgba(77,217,232,0.15) 0px, rgba(77,217,232,0.15) 1px, transparent 1px, transparent 3px);
+  }
+  .terminal-btn {
+    width: 8px; height: 8px;
+    border-radius: 1px;
+  }
+
+  /* Panel stats mural droite */
+  .stats-wall {
+    position: absolute;
+    right: 36px;
+    top: 64px;
+    width: 140px;
+    background: #2d3142;
+    border: 1px solid #3d4460;
+    border-left: 3px solid #4dd9e8;
+    padding: 10px;
+    font-size: 9px;
+  }
+  .stats-title {
+    color: #4dd9e8;
+    font-size: 8px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 6px #4dd9e8;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    color: #6a7a8a;
+    font-size: 9px;
+  }
+  .stat-val { color: #a0b4cc; }
+  .stat-val.cyan { color: #4dd9e8; }
+  .stat-val.green { color: #68d391; }
+  .stat-val.orange { color: #e8943a; }
+
+  /* Barre de statut bas */
+  .status-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 32px;
+    background: #1e2130;
+    border-top: 2px solid #111420;
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    gap: 24px;
+    font-size: 9px;
+    color: #4a5568;
+    z-index: 10;
+  }
+  .status-item { display: flex; align-items: center; gap: 5px; color: #6a7a8a; }
+  .sdot { width: 5px; height: 5px; border-radius: 50%; }
+  .sdot.cyan { background: #4dd9e8; box-shadow: 0 0 4px #4dd9e8; animation: blink 2s ease-in-out infinite; }
+  .sdot.green { background: #68d391; box-shadow: 0 0 4px #68d391; }
+  .sdot.orange { background: #e8943a; box-shadow: 0 0 4px #e8943a; animation: blink 0.8s step-end infinite; }
+
+  /* Logo */
+  .logo {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #3d4460;
+    z-index: 11;
+  }
+  .logo em { color: #4dd9e8; font-style: normal; text-shadow: 0 0 8px #4dd9e8; }
+
+  /* Caisses pixel art */
+  .crate {
+    position: absolute;
+    width: 28px;
+    height: 24px;
+    background: #3d4030;
+    border: 2px solid #2a2c20;
+    border-radius: 1px;
+  }
+  .crate::after {
+    content: '';
+    position: absolute;
+    top: 4px; left: 4px; right: 4px; bottom: 4px;
+    border: 1px solid #4a4c38;
+  }
+
+</style>
+</head>
+<body>
+<div id="factory">
+
+  <!-- Murs -->
+  <div class="wall-top">
+    <!-- Lumières plafond -->
+    <div class="ceiling-light active" style="left:20%;"></div>
+    <div class="ceiling-light active" style="left:40%;"></div>
+    <div class="ceiling-light" style="left:60%;opacity:0.3;"></div>
+    <div class="ceiling-light active" style="left:75%;"></div>
+  </div>
+  <div class="wall-bottom"></div>
+  <div class="wall-left"></div>
+  <div class="wall-right"></div>
+
+  <!-- Terminal mural -->
+  <div class="wall-terminal">
+    <div class="terminal-screen"></div>
+    <div class="terminal-screen" style="border-color:#e8943a;"></div>
+    <div class="terminal-btn" style="background:#68d391;"></div>
+    <div class="terminal-btn" style="background:#e8943a;animation:blink 0.8s step-end infinite;"></div>
+    <div class="terminal-btn" style="background:#2d3142;border:1px solid #3d4460;"></div>
+  </div>
+
+  <!-- SVG tuyaux -->
+  <svg id="pipes">
+    <!-- BRANCHE YOUTUBE : dock → fetch_subtitles -->
+    <path d="M 210 295 L 310 295 L 310 220" stroke="#4dd9e8" stroke-width="4" fill="none" stroke-dasharray="8,4" opacity="0.8"/>
+    <!-- fetch_subtitles → transcribe -->
+    <path d="M 374 220 L 440 220 L 440 295 L 500 295" stroke="#4dd9e8" stroke-width="4" fill="none" opacity="0.9"/>
+
+    <!-- BRANCHE AUDIO : dock → extract_audio -->
+    <path d="M 210 340 L 310 340 L 310 380" stroke="#e8943a" stroke-width="3" fill="none" stroke-dasharray="6,4" opacity="0.5"/>
+    <!-- extract_audio → transcribe -->
+    <path d="M 374 380 L 440 380 L 440 330 L 500 295" stroke="#e8943a" stroke-width="3" fill="none" stroke-dasharray="6,4" opacity="0.4"/>
+
+    <!-- BRANCHE PDF : dock → extract_pdf -->
+    <path d="M 210 370 L 260 370 L 260 490 L 310 490" stroke="#b39ddb" stroke-width="3" fill="none" stroke-dasharray="6,4" opacity="0.45"/>
+    <!-- extract_pdf → chunk (bypass transcribe) -->
+    <path d="M 374 490 L 600 490 L 600 360" stroke="#b39ddb" stroke-width="3" fill="none" stroke-dasharray="6,4" opacity="0.4"/>
+
+    <!-- transcribe → chunk -->
+    <path d="M 564 295 L 600 295 L 600 296" stroke="#4dd9e8" stroke-width="5" fill="none" opacity="0.85"/>
+    <!-- chunk → embed -->
+    <path d="M 664 328 L 730 328" stroke="#4dd9e8" stroke-width="4" fill="none" opacity="0.8"/>
+
+    <!-- PARALLÈLE : embed → summarize -->
+    <path d="M 762 300 L 820 300 L 820 240" stroke="#68d391" stroke-width="3" fill="none" stroke-dasharray="5,3" opacity="0.55"/>
+    <!-- embed → create_note -->
+    <path d="M 762 358 L 820 358 L 820 430" stroke="#4dd9e8" stroke-width="4" fill="none" opacity="0.75"/>
+    <!-- summarize → create_note -->
+    <path d="M 820 240 L 884 240 L 884 430" stroke="#68d391" stroke-width="3" fill="none" stroke-dasharray="5,3" opacity="0.45"/>
+
+    <!-- create_note → finalize -->
+    <path d="M 948 466 L 1010 466" stroke="#4dd9e8" stroke-width="4" fill="none" opacity="0.8"/>
+
+    <!-- Objet animé sur la branche active (YouTube → fetch → transcribe) -->
+    <circle r="6" fill="#4dd9e8" opacity="0.9" filter="url(#glow)">
+      <animateMotion dur="5s" repeatCount="indefinite"
+        path="M 210,295 L 310,295 L 310,220 L 374,220 L 440,220 L 440,295 L 500,295 L 564,295 L 600,295 L 664,295 L 664,328 L 730,328"/>
+    </circle>
+    <circle r="4" fill="#e8e8e8" opacity="0.6">
+      <animateMotion dur="5s" repeatCount="indefinite" begin="0.3s"
+        path="M 210,295 L 310,295 L 310,220 L 374,220 L 440,220 L 440,295 L 500,295 L 564,295 L 600,295 L 664,295 L 664,328 L 730,328"/>
+    </circle>
+
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- ZONE DE DÉPÔT -->
+  <div class="loading-dock">
+    <div class="hazard-border"></div>
+    <div class="dock-label">⚠ INGESTION</div>
+    <button class="source-btn"><span class="icon">▶</span> YouTube URL</button>
+    <button class="source-btn"><span class="icon">🎙</span> Audio / Vidéo</button>
+    <button class="source-btn"><span class="icon">📄</span> PDF</button>
+    <div style="height:4px;"></div>
+    <button class="source-btn note"><span class="icon">✏️</span> Écrire une note</button>
+  </div>
+
+  <!-- MACHINES -->
+  <!-- fetch_subtitles -->
+  <div class="machine active" style="left:310px;top:188px;">
+    <div class="machine-body">
+      <div class="micon">📡</div>
+      <div class="mname">fetch<br>subtitles</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- extract_audio -->
+  <div class="machine off" style="left:310px;top:348px;">
+    <div class="machine-body">
+      <div class="micon">🎵</div>
+      <div class="mname">extract<br>audio</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- extract_pdf -->
+  <div class="machine off" style="left:310px;top:458px;">
+    <div class="machine-body" style="border-color:#4a3a60;">
+      <div class="micon">📄</div>
+      <div class="mname">extract<br>pdf</div>
+      <div class="machine-lights"><div class="mlight" style="background:#3a2a50;"></div><div class="mlight" style="background:#3a2a50;"></div><div class="mlight" style="background:#3a2a50;"></div></div>
+    </div>
+  </div>
+
+  <!-- transcribe -->
+  <div class="machine active" style="left:500px;top:263px;">
+    <div class="machine-body" style="width:72px;height:72px;">
+      <div class="micon">🔤</div>
+      <div class="mname">transcribe</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- chunk -->
+  <div class="machine done" style="left:600px;top:263px;">
+    <div class="machine-body">
+      <div class="micon">✂️</div>
+      <div class="mname">chunk</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- embed -->
+  <div class="machine warn" style="left:730px;top:296px;">
+    <div class="machine-body">
+      <div class="micon">🧠</div>
+      <div class="mname">embed</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- summarize (parallèle) -->
+  <div class="machine off" style="left:820px;top:208px;">
+    <div class="machine-body" style="width:56px;height:56px;">
+      <div class="micon" style="font-size:16px;">📋</div>
+      <div class="mname">summarize</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- create_note -->
+  <div class="machine off" style="left:820px;top:430px;">
+    <div class="machine-body">
+      <div class="micon">📝</div>
+      <div class="mname">create<br>note</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- finalize_source -->
+  <div class="machine off" style="left:1010px;top:434px;">
+    <div class="machine-body">
+      <div class="micon">✅</div>
+      <div class="mname">finalize</div>
+      <div class="machine-lights"><div class="mlight"></div><div class="mlight"></div><div class="mlight"></div></div>
+    </div>
+  </div>
+
+  <!-- Caisses décoratives -->
+  <div class="crate" style="right:180px;bottom:50px;"></div>
+  <div class="crate" style="right:212px;bottom:50px;"></div>
+  <div class="crate" style="right:180px;bottom:76px;"></div>
+
+  <!-- Stats panel mural -->
+  <div class="stats-wall">
+    <div class="stats-title">[ SYS STATUS ]</div>
+    <div class="stat-row"><span>Notes</span><span class="stat-val cyan">47</span></div>
+    <div class="stat-row"><span>Sources</span><span class="stat-val">12</span></div>
+    <div class="stat-row"><span>Jobs actifs</span><span class="stat-val orange">2</span></div>
+    <div class="stat-row"><span>API</span><span class="stat-val green">● ONLINE</span></div>
+    <div class="stat-row"><span>Ollama</span><span class="stat-val green">● ONLINE</span></div>
+    <div style="margin-top:8px;padding-top:6px;border-top:1px solid #3d4460;">
+      <div style="color:#6a7a8a;font-size:8px;margin-bottom:4px;">ACCÈS RAPIDE</div>
+      <div style="color:#a0b4cc;font-size:9px;margin-bottom:3px;cursor:pointer;">🔍 Recherche</div>
+      <div style="color:#4a5568;font-size:9px;cursor:pointer;">💬 Chat — bientôt</div>
+    </div>
+  </div>
+
+  <!-- Logo plafond -->
+  <div class="logo"><em>EGO</em>VAULT &nbsp;·&nbsp; CONTROL ROOM</div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div class="status-item"><div class="sdot cyan"></div><span>podcast-ep43.mp3 — transcription</span></div>
+    <div class="status-item"><div class="sdot orange"></div><span>embed — attente Ollama</span></div>
+    <div style="flex:1;"></div>
+    <div class="status-item"><div class="sdot green"></div><span>API</span></div>
+    <div class="status-item"><div class="sdot green"></div><span>Ollama</span></div>
+    <div style="color:#3d4460;font-size:8px;letter-spacing:1px;">v2.0 · local</div>
+  </div>
+
+</div>
+</body>
+</html>

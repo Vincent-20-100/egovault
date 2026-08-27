@@ -22,7 +22,7 @@ def _submit_job(executor, fn, *args):
 
 def _run_ingest(job_id: str, source_type: str, target: str, ctx, auto_generate_note=None, title=None) -> None:
     from workflows.ingest import ingest
-    from core.errors import IngestError, LargeFormatError
+    from core.errors import LargeFormatError
     system_db = ctx.system_db_path
     try:
         update_job_status(system_db, job_id, "running")

@@ -3,7 +3,6 @@ from datetime import date
 from pathlib import Path
 from core.schemas import Source, FinalizeResult
 from core.errors import NotFoundError
-import unittest.mock as mock
 
 
 def _insert_source(ctx, media_path=None):

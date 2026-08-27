@@ -1,0 +1,169 @@
+<h2>Palette visuelle — quelle direction ?</h2>
+<p class="subtitle">Gris moyen comme base, accents sur les éléments actifs. Cliquer pour sélectionner.</p>
+
+<div class="cards">
+
+  <!-- Palette A : Acier industriel -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0;overflow:hidden;border-radius:6px 6px 0 0;">
+      <!-- Sol / fond -->
+      <div style="
+        background: #4a4f5a;
+        background-image:
+          linear-gradient(rgba(0,0,0,0.15) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.15) 1px, transparent 1px);
+        background-size: 16px 16px;
+        padding: 14px;
+        min-height: 180px;
+        position: relative;
+      ">
+        <!-- Machine active -->
+        <div style="display:inline-flex;flex-direction:column;align-items:center;margin-right:12px;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#2d3748;border:2px solid #f6ad55;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 10px rgba(246,173,85,0.4);">🔤</div>
+          <div style="font-size:7px;color:#f6ad55;margin-top:4px;font-family:monospace;">ACTIF</div>
+        </div>
+        <!-- Machine idle -->
+        <div style="display:inline-flex;flex-direction:column;align-items:center;margin-right:12px;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#2d3748;border:2px solid #4a5568;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;">✂️</div>
+          <div style="font-size:7px;color:#4a5568;margin-top:4px;font-family:monospace;">INACTIF</div>
+        </div>
+        <!-- Machine done -->
+        <div style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#2d3748;border:2px solid #68d391;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;">✅</div>
+          <div style="font-size:7px;color:#68d391;margin-top:4px;font-family:monospace;">TERMINÉ</div>
+        </div>
+        <!-- Tuyau actif -->
+        <div style="position:absolute;bottom:20px;left:14px;right:14px;">
+          <svg width="100%" height="16">
+            <line x1="0" y1="8" x2="100%" y2="8" stroke="#f6ad55" stroke-width="3" stroke-dasharray="8,4"/>
+            <circle cx="60%" cy="8" r="5" fill="#f6ad55" opacity="0.9"/>
+          </svg>
+          <div style="font-size:7px;color:#718096;font-family:monospace;text-align:center;">tuyau actif — objet en transit</div>
+        </div>
+      </div>
+      <!-- Swatches -->
+      <div style="display:flex;height:28px;">
+        <div style="flex:1;background:#4a4f5a;" title="Sol"></div>
+        <div style="flex:1;background:#2d3748;" title="Machine"></div>
+        <div style="flex:1;background:#f6ad55;" title="Actif / accent chaud"></div>
+        <div style="flex:1;background:#68d391;" title="Terminé"></div>
+        <div style="flex:1;background:#63b3ed;" title="Info / drawer"></div>
+        <div style="flex:1;background:#fc8181;" title="Erreur"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Acier + Ambre</h3>
+      <p>Fond gris acier moyen (#4a4f5a), machines en gris foncé, accent principal <strong>ambre/orange</strong> pour l'activité. Chaud, industriel. Rappelle les tableaux de bord de vraies usines.</p>
+    </div>
+  </div>
+
+  <!-- Palette B : Béton + Néon -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0;overflow:hidden;border-radius:6px 6px 0 0;">
+      <div style="
+        background: #3d4451;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+          linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px);
+        background-size: 4px 4px, 4px 4px, 20px 20px, 20px 20px;
+        padding: 14px;
+        min-height: 180px;
+        position: relative;
+      ">
+        <div style="display:inline-flex;flex-direction:column;align-items:center;margin-right:12px;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#2a2f3a;border:2px solid #a3e635;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 12px rgba(163,230,53,0.4);">🔤</div>
+          <div style="font-size:7px;color:#a3e635;margin-top:4px;font-family:monospace;">ACTIF</div>
+        </div>
+        <div style="display:inline-flex;flex-direction:column;align-items:center;margin-right:12px;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#2a2f3a;border:2px solid #4a5568;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;">✂️</div>
+          <div style="font-size:7px;color:#4a5568;margin-top:4px;font-family:monospace;">INACTIF</div>
+        </div>
+        <div style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#2a2f3a;border:2px solid #38bdf8;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;">✅</div>
+          <div style="font-size:7px;color:#38bdf8;margin-top:4px;font-family:monospace;">TERMINÉ</div>
+        </div>
+        <div style="position:absolute;bottom:20px;left:14px;right:14px;">
+          <svg width="100%" height="16">
+            <line x1="0" y1="8" x2="100%" y2="8" stroke="#a3e635" stroke-width="3" stroke-dasharray="8,4"/>
+            <circle cx="60%" cy="8" r="5" fill="#a3e635" opacity="0.9"/>
+          </svg>
+          <div style="font-size:7px;color:#718096;font-family:monospace;text-align:center;">tuyau actif — objet en transit</div>
+        </div>
+      </div>
+      <div style="display:flex;height:28px;">
+        <div style="flex:1;background:#3d4451;"></div>
+        <div style="flex:1;background:#2a2f3a;"></div>
+        <div style="flex:1;background:#a3e635;"></div>
+        <div style="flex:1;background:#38bdf8;"></div>
+        <div style="flex:1;background:#f472b6;"></div>
+        <div style="flex:1;background:#fb7185;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Béton + Lime</h3>
+      <p>Fond béton moyen (#3d4451), accent principal <strong>vert lime</strong> pour l'activité, bleu ciel pour l'état terminé. Plus cyberpunk / rétro-futuriste. Contraste fort sur les éléments actifs.</p>
+    </div>
+  </div>
+
+  <!-- Palette C : Métal brossé + Cuivre -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0;overflow:hidden;border-radius:6px 6px 0 0;">
+      <div style="
+        background: #52585f;
+        background-image:
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 3px,
+            rgba(255,255,255,0.03) 3px,
+            rgba(255,255,255,0.03) 4px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 24px,
+            rgba(0,0,0,0.06) 24px,
+            rgba(0,0,0,0.06) 25px
+          );
+        padding: 14px;
+        min-height: 180px;
+        position: relative;
+      ">
+        <div style="display:inline-flex;flex-direction:column;align-items:center;margin-right:12px;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#3a3f47;border:2px solid #e88c3a;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 10px rgba(232,140,58,0.35);">🔤</div>
+          <div style="font-size:7px;color:#e88c3a;margin-top:4px;font-family:monospace;">ACTIF</div>
+        </div>
+        <div style="display:inline-flex;flex-direction:column;align-items:center;margin-right:12px;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#3a3f47;border:2px solid #52585f;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;opacity:0.6;">✂️</div>
+          <div style="font-size:7px;color:#52585f;margin-top:4px;font-family:monospace;">INACTIF</div>
+        </div>
+        <div style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:top;">
+          <div style="width:52px;height:52px;background:#3a3f47;border:2px solid #6ee7b7;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:20px;">✅</div>
+          <div style="font-size:7px;color:#6ee7b7;margin-top:4px;font-family:monospace;">TERMINÉ</div>
+        </div>
+        <div style="position:absolute;bottom:20px;left:14px;right:14px;">
+          <svg width="100%" height="16">
+            <line x1="0" y1="8" x2="100%" y2="8" stroke="#e88c3a" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="60%" cy="8" r="5" fill="#e88c3a" opacity="0.95"/>
+          </svg>
+          <div style="font-size:7px;color:#718096;font-family:monospace;text-align:center;">tuyau actif — objet en transit</div>
+        </div>
+      </div>
+      <div style="display:flex;height:28px;">
+        <div style="flex:1;background:#52585f;"></div>
+        <div style="flex:1;background:#3a3f47;"></div>
+        <div style="flex:1;background:#e88c3a;"></div>
+        <div style="flex:1;background:#6ee7b7;"></div>
+        <div style="flex:1;background:#93c5fd;"></div>
+        <div style="flex:1;background:#f87171;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Métal brossé + Cuivre</h3>
+      <p>Fond métal brossé (#52585f) avec texture de rayures fines, accent <strong>cuivre/rouille</strong> pour l'activité. Le plus "usine vintage". Texture plus riche, moins numérique.</p>
+    </div>
+  </div>
+
+</div>

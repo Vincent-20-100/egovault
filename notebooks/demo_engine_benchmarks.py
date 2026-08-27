@@ -15,7 +15,6 @@ Usage:
 import math
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 import matplotlib
@@ -29,14 +28,13 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.config import load_settings
 from core.schemas import NoteContentInput
-from infrastructure import db as vault_db_module
 from infrastructure.context import build_context
 from infrastructure.db import init_db, init_system_db
 from infrastructure.vault_db import VaultDB
 from infrastructure.vault_writer import write_note as _write_note
 from notebooks._lib.embedding_cache import get_or_embed, probe_provider, wrap_ctx_embed
 from notebooks._lib.segmentation_strategies import (
-    plot_metrics_comparison, plot_pca_topology, plot_size_distribution,
+    plot_metrics_comparison, plot_size_distribution,
     plot_strategy_bands, print_metrics_table, run_benchmark,
 )
 from tools.media.fetch_subtitles import fetch_subtitles

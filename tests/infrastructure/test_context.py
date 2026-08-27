@@ -5,10 +5,9 @@ Verifies that build_context() returns a valid VaultContext with correctly
 typed fields. Providers are not called (no real Ollama/Anthropic needed).
 """
 
-import pytest
 from pathlib import Path
 
-from core.context import VaultContext, EmbedFn, GenerateFn, WriteNoteFn
+from core.context import VaultContext
 from infrastructure.vault_db import VaultDB
 
 

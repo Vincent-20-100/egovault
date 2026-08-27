@@ -2,7 +2,7 @@ import pytest
 import time
 from datetime import datetime, timezone
 from core.schemas import Source, Note, NoteCandidate
-from core.errors import CandidateClaimedError, ExpiredLockError, NotFoundError
+from core.errors import CandidateClaimedError, ExpiredLockError
 
 
 def _setup_source(ctx):

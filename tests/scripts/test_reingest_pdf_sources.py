@@ -1,7 +1,3 @@
-import tempfile
-from pathlib import Path
-import pytest
-from unittest.mock import MagicMock
 
 from core.schemas import Source, NoteCandidate
 

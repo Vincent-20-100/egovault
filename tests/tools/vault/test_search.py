@@ -3,7 +3,6 @@ from unittest.mock import patch, MagicMock
 
 from tests.conftest import make_embedding
 
-from core.schemas import SearchResult
 
 
 def _mock_embedding():

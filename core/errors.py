@@ -244,7 +244,7 @@ class ProviderUnavailableError(ProviderError):
         super().__init__(
             user_message=f"AI service '{provider}' is unavailable at '{url}'.",
             error_code="provider_unavailable",
-            actionable_hint=f"Ensure the service is running (e.g. 'ollama serve') and accessible.",
+            actionable_hint="Ensure the service is running (e.g. 'ollama serve') and accessible.",
             http_status=503,
             context={"provider": provider, "url": url},
         )

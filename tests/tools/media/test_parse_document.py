@@ -1,9 +1,6 @@
-import hashlib
 import tempfile
 from pathlib import Path
 import pypdf
-import pytest
-from unittest.mock import MagicMock
 
 from core.schemas import DocumentParseResult, ExtractedImageMetadata
 

@@ -1,7 +1,6 @@
-import pytest
 import math
-from core.schemas import ChunkResult, CandidateSegment
-from tools.text.segment import segment_chunks, _cosine_similarity, _extract_label
+from core.schemas import ChunkResult
+from tools.text.segment import segment_chunks
 
 
 def _unit_vector(dim: int, index: int) -> list[float]:

@@ -1,8 +1,6 @@
 import pytest
-from pathlib import Path
 from unittest.mock import patch
 from core.errors import NotFoundError, ConflictError
-from core.schemas import DeleteSourceResult
 
 
 def _make_source(uid="suid-1", status="rag_ready", media_path=None):

@@ -1,19 +1,12 @@
-# Brainstorming sessions
-.superpowers/
+# Agent drafts — WIP only, never committed
+.agents/drafts/*
+!.agents/drafts/.gitkeep
 
-# Process workspace — scratch is drafts, not committed
-.meta/scratch/
-!.meta/scratch/.gitkeep
-
-# Notebook embedding cache — regenerable, not committed
-notebooks/.cache/
-
-# Git worktrees
-.worktrees/
-
-# Claude Code — local settings and generated worktrees (settings.json is versioned)
-.claude/settings.local.json
-.claude/worktrees/
+# Ruff & Test caches
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
 # Python
 __pycache__/

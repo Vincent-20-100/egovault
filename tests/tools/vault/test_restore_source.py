@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch
 from core.errors import NotFoundError, ConflictError
-from core.schemas import RestoreSourceResult
 
 
 def _make_source(status="pending_deletion"):

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>EgoVault — Factory Floor Concept</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #ccc;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* Factory floor — tuiles répétées */
+  #factory {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: #111;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 8px 8px, 8px 8px, 40px 40px, 40px 40px;
+    background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+  }
+
+  /* Marquages au sol style entrepôt */
+  #factory::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 20px,
+        rgba(255,200,0,0.012) 20px,
+        rgba(255,200,0,0.012) 21px
+      );
+    pointer-events: none;
+  }
+
+  /* Zone de livraison / drop-off */
+  .loading-dock {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 160px;
+    border: 2px solid #f59e0b;
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.06);
+    padding: 12px;
+  }
+  .loading-dock::before {
+    content: '⚠ ZONE DE DÉPÔT';
+    position: absolute;
+    top: -10px;
+    left: 8px;
+    background: #0a0a0a;
+    color: #f59e0b;
+    font-size: 8px;
+    padding: 0 4px;
+    letter-spacing: 1px;
+  }
+  .dock-stripes {
+    position: absolute;
+    bottom: -12px;
+    left: -2px;
+    right: -2px;
+    height: 10px;
+    background: repeating-linear-gradient(
+      90deg,
+      #f59e0b 0px, #f59e0b 8px,
+      transparent 8px, transparent 16px
+    );
+    opacity: 0.4;
+  }
+  .source-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 3px;
+    padding: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 10px;
+    color: #f59e0b;
+    width: 100%;
+    text-align: left;
+  }
+  .source-btn:last-child { margin-bottom: 0; }
+  .source-btn .icon { font-size: 16px; }
+
+  /* Machine générique */
+  .machine {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 8px;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .machine .icon { font-size: 22px; line-height: 1; }
+  .machine .label { line-height: 1.2; opacity: 0.8; }
+
+  /* États des machines */
+  .machine.off {
+    background: #1a1a1a;
+    border: 2px solid #2a2a2a;
+    color: #444;
+  }
+  .machine.active {
+    background: #1e3a2f;
+    border: 2px solid #4ade80;
+    color: #4ade80;
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.3), inset 0 0 8px rgba(74, 222, 128, 0.1);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .machine.done {
+    background: #1a2a3a;
+    border: 2px solid #60a5fa;
+    color: #60a5fa;
+  }
+  .machine.warning {
+    background: #3a2a1a;
+    border: 2px solid #f59e0b;
+    color: #f59e0b;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(74, 222, 128, 0.3), inset 0 0 8px rgba(74, 222, 128, 0.1); }
+    50% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.5), inset 0 0 12px rgba(74, 222, 128, 0.2); }
+  }
+
+  /* Indicateur d'activité en haut de machine */
+  .machine.active::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 6px;
+    height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: blink 0.8s step-end infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* SVG des tuyaux — en arrière-plan */
+  #pipes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Objet voyageant dans les tuyaux */
+  .traveling-obj {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    background: #4ade80;
+    border: 1px solid #86efac;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    z-index: 10;
+    animation: travel1 3s linear infinite;
+  }
+  @keyframes travel1 {
+    0%   { left: 194px; top: 50%; transform: translateY(-50%); opacity: 1; }
+    30%  { left: 310px; top: 50%; transform: translateY(-50%); opacity: 1; }
+    31%  { left: 310px; top: 50%; transform: translateY(-50%); opacity: 0; }
+    32%  { left: 310px; top: calc(50% - 80px); transform: translateY(-50%); opacity: 0; }
+    33%  { left: 310px; top: calc(50% - 80px); transform: translateY(-50%); opacity: 1; }
+    65%  { left: 430px; top: calc(50% - 80px); transform: translateY(-50%); opacity: 1; }
+    66%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* Panel stats — haut droite */
+  .stats-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(10, 10, 10, 0.9);
+    border: 1px solid #2a2a2a;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 10px;
+    min-width: 140px;
+  }
+  .stats-panel .title {
+    color: #555;
+    font-size: 8px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    gap: 16px;
+  }
+  .stat-label { color: #555; }
+  .stat-val { color: #aaa; }
+  .stat-val.green { color: #4ade80; }
+  .stat-val.blue { color: #60a5fa; }
+
+  /* Status bar — bas */
+  .status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    background: rgba(10,10,10,0.95);
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 20px;
+    font-size: 9px;
+  }
+  .status-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .dot.green { background: #4ade80; box-shadow: 0 0 4px #4ade80; }
+  .dot.red { background: #f87171; }
+  .dot.yellow { background: #f59e0b; animation: blink 1s step-end infinite; }
+
+  /* Logo / titre */
+  .logo {
+    position: absolute;
+    top: 20px;
+    left: 200px;
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 3px;
+  }
+  .logo span { color: #4ade80; }
+
+  /* Légende */
+  .legend {
+    position: absolute;
+    bottom: 40px;
+    right: 20px;
+    background: rgba(10,10,10,0.85);
+    border: 1px solid #1e1e1e;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 9px;
+    color: #555;
+  }
+  .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 1px; flex-shrink: 0; }
+
+  /* Note sur le concept */
+  .concept-note {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,10,10,0.9);
+    border: 1px solid #2a2a2a;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 9px;
+    color: #555;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .concept-note span { color: #4ade80; }
+</style>
+</head>
+<body>
+<div id="factory">
+
+  <!-- SVG tuyaux / connexions -->
+  <svg id="pipes" xmlns="http://www.w3.org/2000/svg">
+    <!-- Tuyau : dock → fetch_subtitles (branche YouTube) -->
+    <path d="M 194 300 L 310 300 L 310 220" stroke="#4ade80" stroke-width="3" fill="none" stroke-dasharray="6,3" opacity="0.7"/>
+    <!-- Tuyau : dock → extract_audio (branche audio/fallback) -->
+    <path d="M 194 340 L 310 340 L 310 380" stroke="#f59e0b" stroke-width="3" fill="none" stroke-dasharray="6,3" opacity="0.5"/>
+    <!-- Tuyau : dock → extract_pdf (branche PDF) -->
+    <path d="M 194 370 L 270 370 L 270 480 L 310 480" stroke="#a78bfa" stroke-width="3" fill="none" stroke-dasharray="6,3" opacity="0.5"/>
+
+    <!-- fetch_subtitles → transcribe -->
+    <path d="M 382 220 L 460 220 L 460 300" stroke="#4ade80" stroke-width="3" fill="none" stroke-dasharray="6,3" opacity="0.7"/>
+    <!-- extract_audio → transcribe -->
+    <path d="M 382 380 L 460 380 L 460 372" stroke="#f59e0b" stroke-width="3" fill="none" stroke-dasharray="6,3" opacity="0.4"/>
+    <!-- transcribe (merged) -->
+    <path d="M 496 300 L 560 300" stroke="#4ade80" stroke-width="4" fill="none" opacity="0.8"/>
+
+    <!-- extract_pdf → chunk (direct, pas de transcription) -->
+    <path d="M 382 480 L 590 480 L 590 372" stroke="#a78bfa" stroke-width="3" fill="none" stroke-dasharray="6,3" opacity="0.4"/>
+
+    <!-- chunk → embed -->
+    <path d="M 632 336 L 700 336" stroke="#4ade80" stroke-width="4" fill="none" opacity="0.7"/>
+    <!-- embed → summarize (parallèle) -->
+    <path d="M 736 300 L 800 300 L 800 240" stroke="#60a5fa" stroke-width="3" fill="none" stroke-dasharray="4,3" opacity="0.5"/>
+    <!-- embed → create_note -->
+    <path d="M 736 372 L 800 372 L 800 420" stroke="#4ade80" stroke-width="3" fill="none" opacity="0.7"/>
+    <!-- summarize → create_note -->
+    <path d="M 836 240 L 870 240 L 870 420" stroke="#60a5fa" stroke-width="3" fill="none" stroke-dasharray="4,3" opacity="0.4"/>
+    <!-- create_note → finalize -->
+    <path d="M 836 456 L 940 456" stroke="#4ade80" stroke-width="4" fill="none" opacity="0.8"/>
+
+    <!-- Marquages au sol pour la zone de dépôt -->
+    <line x1="198" y1="260" x2="198" y2="420" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8,4" opacity="0.2"/>
+
+    <!-- Objet voyageant — simulé -->
+    <circle cx="0" cy="0" r="5" fill="#4ade80" opacity="0.8">
+      <animateMotion dur="4s" repeatCount="indefinite"
+        path="M 194,300 L 310,300 L 310,220 L 382,220 L 460,220 L 460,300 L 560,300 L 632,300 L 700,300 L 700,336 L 736,336"/>
+    </circle>
+  </svg>
+
+  <!-- Zone de dépôt / loading dock -->
+  <div class="loading-dock">
+    <button class="source-btn">
+      <span class="icon">▶</span>
+      <span>YouTube URL</span>
+    </button>
+    <button class="source-btn">
+      <span class="icon">🎙</span>
+      <span>Audio / Vidéo</span>
+    </button>
+    <button class="source-btn">
+      <span class="icon">📄</span>
+      <span>PDF</span>
+    </button>
+    <div style="border-top:1px solid rgba(245,158,11,0.2);margin:8px 0;"></div>
+    <button class="source-btn" style="color:#a78bfa;border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.08);">
+      <span class="icon">✏️</span>
+      <span>Écrire une note</span>
+    </button>
+    <div class="dock-stripes"></div>
+  </div>
+
+  <!-- Machine : fetch_subtitles -->
+  <div class="machine active" style="left:310px;top:184px;">
+    <div class="icon">📡</div>
+    <div class="label">fetch<br>subtitles</div>
+  </div>
+
+  <!-- Machine : extract_audio -->
+  <div class="machine off" style="left:310px;top:344px;">
+    <div class="icon">🎵</div>
+    <div class="label">extract<br>audio</div>
+  </div>
+
+  <!-- Machine : extract_pdf -->
+  <div class="machine off" style="left:310px;top:444px;">
+    <div class="icon">📄</div>
+    <div class="label">extract<br>pdf</div>
+  </div>
+
+  <!-- Machine : transcribe -->
+  <div class="machine active" style="left:424px;top:264px;">
+    <div class="icon">🔤</div>
+    <div class="label">transcribe</div>
+  </div>
+
+  <!-- Machine : chunk -->
+  <div class="machine done" style="left:560px;top:264px;">
+    <div class="icon">✂️</div>
+    <div class="label">chunk</div>
+  </div>
+
+  <!-- Machine : embed -->
+  <div class="machine off" style="left:700px;top:300px;">
+    <div class="icon">🧠</div>
+    <div class="label">embed</div>
+  </div>
+
+  <!-- Machine : summarize (parallèle) -->
+  <div class="machine off" style="left:800px;top:204px;">
+    <div class="icon">📋</div>
+    <div class="label">summarize</div>
+  </div>
+
+  <!-- Machine : create_note -->
+  <div class="machine off" style="left:800px;top:420px;">
+    <div class="icon">📝</div>
+    <div class="label">create<br>note</div>
+  </div>
+
+  <!-- Machine : finalize_source -->
+  <div class="machine off" style="left:940px;top:420px;">
+    <div class="icon">✅</div>
+    <div class="label">finalize<br>source</div>
+  </div>
+
+  <!-- Logo -->
+  <div class="logo"><span>EGO</span>VAULT</div>
+
+  <!-- Note concept -->
+  <div class="concept-note">
+    Concept wireframe — <span>les tuyaux s'allument selon la source ingérée</span> · les objets voyagent en live
+  </div>
+
+  <!-- Stats panel -->
+  <div class="stats-panel">
+    <div class="title">VAULT STATUS</div>
+    <div class="stat-row"><span class="stat-label">Notes</span><span class="stat-val blue">47</span></div>
+    <div class="stat-row"><span class="stat-label">Sources</span><span class="stat-val">12</span></div>
+    <div class="stat-row"><span class="stat-label">Jobs actifs</span><span class="stat-val green">2</span></div>
+    <div class="stat-row"><span class="stat-label">API</span><span class="stat-val green">✓ OK</span></div>
+    <div class="stat-row"><span class="stat-label">Ollama</span><span class="stat-val green">✓ OK</span></div>
+  </div>
+
+  <!-- Légende -->
+  <div class="legend">
+    <div class="legend-row"><div class="legend-dot" style="background:#4ade80;border:1px solid #4ade80;"></div><span style="color:#4ade80;">Actif</span></div>
+    <div class="legend-row"><div class="legend-dot" style="background:#60a5fa;border:1px solid #60a5fa;"></div><span style="color:#60a5fa;">Terminé</span></div>
+    <div class="legend-row"><div class="legend-dot" style="background:#2a2a2a;border:1px solid #333;"></div><span>Inactif</span></div>
+    <div class="legend-row"><div class="legend-dot" style="background:#f59e0b;border:1px solid #f59e0b;"></div><span style="color:#f59e0b;">Zone dépôt</span></div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div class="status-item"><div class="dot yellow"></div><span>podcast-ep43.mp3 — transcription en cours</span></div>
+    <div class="status-item"><div class="dot green"></div><span>video-econ.mp4 — terminé · 3min</span></div>
+    <div style="flex:1;"></div>
+    <div class="status-item"><div class="dot green"></div><span>API</span></div>
+    <div class="status-item"><div class="dot green"></div><span>Ollama</span></div>
+    <div style="color:#444;font-size:8px;">EgoVault v2 · local</div>
+  </div>
+
+</div>
+</body>
+</html>

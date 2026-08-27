@@ -128,7 +128,7 @@ def main() -> None:
     if not config_dst_user.exists():
         copy_config(config_src / "user.yaml.example", config_dst_user, "config/user.yaml")
     else:
-        print(f"  [skip] config/user.yaml already exists")
+        print("  [skip] config/user.yaml already exists")
 
     if not config_dst_install.exists():
         copy_config(config_src / "install.yaml.example", config_dst_install, "config/install.yaml")
@@ -138,7 +138,7 @@ def main() -> None:
         config_dst_install.write_text(text, encoding="utf-8")
         print(f"       patched user_dir -> {target}")
     else:
-        print(f"  [skip] config/install.yaml already exists")
+        print("  [skip] config/install.yaml already exists")
 
     print(f"\nDone. Open {target / 'vault'} as an Obsidian vault (Add vault in Obsidian).")
     print("Then run: .venv/Scripts/python -m pytest tests/  to verify the installation.\n")

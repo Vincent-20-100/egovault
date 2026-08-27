@@ -6,8 +6,8 @@ from datetime import date
 
 from tests.conftest import make_embedding
 
-from core.schemas import SubtitleResult, ChunkResult, Source, NoteResult, Note, FetchWebResult
-from core.errors import LargeFormatError, EmptyContentError
+from core.schemas import SubtitleResult, ChunkResult, NoteResult, Note, FetchWebResult
+from core.errors import EmptyContentError
 
 
 # -- Helpers --

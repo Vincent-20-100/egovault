@@ -1,0 +1,36 @@
+# lefthook.yml — Fast local git quality gates (0 token overhead, <100ms)
+# Install Lefthook: uv tool install lefthook || npm install -g @evilmartians/lefthook
+# Activate in repository: lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    secrets-audit:
+      tags: security
+      run: |
+        git diff --cached --name-only | grep -E "(\.env|\.pem|\.key|id_rsa)" && echo "ERROR: Sensitive file staged!" && exit 1 || exit 0
+
+    ruff-check:
+      glob: "*.py"
+      run: uv run ruff check --fix {staged_files}
+      stage_fixed: true
+
+    ruff-format:
+      glob: "*.py"
+      run: uv run ruff format {staged_files}
+      stage_fixed: true
+
+    pytest-fast:
+      tags: testing
+      glob: "tests/**/*.py"
+      run: uv run pytest -q --tb=line
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: |
+        MSG=$(head -n 1 {1})
+        if ! echo "$MSG" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?: .{1,100}'; then
+          echo "ERROR: Commit message must follow Conventional Commits (e.g. 'feat: add streaming parser' or 'fix(ml): prevent target leakage')"
+          exit 1
+        fi
